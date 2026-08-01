@@ -19,3 +19,13 @@
 3. QA/CI checks adapted to the integrated contract.
 4. Full validation and M0 release commit.
 
+## M0 integration record
+
+- Orchestrator baseline: `d12450a`
+- Environment lock baseline: `32cd848`
+- QA handoff integrated: `23acf49`
+- Contracts handoff integrated and frozen source: `9bc2051`
+- Appendix D sign-off: `tools/diagnostics/m0_config_freeze.json`
+
+The next writable product boundary is M1's authority runtime. All rows marked
+with an M0 artifact are frozen inputs to that work.

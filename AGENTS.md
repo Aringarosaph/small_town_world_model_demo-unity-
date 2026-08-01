@@ -22,7 +22,8 @@
 - Keep IDs, time units, numeric directions, relation direction, and protocol versions explicit.
 - Every deliverable includes tests or executable validation plus an updated handoff.
 
-## Current milestone
+## Milestone boundary
 
-M0 freezes repository structure, configuration, catalogs, DTOs, protocol, validation, CI, and governance. Product simulation logic begins in M1.
-
+M0 is accepted and frozen. Product simulation logic begins in M1 only after an
+explicit M1 task. Changes to M0-frozen files require an ADR, version review, new
+hash manifest, and Orchestrator acceptance.

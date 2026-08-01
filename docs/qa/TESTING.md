@@ -21,9 +21,8 @@
 | `contract_pending` | Executable check waiting for an upstream M0 artifact |
 | `slow` | Excluded from the default fast lane |
 
-Markers are registered by the local `conftest.py` files so QA does not race the
-CONTRACTS thread on `pyproject.toml`. The Orchestrator may later move the same
-definitions into the central pytest configuration.
+Markers are registered centrally in `pyproject.toml`; the local `conftest.py`
+files retain equivalent registration for isolated path execution.
 
 ## Lanes
 
@@ -34,16 +33,17 @@ pytest --strict-config --strict-markers \
   -m "not contract_pending" python/tests/qa integration_tests
 ```
 
-Full M0 readiness (expected to fail until upstream M0 inputs are integrated):
+Full M0 readiness:
 
 ```bash
-pytest --strict-config --strict-markers \
-  -m "m0 and contract_pending" integration_tests
-python tools/diagnostics/check_m0.py
+uv run --no-editable pytest --strict-config --strict-markers \
+  python/tests integration_tests
+uv run --no-editable python tools/diagnostics/check_m0.py
 ```
 
 An integrated upstream artifact must never be exempted merely to keep CI green.
-Remove `contract_pending` once the dependency lands and the check passes.
+The M0 repository acceptance test has no `contract_pending` marker after
+integration and therefore gates every full test run.
 
 ## Test evidence
 

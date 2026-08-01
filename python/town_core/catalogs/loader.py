@@ -110,7 +110,9 @@ def _validate_cross_references(bundle: CatalogBundle, root: Path) -> list[str]:
     if dict(bundle.world.fixed_counts) != EXPECTED_COUNTS:
         issues.append(f"fixed counts mismatch: {dict(bundle.world.fixed_counts)}")
     _require_exact("NPC IDs", {npc.agent_id for npc in npcs}, EXPECTED_AGENT_IDS, issues)
-    _require_exact("household IDs", {household.household_id for household in households}, EXPECTED_HOUSEHOLD_IDS, issues)
+    _require_exact(
+        "household IDs", {household.household_id for household in households}, EXPECTED_HOUSEHOLD_IDS, issues
+    )
     _require_exact("location IDs", {location.location_id for location in locations}, EXPECTED_LOCATION_IDS, issues)
     _require_exact("behavior IDs", {behavior.behavior_id for behavior in behaviors}, set(BehaviorId), issues)
     _require_exact("object types", {item.object_type for item in object_types}, set(ObjectType), issues)

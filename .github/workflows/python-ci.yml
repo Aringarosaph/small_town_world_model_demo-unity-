@@ -25,10 +25,12 @@ jobs:
         with:
           python-version: "3.12"
           cache: pip
-          cache-dependency-path: .github/requirements/qa.txt
+          cache-dependency-path: |
+            pyproject.toml
+            .github/requirements/qa.txt
 
-      - name: Install QA tools
-        run: python -m pip install -r .github/requirements/qa.txt
+      - name: Install project and QA tools
+        run: python -m pip install -e ".[test]"
 
       - name: Ruff lint
         run: >-
@@ -70,15 +72,8 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Install QA tools
-        run: python -m pip install -r .github/requirements/qa.txt
-
-      - name: Install project when CONTRACTS is present
-        shell: bash
-        run: |
-          if [[ -f pyproject.toml ]]; then
-            python -m pip install -e .
-          fi
+      - name: Install project and QA tools
+        run: python -m pip install -e ".[test]"
 
       - name: Build strict M0 diagnostic report
         continue-on-error: true

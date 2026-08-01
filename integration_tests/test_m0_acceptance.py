@@ -17,7 +17,6 @@ pytestmark = [
     pytest.mark.qa,
     pytest.mark.m0,
     pytest.mark.integration,
-    pytest.mark.contract_pending,
 ]
 
 

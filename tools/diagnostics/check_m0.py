@@ -86,39 +86,23 @@ UPSTREAM_REQUIRED_PATHS: Final[tuple[PathRequirement, ...]] = (
     PathRequirement("protocol/version.json", "file", Owner.CONTRACTS),
     PathRequirement("protocol/jsonschema", "directory", Owner.CONTRACTS, nonempty=True),
     PathRequirement("protocol/examples", "directory", Owner.CONTRACTS, nonempty=True),
-    PathRequirement(
-        "python/town_core/domain", "directory", Owner.CONTRACTS, nonempty=True
-    ),
+    PathRequirement("python/town_core/domain", "directory", Owner.CONTRACTS, nonempty=True),
     PathRequirement("docs/specs", "directory", Owner.CONTRACTS, nonempty=True),
     PathRequirement("docs/adr", "directory", Owner.CONTRACTS, nonempty=True),
     PathRequirement("docs/orchestration/MASTER_PLAN.md", "file", Owner.ORCHESTRATOR),
     PathRequirement("docs/orchestration/CURRENT_STATUS.md", "file", Owner.ORCHESTRATOR),
     PathRequirement("docs/orchestration/DECISION_LOG.md", "file", Owner.ORCHESTRATOR),
-    PathRequirement(
-        "docs/orchestration/INTEGRATION_MATRIX.md", "file", Owner.ORCHESTRATOR
-    ),
+    PathRequirement("docs/orchestration/INTEGRATION_MATRIX.md", "file", Owner.ORCHESTRATOR),
     PathRequirement("docs/orchestration/KNOWN_ISSUES.md", "file", Owner.ORCHESTRATOR),
-    PathRequirement(
-        "docs/orchestration/RELEASE_CHECKLIST.md", "file", Owner.ORCHESTRATOR
-    ),
+    PathRequirement("docs/orchestration/RELEASE_CHECKLIST.md", "file", Owner.ORCHESTRATOR),
     PathRequirement("unity/Assets/AITown/Scripts", "directory", Owner.UNITY_BRIDGE),
-    PathRequirement(
-        "unity/Assets/AITown/Scripts/Bridge", "directory", Owner.UNITY_BRIDGE
-    ),
-    PathRequirement(
-        "unity/Assets/AITown/Scripts/Semantic", "directory", Owner.UNITY_BRIDGE
-    ),
+    PathRequirement("unity/Assets/AITown/Scripts/Bridge", "directory", Owner.UNITY_BRIDGE),
+    PathRequirement("unity/Assets/AITown/Scripts/Semantic", "directory", Owner.UNITY_BRIDGE),
     PathRequirement("unity/Assets/AITown/Scripts/NPC", "directory", Owner.UNITY_BRIDGE),
-    PathRequirement(
-        "unity/Assets/AITown/Scripts/Animation", "directory", Owner.UNITY_BRIDGE
-    ),
-    PathRequirement(
-        "unity/Assets/AITown/Scripts/Dialogue", "directory", Owner.UNITY_BRIDGE
-    ),
+    PathRequirement("unity/Assets/AITown/Scripts/Animation", "directory", Owner.UNITY_BRIDGE),
+    PathRequirement("unity/Assets/AITown/Scripts/Dialogue", "directory", Owner.UNITY_BRIDGE),
     PathRequirement("unity/Assets/AITown/Scripts/UI", "directory", Owner.UNITY_BRIDGE),
-    PathRequirement(
-        "unity/Assets/AITown/Scripts/Debug", "directory", Owner.UNITY_BRIDGE
-    ),
+    PathRequirement("unity/Assets/AITown/Scripts/Debug", "directory", Owner.UNITY_BRIDGE),
     PathRequirement("unity/Assets/AITown/Editor", "directory", Owner.UNITY_BRIDGE),
     PathRequirement("unity/Assets/AITown/Tests", "directory", Owner.UNITY_BRIDGE),
 )
@@ -283,9 +267,9 @@ TEXT_SECRET_PATTERNS: Final[tuple[tuple[str, re.Pattern[str]], ...]] = (
 )
 
 ENV_SECRET_RE: Final = re.compile(
-    r"(?im)^\s*(?:export\s+)?"
+    r"(?im)^[ \t]*(?:export[ \t]+)?"
     r"(?:DEEPSEEK|OPENAI|ANTHROPIC|AWS|GOOGLE|GITHUB|SLACK)?"
-    r"[A-Z0-9_]*(?:API_KEY|ACCESS_TOKEN|SECRET_KEY|PASSWORD)\s*=\s*([^\s#]+)"
+    r"[A-Z0-9_]*(?:API_KEY|ACCESS_TOKEN|SECRET_KEY|PASSWORD)[ \t]*=[ \t]*([^\s#]+)"
 )
 PLACEHOLDER_VALUES: Final[frozenset[str]] = frozenset(
     {
@@ -408,10 +392,7 @@ def detect_sensitive_path(relative_path: str) -> str | None:
     if (
         len(parts) >= 2
         and parts[0] == "models"
-        and (
-            parts[1] == "checkpoints"
-            or normalized.suffix.lower() in {".onnx", ".pt", ".pth"}
-        )
+        and (parts[1] == "checkpoints" or normalized.suffix.lower() in {".onnx", ".pt", ".pth"})
     ):
         return "model-artifact"
     if (
@@ -425,9 +406,7 @@ def detect_sensitive_path(relative_path: str) -> str | None:
         }
     ):
         return "unity-generated"
-    if any(
-        part in {"llm_cache", "llm-cache", "cached_llm_responses"} for part in parts
-    ):
+    if any(part in {"llm_cache", "llm-cache", "cached_llm_responses"} for part in parts):
         return "llm-cache"
     return None
 
@@ -534,7 +513,7 @@ def extract_catalog_ids(text: str, field_names: Sequence[str]) -> list[str]:
     """Extract scalar IDs from explicit Schema-owned YAML fields."""
     field_pattern = "|".join(re.escape(field) for field in field_names)
     pattern = re.compile(
-        rf"^\s*(?:-\s*)?(?:{field_pattern})\s*:\s*[\"']?([^\s#\"']+)",
+        rf"^\s*(?:-\s*)?\{{?\s*(?:{field_pattern})\s*:\s*[\"']?([^\s,#\"'}}]+)",
         flags=re.MULTILINE,
     )
     return [match.group(1) for match in pattern.finditer(text)]
@@ -615,11 +594,7 @@ def _run_config_validator(root: Path) -> Finding:
     env = os.environ.copy()
     python_path = str(root / "python")
     existing_python_path = env.get("PYTHONPATH")
-    env["PYTHONPATH"] = (
-        f"{python_path}{os.pathsep}{existing_python_path}"
-        if existing_python_path
-        else python_path
-    )
+    env["PYTHONPATH"] = f"{python_path}{os.pathsep}{existing_python_path}" if existing_python_path else python_path
     try:
         completed = subprocess.run(
             command,
@@ -640,11 +615,7 @@ def _run_config_validator(root: Path) -> Finding:
             remediation="provide the default town_core CLI or set AITOWN_M0_CONFIG_VALIDATE_CMD",
         )
     if completed.returncode != 0:
-        output = "\n".join(
-            value.strip()
-            for value in (completed.stdout, completed.stderr)
-            if value.strip()
-        )
+        output = "\n".join(value.strip() for value in (completed.stdout, completed.stderr) if value.strip())
         if len(output) > 1_500:
             output = f"{output[:1_500]}... [truncated]"
         return Finding(
@@ -652,8 +623,7 @@ def _run_config_validator(root: Path) -> Finding:
             status=Status.FAIL,
             code="CONFIG_VALIDATOR_FAILED",
             message=(
-                f"authoritative config validator exited {completed.returncode}"
-                + (f": {output}" if output else "")
+                f"authoritative config validator exited {completed.returncode}" + (f": {output}" if output else "")
             ),
             owner=Owner.CONTRACTS,
             remediation=f"reproduce with: {shlex.join(command)}",
@@ -724,44 +694,30 @@ def check_frozen_scope(root: Path) -> list[Finding]:
 
     contract_text = _read_contract_text(root)
     for dimension, expected_names in FROZEN_DIMENSIONS.items():
-        missing = [
-            name
-            for name in expected_names
-            if re.search(rf"\b{re.escape(name)}\b", contract_text) is None
-        ]
+        missing = [name for name in expected_names if re.search(rf"\b{re.escape(name)}\b", contract_text) is None]
         findings.append(
             Finding(
                 check="m0-frozen-scope",
                 status=Status.FAIL if missing else Status.PASS,
-                code="FROZEN_DIMENSION_MISSING"
-                if missing
-                else "FROZEN_DIMENSION_PRESENT",
+                code="FROZEN_DIMENSION_MISSING" if missing else "FROZEN_DIMENSION_PRESENT",
                 message=(
                     f"{dimension} is missing frozen names: {missing}"
                     if missing
                     else f"{dimension} exposes all {len(expected_names)} frozen names"
                 ),
                 owner=Owner.CONTRACTS,
-                remediation=(
-                    "add the names to the authoritative Schema/config or record an ADR"
-                    if missing
-                    else None
-                ),
+                remediation=("add the names to the authoritative Schema/config or record an ADR" if missing else None),
             )
         )
 
     events_path = root / "config/v0/events.yaml"
-    event_text = (
-        events_path.read_text(encoding="utf-8") if events_path.is_file() else ""
-    )
+    event_text = events_path.read_text(encoding="utf-8") if events_path.is_file() else ""
     missing_events = [event for event in MINIMUM_EVENT_TYPES if event not in event_text]
     findings.append(
         Finding(
             check="m0-frozen-scope",
             status=Status.FAIL if missing_events else Status.PASS,
-            code="MINIMUM_EVENTS_MISSING"
-            if missing_events
-            else "MINIMUM_EVENTS_PRESENT",
+            code="MINIMUM_EVENTS_MISSING" if missing_events else "MINIMUM_EVENTS_PRESENT",
             message=(
                 f"minimum M0 event enum is missing: {missing_events}"
                 if missing_events
@@ -888,10 +844,7 @@ def check_config_freeze(root: Path) -> list[Finding]:
             )
         )
     source_commit = document.get("source_commit")
-    if (
-        not isinstance(source_commit, str)
-        or re.fullmatch(r"[0-9a-f]{7,40}", source_commit) is None
-    ):
+    if not isinstance(source_commit, str) or re.fullmatch(r"[0-9a-f]{7,40}", source_commit) is None:
         findings.append(
             Finding(
                 check="m0-config-freeze",
@@ -902,9 +855,7 @@ def check_config_freeze(root: Path) -> list[Finding]:
                 path=FREEZE_MANIFEST_PATH,
             )
         )
-    if not isinstance(document.get("approved_by"), str) or not document.get(
-        "approved_by"
-    ):
+    if not isinstance(document.get("approved_by"), str) or not document.get("approved_by"):
         findings.append(
             Finding(
                 check="m0-config-freeze",
@@ -1073,11 +1024,7 @@ def check_config_freeze(root: Path) -> list[Finding]:
 
 
 def _as_pending(finding: Finding, allow_pending: bool) -> Finding:
-    if (
-        allow_pending
-        and finding.status is Status.FAIL
-        and finding.owner is not Owner.QA
-    ):
+    if allow_pending and finding.status is Status.FAIL and finding.owner is not Owner.QA:
         return replace(
             finding,
             status=Status.PENDING,
@@ -1098,9 +1045,7 @@ def run_checks(
         "scope": check_frozen_scope,
         "freeze": check_config_freeze,
     }
-    names = (
-        tuple(check_functions) if "all" in selected_checks else tuple(selected_checks)
-    )
+    names = tuple(check_functions) if "all" in selected_checks else tuple(selected_checks)
     findings: list[Finding] = []
     for name in names:
         findings.extend(check_functions[name](root))
@@ -1109,27 +1054,17 @@ def run_checks(
 
 def render_text(findings: Iterable[Finding], *, verbose: bool = False) -> str:
     materialized = list(findings)
-    visible = (
-        materialized
-        if verbose
-        else [item for item in materialized if item.status is not Status.PASS]
-    )
+    visible = materialized if verbose else [item for item in materialized if item.status is not Status.PASS]
     lines: list[str] = []
     for finding in visible:
         location = f" path={finding.path}" if finding.path else ""
         lines.append(
-            f"[{finding.status}] {finding.check}/{finding.code} "
-            f"owner={finding.owner}{location}: {finding.message}"
+            f"[{finding.status}] {finding.check}/{finding.code} owner={finding.owner}{location}: {finding.message}"
         )
         if finding.remediation:
             lines.append(f"  remediation: {finding.remediation}")
-    counts = {
-        status: sum(item.status is status for item in materialized) for status in Status
-    }
-    lines.append(
-        "summary: "
-        f"pass={counts[Status.PASS]} pending={counts[Status.PENDING]} fail={counts[Status.FAIL]}"
-    )
+    counts = {status: sum(item.status is status for item in materialized) for status in Status}
+    lines.append(f"summary: pass={counts[Status.PASS]} pending={counts[Status.PENDING]} fail={counts[Status.FAIL]}")
     return "\n".join(lines)
 
 
@@ -1139,15 +1074,10 @@ def write_json_report(path: Path, root: Path, findings: Sequence[Finding]) -> No
         "schema": "aitown.qa.m0-diagnostics/v1",
         "generated_at_utc": datetime.now(UTC).isoformat(),
         "repository_root": str(root),
-        "summary": {
-            status.value.lower(): sum(item.status is status for item in findings)
-            for status in Status
-        },
+        "summary": {status.value.lower(): sum(item.status is status for item in findings) for status in Status},
         "findings": [asdict(item) for item in findings],
     }
-    path.write_text(
-        json.dumps(report, indent=2, ensure_ascii=False) + "\n", encoding="utf-8"
-    )
+    path.write_text(json.dumps(report, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -1164,9 +1094,7 @@ def build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="downgrade missing upstream M0 inputs to PENDING; QA failures still fail",
     )
-    parser.add_argument(
-        "--json-output", type=Path, help="write a machine-readable report"
-    )
+    parser.add_argument("--json-output", type=Path, help="write a machine-readable report")
     parser.add_argument("--verbose", action="store_true", help="print passing findings")
     parser.add_argument("--root", type=Path, help="repository root override")
     return parser

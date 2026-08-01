@@ -48,6 +48,12 @@ def test_secret_detector_hides_values_at_api_boundary() -> None:
 
 
 def test_environment_placeholders_are_allowed() -> None:
+    example = """DEEPSEEK_API_KEY=
+DEEPSEEK_BASE_URL=https://api.deepseek.com
+DEEPSEEK_MODEL=deepseek-v4-flash
+"""
+
+    assert detect_secret_content(example) == ()
     assert detect_secret_content("DEEPSEEK_API_KEY=${DEEPSEEK_API_KEY}\n") == ()
 
 
@@ -55,10 +61,11 @@ def test_catalog_extractor_reads_explicit_fields() -> None:
     text = """
     - behavior_id: idle
     - behavior_id: "sleep"
+    - {behavior_id: chat, category: SOCIAL}
     unrelated_id: ignored
     """
 
-    assert extract_catalog_ids(text, ("behavior_id",)) == ["idle", "sleep"]
+    assert extract_catalog_ids(text, ("behavior_id",)) == ["idle", "sleep", "chat"]
 
 
 def _digest(path: Path) -> str:
@@ -100,16 +107,12 @@ def test_freeze_manifest_accepts_complete_reviewed_snapshot(tmp_path: Path) -> N
 
     findings = check_config_freeze(tmp_path)
 
-    assert [(finding.status, finding.code) for finding in findings] == [
-        (Status.PASS, "CONFIG_FREEZE_VERIFIED")
-    ]
+    assert [(finding.status, finding.code) for finding in findings] == [(Status.PASS, "CONFIG_FREEZE_VERIFIED")]
 
 
 def test_freeze_manifest_reports_content_drift(tmp_path: Path) -> None:
     _write_valid_freeze_manifest(tmp_path)
-    (tmp_path / "config/v0/world.yaml").write_text(
-        "fixture: changed\n", encoding="utf-8"
-    )
+    (tmp_path / "config/v0/world.yaml").write_text("fixture: changed\n", encoding="utf-8")
 
     findings = check_config_freeze(tmp_path)
 
@@ -128,6 +131,4 @@ def test_freeze_candidate_is_actionable_but_unsigned(tmp_path: Path) -> None:
     checklist = candidate["checklist"]
     assert isinstance(checklist, dict)
     assert checklist and not any(checklist.values())
-    assert candidate["files"] == [
-        {"path": "config/v0/world.yaml", "sha256": _digest(config)}
-    ]
+    assert candidate["files"] == [{"path": "config/v0/world.yaml", "sha256": _digest(config)}]

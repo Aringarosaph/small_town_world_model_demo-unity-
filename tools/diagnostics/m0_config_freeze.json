@@ -1,0 +1,202 @@
+{
+  "schema": "aitown.qa.m0-freeze/v1",
+  "source_commit": "9bc20517932265d43a030f833bfd9918f025e512",
+  "approved_by": "AITOWN-ORCH",
+  "approved_at_utc": "2026-08-01T21:39:12Z",
+  "checklist": {
+    "npc_ids_10": true,
+    "household_ids_4": true,
+    "location_ids_8": true,
+    "npc_household_job_shift_assignments": true,
+    "behavior_ids_22": true,
+    "object_types_15": true,
+    "behavior_contracts": true,
+    "needs_5": true,
+    "personality_axes_4": true,
+    "mood_axes_2": true,
+    "relationship_axes_4": true,
+    "event_enum": true,
+    "economy_prices_and_wages": true,
+    "travel_matrix": true,
+    "unity_animation_semantics": true,
+    "websocket_protocol_version": true,
+    "deepseek_speech_schema": true,
+    "golden_chain_initial_conditions": true,
+    "data_feature_version": true,
+    "v0_non_goals_documented": true
+  },
+  "files": [
+    {
+      "path": "config/v0/behaviors.yaml",
+      "sha256": "c1729fdd95901d7aa3a54128c19cf8d2abd0fa0097ec8d234659c638fd7908a8"
+    },
+    {
+      "path": "config/v0/economy.yaml",
+      "sha256": "1d08e9f6fd7ee10722f9a80c0705aed94fba71bce19f40ba97257067e72186ee"
+    },
+    {
+      "path": "config/v0/events.yaml",
+      "sha256": "b7c0033edab3d4c82d688e5d901113c569df470d57951c59d28195b70403bbd0"
+    },
+    {
+      "path": "config/v0/households.yaml",
+      "sha256": "eb5ffd93ed47f073c1343d02ade9f6e5a05ed4e9659b431c3d921032452346b4"
+    },
+    {
+      "path": "config/v0/locations.yaml",
+      "sha256": "08be5a7728bfeb74c2332681e5c324001e1e55889381be469059986410d50f80"
+    },
+    {
+      "path": "config/v0/model.yaml",
+      "sha256": "06eb2fb3646fd617cc47eade8d62fd955941735ffaede1ed43b44bc59185d717"
+    },
+    {
+      "path": "config/v0/objects.yaml",
+      "sha256": "3698d808a246c09186dc50e38dc306bd74b41c5e1370233e0eeecfbdfc675dce"
+    },
+    {
+      "path": "config/v0/population.yaml",
+      "sha256": "c12b2a1dc59acf4e78500a782c4bffd689a161888cc6705f7730f172690a25a6"
+    },
+    {
+      "path": "config/v0/prompts/manifest.yaml",
+      "sha256": "27ec8688a1898905d9f3b6c90b6be2a693d6b1040dafa34056c3a99bb667fdcf"
+    },
+    {
+      "path": "config/v0/prompts/parse_player_utterance.md",
+      "sha256": "87f5454cab41f24b6e6cd773835858f066160cf9977e001ae0504e2e9ec70d80"
+    },
+    {
+      "path": "config/v0/prompts/verbalize_speech_plan.md",
+      "sha256": "fb6da5c2e747cea8fa5d655961399e9cdc731dcd8cd3dabeb071813246b1ba1e"
+    },
+    {
+      "path": "config/v0/schedules.yaml",
+      "sha256": "cfb2f985cef05a7c4c89725ca70951e38de0cd41ec894f578dcf3fd2134ff798"
+    },
+    {
+      "path": "config/v0/utility.yaml",
+      "sha256": "b2d94ac7274e4b9c076c0f2eb56bf88b2403eb714b674e579ce684592e50f942"
+    },
+    {
+      "path": "config/v0/world.yaml",
+      "sha256": "0baeb678590f5e8dd533d8d769868f4a096df963f84491ea326d82ae10221391"
+    },
+    {
+      "path": "protocol/examples/action-started.json",
+      "sha256": "bbcd7308911f0c52e2ebd915fb7887f864ffd26ee0dd1ac40b555e151d607033"
+    },
+    {
+      "path": "protocol/examples/client-hello.json",
+      "sha256": "3655024e505d8b297843d4c1695365e18a7c4623e300f792a359dc0bc1017317"
+    },
+    {
+      "path": "protocol/examples/joint-action.json",
+      "sha256": "ccb2930b771f39ab7c23bfbb0f0a1849d3cdebcf44e80c61e45f2c3ace942dbd"
+    },
+    {
+      "path": "protocol/examples/movement-arrived.json",
+      "sha256": "d83b1bbe00b35714ad5753e8eab0382db6eefc1644a3cc16691b0d760140908e"
+    },
+    {
+      "path": "protocol/examples/outcome-prediction.json",
+      "sha256": "66a7b25156da00fc4a466a39dd802358cefa33f62670f90f0a93dea9851c69db"
+    },
+    {
+      "path": "protocol/examples/perception-snapshot.json",
+      "sha256": "170a00590c9bbfcef37f5512be1a5633669cbf38513d169c8cdfb434221da4a5"
+    },
+    {
+      "path": "protocol/examples/player-speech-parse.json",
+      "sha256": "6ed8d2948b553a72e118b77e278ab0a04ece32c5f4cac65e0e591b10c44f443a"
+    },
+    {
+      "path": "protocol/examples/player-utterance.json",
+      "sha256": "397d2f57c610ccef62fbde45130e99d0b2ec6206b7086b36ca527fc7d7305963"
+    },
+    {
+      "path": "protocol/jsonschema/candidate-action.schema.json",
+      "sha256": "904669cae21cc885cefba7f701e13654cf74d7abb06eabe54bffd74f71054618"
+    },
+    {
+      "path": "protocol/jsonschema/catalog-bundle.schema.json",
+      "sha256": "ff78d164e11f3ba214d3cb3ae4170e49ded2243f517b8edca350fcfe48593a47"
+    },
+    {
+      "path": "protocol/jsonschema/joint-action.schema.json",
+      "sha256": "9d9272d5901d58ba5e66840561813855661e8dc725b8edf1f0a74e0596f3ed27"
+    },
+    {
+      "path": "protocol/jsonschema/outcome-prediction.schema.json",
+      "sha256": "6e4b6feb38ad371fd9d0cf272ecce01a05cc5e20f63a4e596c2875adb4d84b4c"
+    },
+    {
+      "path": "protocol/jsonschema/perception-snapshot.schema.json",
+      "sha256": "254ae492ba909a60d14d7ee55dddf70d053f66050a6e6ed7109a0d2ca528d5ed"
+    },
+    {
+      "path": "protocol/jsonschema/player-speech-parse.schema.json",
+      "sha256": "3e170d1b9b9637886eae14569e92b3773f6f303a882d19d3d459a8b5bb8c3afd"
+    },
+    {
+      "path": "protocol/jsonschema/protocol-message.schema.json",
+      "sha256": "fdff89738e2e169ded59badca4671cfc0effd6b2783d9677b125aea2d80ce492"
+    },
+    {
+      "path": "protocol/jsonschema/speech-plan.schema.json",
+      "sha256": "85f1abe75322b16ee3f786a645f7698ba666ae29adfa1a5d3d7b435b01661de5"
+    },
+    {
+      "path": "protocol/jsonschema/state-transaction.schema.json",
+      "sha256": "22359f24e1499203ec40cc48d0edef3639023fb1a5bd83d8d0dfb424cb9744de"
+    },
+    {
+      "path": "protocol/jsonschema/world-state.schema.json",
+      "sha256": "16855afb24b8135edd38538fa0252667488fa24b4026ff49ef208d3e3b061479"
+    },
+    {
+      "path": "protocol/version.json",
+      "sha256": "b5507204297bda6a5331773951b35327f15204535d9f5a6c1f6010d36a3386b2"
+    },
+    {
+      "path": "python/town_core/domain/__init__.py",
+      "sha256": "a3f735d14ce981e0eeed82fe69218e7db4a020548971a7699f9744706079251c"
+    },
+    {
+      "path": "python/town_core/domain/base.py",
+      "sha256": "e890e808bdfa05f6b14822cdcdbdff26ddeb07ab29cfde34c6048d6d18e0d511"
+    },
+    {
+      "path": "python/town_core/domain/config_models.py",
+      "sha256": "3b4f4bff42b69d6e10fc130e4c3f5a05c3ee3ce7761354f9ab5ab2c71da5f690"
+    },
+    {
+      "path": "python/town_core/domain/decision_models.py",
+      "sha256": "12a837d512086fed022f943b8c0a282f77a2e985de6f62cfc6417c43d079c032"
+    },
+    {
+      "path": "python/town_core/domain/dialogue_models.py",
+      "sha256": "7a0f773c40eed25e95478fb029d57a88701d79aadda14b96ae9548820c210406"
+    },
+    {
+      "path": "python/town_core/domain/enums.py",
+      "sha256": "50cd67efae83aaa1602a89e2c839c84d634ee22f05aa139a4eb228add1e69233"
+    },
+    {
+      "path": "python/town_core/domain/identifiers.py",
+      "sha256": "6cd11dd9d63f429ac1ff9928f46c2e909b72f8a13bb6fbf23ad47e97db8e3016"
+    },
+    {
+      "path": "python/town_core/domain/protocol_models.py",
+      "sha256": "ad90ca2e7eed1d4f594fdf86f5c4016ab9eab550b5845166be9274d9f4feed8c"
+    },
+    {
+      "path": "python/town_core/domain/schema_artifacts.py",
+      "sha256": "8b3fe3e9f16708be8ec005f889454a58f25323683b07f77bc564d701209ddf2e"
+    },
+    {
+      "path": "python/town_core/domain/state_models.py",
+      "sha256": "08cf160b08bd5a82fe054bfb074a1bbdb6b9b139b7b6b87e0c097a82ba43738f"
+    }
+  ]
+}

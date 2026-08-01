@@ -41,9 +41,7 @@ def build_candidate(root: Path, source_commit: str) -> dict[str, object]:
     """Build an unsigned manifest candidate from the integrated repository."""
     paths = sorted(eligible_freeze_paths(root))
     if not paths:
-        raise RuntimeError(
-            "no config/protocol/domain Schema files found; integrate CONTRACTS first"
-        )
+        raise RuntimeError("no config/protocol/domain Schema files found; integrate CONTRACTS first")
     return {
         "schema": "aitown.qa.m0-freeze/v1",
         "source_commit": source_commit,
@@ -92,9 +90,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     )
     generated_at = datetime.now(UTC).isoformat()
     print(f"wrote {output} at {generated_at}")
-    print(
-        "next: manually review every checklist item, approved_by, and approved_at_utc"
-    )
+    print("next: manually review every checklist item, approved_by, and approved_at_utc")
     return 0
 
 

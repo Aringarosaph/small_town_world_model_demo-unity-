@@ -7,4 +7,4 @@
 | ADR-0003 | Freeze V0 runtime concurrency, perception, timing, work, and settlement semantics | Accepted |
 | ADR-0004 | Keep the pinned iCloud workspace with local/cloud responsibility separation | Accepted |
 | ADR-0005 | M4 distills reviewed social reactions rather than claiming discovery of social laws | Accepted |
-
+| ADR-0006 | Freeze the unprefixed 22-value V0 behavior-ID namespace | Accepted |

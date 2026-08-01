@@ -99,31 +99,25 @@ The full strict gate is intentionally not expected to pass before integration.
 - The broad V0 Definition of Done is not an M0 gate. Later threads must add
   unit/property/integration/soak/golden-chain coverage with their capabilities.
 
-## Pending decisions
+## Orchestrator integration result
 
-- CONTRACTS should centralize equivalent pytest markers and tool settings in
-  `pyproject.toml` after resolving its concurrent ownership; QA intentionally
-  did not touch that file.
-- Confirm whether the authoritative config command uses the recommended module
-  path. If not, set `AITOWN_M0_CONFIG_VALIDATE_CMD` during integration.
-- Confirm the CONTRACTS test paths. The gating CI lane executes all Python and
-  integration tests; marking Schema/config coverage with `m0` still enables
-  focused local runs and reporting.
+- CONTRACTS and QA were integrated on `main`.
+- The recommended configuration CLI is authoritative and passes.
+- Pytest markers and all test paths are centralized in `pyproject.toml`.
+- The `contract_pending` marker was removed from repository acceptance.
+- Two integration defects were corrected with regression coverage: empty
+  `.env.example` assignments crossing a regex line boundary, and inline YAML
+  object-type extraction.
+- Appendix D was reviewed and the freeze manifest was signed by `AITOWN-ORCH`.
+- Final result on Python 3.12.11: 28 tests, 58 strict diagnostics, Ruff, format,
+  and Mypy all pass.
 
 ## Next recommended task
 
-After CONTRACTS and Orchestrator artifacts are merged:
-
-1. run the pending-input diagnostic and resolve every adapter mismatch;
-2. run the authoritative config and Schema tests;
-3. generate `m0_config_freeze.json` from the integrated CONTRACTS commit;
-4. have the Orchestrator manually review and sign every Appendix D item;
-5. remove `contract_pending` from the full-repository acceptance test;
-6. require both GitHub Actions jobs before declaring M0 complete.
+For M1, extend the same gates with deterministic authority-state, invariant,
+transaction, replay, and three-day headless coverage. Do not weaken the M0
+acceptance test or modify frozen inputs without the versioned freeze procedure.
 
 ## Blocking dependencies
 
-Strict M0 acceptance waits for the integrated `pyproject.toml`, `config/v0`,
-`protocol`, domain Schema, CONTRACTS tests/specs, Orchestrator records, Unity M0
-directory skeleton, and the reviewed final freeze manifest. These are M0
-artifacts, not requests for M1+ product logic.
+No M0 blocker remains. M1 product behavior is intentionally outside this handoff.
