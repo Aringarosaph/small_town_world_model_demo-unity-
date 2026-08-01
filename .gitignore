@@ -1,0 +1,43 @@
+# Python
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Secrets and local configuration
+.env
+.env.*
+!.env.example
+
+# Runtime, datasets, and models
+runs/
+data/generated/
+models/*.pt
+models/*.pth
+models/*.onnx
+models/checkpoints/
+reports/generated/
+
+# Unity generated files
+[Ll]ibrary/
+[Tt]emp/
+[Oo]bj/
+[Bb]uild/
+[Bb]uilds/
+[Ll]ogs/
+[Uu]ser[Ss]ettings/
+MemoryCaptures/
+Recordings/
+
+# IDE and OS
+.DS_Store
+.idea/
+.vscode/
+*.csproj
+*.sln
+*.user
+
