@@ -1,10 +1,12 @@
-# AI Town repository instructions
+# Small Town World Model repository instructions
 
 ## Authority
 
 - `docs/specs/AI_Town_V0_Orchestrator_Implementation_Spec.md` is the active implementation source of truth.
 - `docs/specs/AI_Town_Long_Term_Architecture_Roadmap.md` is a constraint and roadmap, not a V0 backlog.
 - Accepted ADRs in `docs/adr/` refine ambiguities. A later accepted ADR supersedes an earlier conflicting implementation detail.
+- Small Town World Model（STWM）is the public project name. Existing `ai-town`
+  and `AITOWN-*` values are M0 compatibility identifiers, not competing public names.
 - `AITOWN-ORCH` owns cross-thread contracts and milestone acceptance.
 
 ## Scope discipline
@@ -24,6 +26,12 @@
 
 ## Milestone boundary
 
-M0 is accepted and frozen. Product simulation logic begins in M1 only after an
-explicit M1 task. Changes to M0-frozen files require an ADR, version review, new
-hash manifest, and Orchestrator acceptance.
+M0 is accepted and frozen. M1 is active and is limited to the one-NPC Headless
+authority slice: clock, state initialization, candidates, utility, resolver,
+action lifecycle, needs, work/wage settlement, append-only events, run evidence,
+and authoritative replay for `idle`, `sleep`, `eat_at_home`, and `work_shift`.
+
+M1 must not add Unity transport/runtime behavior, enable the complete 10-NPC
+society, implement neural inference/training, call DeepSeek, or introduce any
+post-V0 roadmap feature. Changes to M0-frozen files require an ADR, version
+review, regenerated artifacts and hashes, and Orchestrator acceptance.

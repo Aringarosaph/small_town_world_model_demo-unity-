@@ -29,3 +29,11 @@
 
 The next writable product boundary is M1's authority runtime. All rows marked
 with an M0 artifact are frozen inputs to that work.
+
+## Merge order for M1
+
+1. Orchestrator naming, scope, CLI, evidence, and acceptance baseline.
+2. Simulation runtime, tests, run writer, Headless CLI, and replay CLI.
+3. QA adapters and independent determinism/replay/invariant gates.
+4. Full repository validation and an audited three-day run.
+5. Public `main` push followed by both GitHub Actions gates.

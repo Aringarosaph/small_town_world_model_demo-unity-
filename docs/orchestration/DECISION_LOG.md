@@ -8,3 +8,4 @@
 | ADR-0004 | Keep the pinned iCloud workspace with local/cloud responsibility separation | Accepted |
 | ADR-0005 | M4 distills reviewed social reactions rather than claiming discovery of social laws | Accepted |
 | ADR-0006 | Freeze the unprefixed 22-value V0 behavior-ID namespace | Accepted |
+| ADR-0007 | Use Small Town World Model (STWM) as the public project name while preserving M0 compatibility IDs | Accepted |

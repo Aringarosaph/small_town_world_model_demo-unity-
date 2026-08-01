@@ -1,4 +1,4 @@
-"""AI Town authority-core contracts."""
+"""Small Town World Model authority-core contracts."""
 
 from town_core.domain.enums import CONFIG_VERSION, PROTOCOL_VERSION
 

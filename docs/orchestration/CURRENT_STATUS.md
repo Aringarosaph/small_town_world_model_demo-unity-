@@ -2,13 +2,14 @@
 
 ## Milestone
 
-`M0 - specifications and repository baseline (accepted)`
+`M1 - Headless hard-rule vertical slice (active)`
 
 ## State
 
 - Orchestrator thread: `AITOWN-ORCH`
 - Contracts thread: M0 handoff integrated; retained as long-term owner
 - QA thread: M0 handoff integrated; retained as long-term owner
+- Simulation thread: `AITOWN-SIM`, active for M1
 - Git branch: `main`
 - Remote: `origin`
 - Unity version: `6000.4.2f1`
@@ -30,8 +31,19 @@
 
 ## Next gate
 
-M1 may begin only after the accepted M0 commit is on `origin/main`. It is limited
-to the one-NPC headless authority slice and must consume the frozen contracts.
+M1 exits only when one active NPC runs three deterministic game days without an
+illegal state, produces complete structured decision/action/event/transaction
+evidence, and authoritative replay reaches the identical final-state hash.
+
+## M1 in progress
+
+- [x] Accept M0 on public `origin/main`.
+- [x] Freeze the M1 execution and acceptance boundary.
+- [x] Activate `AITOWN-SIM` and `AITOWN-QA` for M1.
+- [ ] Integrate the Headless authority runtime and CLI.
+- [ ] Integrate deterministic/replay QA gates.
+- [ ] Pass local and GitHub M1 acceptance.
+- [ ] Push the accepted M1 baseline.
 
 ## Blockers
 

@@ -5,7 +5,7 @@ build-backend = "hatchling.build"
 [project]
 name = "ai-town-core"
 version = "0.1.0"
-description = "Versioned contracts and configuration catalogs for AI Town"
+description = "Versioned contracts and simulation core for Small Town World Model"
 readme = "README.md"
 requires-python = ">=3.12,<3.13"
 license = { text = "MIT" }
