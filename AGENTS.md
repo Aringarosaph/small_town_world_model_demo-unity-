@@ -26,7 +26,7 @@
 
 ## Milestone boundary
 
-M0 is accepted and frozen. M1 is implemented and locally accepted as the
+M0 is accepted and frozen. M1 is implemented and accepted on public `main` as the
 one-NPC Headless authority slice: clock, state initialization, candidates,
 utility, resolver, action lifecycle, needs, work/wage settlement, append-only
 events, run evidence, and authoritative replay for `idle`, `sleep`,

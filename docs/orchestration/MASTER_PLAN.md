@@ -39,5 +39,5 @@ M1 implements one active NPC in `HEADLESS_FAST` mode using only `idle`, `sleep`,
 run plus authoritative replay with matching final-state hash. The exact boundary
 and gate live in `docs/orchestration/M1_EXECUTION_BASELINE.md`.
 
-The next product boundary is M2: a one-NPC Unity bridge slice. M2 does not start
-until the M1 integration commit passes the remote Python CI gate.
+The next product boundary is M2: a one-NPC Unity bridge slice. M1 has passed the
+remote Python CI gate; M2 still does not start until Orchestrator assigns it.

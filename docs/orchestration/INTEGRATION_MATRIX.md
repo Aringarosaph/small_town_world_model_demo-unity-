@@ -45,3 +45,5 @@ with an M0 artifact are frozen inputs to that work.
 - Independent QA handoff: source `99da488`, integrated as `4b19cdd`
 - Work attendance semantics: ADR-0008
 - Final strict gate: `tools/diagnostics/check_m1.py --require-sim`
+- Orchestrator acceptance commit: `3d43c15`
+- GitHub Actions acceptance run: `30722721963` (all three jobs passed)

@@ -35,5 +35,5 @@
 - [x] All 64 Python 3.12 tests, Ruff, format, and strict Mypy pass locally.
 - [x] Generated runs and evidence remain outside Git.
 - [x] M1 QA reports 15 pass, zero pending, and zero failures locally.
-- [ ] GitHub Actions passes the integrated M1 commit.
-- [ ] The accepted M1 commit is pushed to public `origin/main`.
+- [x] GitHub Actions passes the integrated M1 commit.
+- [x] The accepted M1 commit is pushed to public `origin/main`.

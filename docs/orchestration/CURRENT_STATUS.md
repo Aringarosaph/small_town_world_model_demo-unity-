@@ -2,7 +2,7 @@
 
 ## Milestone
 
-`M1 - Headless hard-rule vertical slice (local acceptance complete)`
+`M1 - Headless hard-rule vertical slice (accepted on public main)`
 
 ## State
 
@@ -46,6 +46,8 @@
   `dda5aae504b65700c2a6e2da4386ee6dab022ee8792917887c7bf905960e3cbd`.
 - Accepted four-log authority hash:
   `a0268e4f88b1b861959fa26137d73c656b8c3d1ab5d4b1590b124844d7487297`.
+- GitHub Actions run `30722721963` passed `QA baseline`, `M0 readiness`, and
+  `M1 QA readiness` for acceptance commit `3d43c15`.
 
 ## M1 completion
 
@@ -55,7 +57,7 @@
 - [x] Integrate the Headless authority runtime and CLI.
 - [x] Integrate deterministic/replay QA gates.
 - [x] Pass local M1 acceptance.
-- [ ] Pass GitHub M1 acceptance and push the accepted M1 baseline.
+- [x] Pass GitHub M1 acceptance and push the accepted M1 baseline.
 
 ## Blockers
 
