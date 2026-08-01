@@ -22,6 +22,7 @@
 - [x] Unit and QA tests pass on Python 3.12.
 - [x] Ruff and mypy pass.
 - [x] CI configuration is present.
+- [x] The first public `main` run passes both remote CI jobs.
 
 ## Governance
 

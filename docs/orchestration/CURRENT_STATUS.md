@@ -2,7 +2,7 @@
 
 ## Milestone
 
-`M0 - specifications and repository baseline`
+`M0 - specifications and repository baseline (accepted)`
 
 ## State
 
@@ -25,7 +25,8 @@
 - [x] Integrate CI and QA acceptance checks.
 - [x] Review and sign the Appendix D freeze manifest.
 - [x] Run all M0 validation: 28 tests and 58 diagnostics passed.
-- [ ] Push the accepted M0 baseline.
+- [x] Push the accepted M0 baseline to `origin/main`.
+- [x] Pass GitHub Actions `QA baseline` and `M0 readiness` on integration commit `a5ee1af`.
 
 ## Next gate
 
