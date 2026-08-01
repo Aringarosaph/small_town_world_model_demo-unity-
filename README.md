@@ -206,19 +206,19 @@ uv run --no-editable pytest python/tests/contracts/test_protocol_artifacts.py
 
 ### M1 Headless 与回放
 
-M1 正在实现以下稳定命令接口，合入前不要假设它们已经可用：
+M1 提供以下稳定命令接口：
 
 ```bash
-# 计划接口：运行固定 NPC 的三日 Headless 切片
+# 运行固定 NPC 的三日 Headless 切片
 uv run --no-editable python -m town_core.cli run-headless \
   --config config/v0 --agent npc_01 --days 3 --seed 12345
 
-# 计划接口：重放某次运行并验证最终状态哈希
+# 重放某次运行并验证最终状态哈希
 uv run --no-editable python -m town_core.cli replay \
   --run runs/<run_id>
 ```
 
-M1 合入时 README 会把这里更新为已经自动测试过的实际命令。
+两个命令都输出单行机器可读 JSON；运行证据写入已被 Git 忽略的 `runs/`。
 
 ## 仓库结构
 
