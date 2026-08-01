@@ -1,0 +1,9 @@
+currency: minor_units
+allow_negative_money: false
+allow_negative_food: false
+fixed_shift_wage: 12000
+groceries: {price: 4000, food_units_delta: 8}
+cafe_meal: {price: 800, food_units_delta: 0}
+bar_drink: {price: 600, food_units_delta: 0}
+food_low_threshold: 3
+money_low_threshold: 5000

@@ -1,0 +1,49 @@
+locations:
+  - location_id: home_a
+    location_type: HOME
+    display_name_key: location_home_a
+    open_intervals: [{start_minute_of_day: 0, end_minute_of_day: 1440}]
+    capacity: 4
+    travel_minutes: {home_b: 8, home_c: 13, home_d: 10, cafe_bar: 12, shop: 10, workshop: 14, park: 7}
+  - location_id: home_b
+    location_type: HOME
+    display_name_key: location_home_b
+    open_intervals: [{start_minute_of_day: 0, end_minute_of_day: 1440}]
+    capacity: 5
+    travel_minutes: {home_a: 8, home_c: 9, home_d: 12, cafe_bar: 9, shop: 7, workshop: 11, park: 8}
+  - location_id: home_c
+    location_type: HOME
+    display_name_key: location_home_c
+    open_intervals: [{start_minute_of_day: 0, end_minute_of_day: 1440}]
+    capacity: 4
+    travel_minutes: {home_a: 13, home_b: 9, home_d: 8, cafe_bar: 15, shop: 10, workshop: 7, park: 11}
+  - location_id: home_d
+    location_type: HOME
+    display_name_key: location_home_d
+    open_intervals: [{start_minute_of_day: 0, end_minute_of_day: 1440}]
+    capacity: 5
+    travel_minutes: {home_a: 10, home_b: 12, home_c: 8, cafe_bar: 11, shop: 9, workshop: 10, park: 6}
+  - location_id: cafe_bar
+    location_type: CAFE_BAR
+    display_name_key: location_cafe_bar
+    open_intervals: [{start_minute_of_day: 360, end_minute_of_day: 1320}]
+    capacity: 16
+    travel_minutes: {home_a: 12, home_b: 9, home_c: 15, home_d: 11, shop: 6, workshop: 8, park: 5}
+  - location_id: shop
+    location_type: SHOP
+    display_name_key: location_shop
+    open_intervals: [{start_minute_of_day: 540, end_minute_of_day: 1020}]
+    capacity: 12
+    travel_minutes: {home_a: 10, home_b: 7, home_c: 10, home_d: 9, cafe_bar: 6, workshop: 5, park: 7}
+  - location_id: workshop
+    location_type: WORKPLACE
+    display_name_key: location_workshop
+    open_intervals: [{start_minute_of_day: 420, end_minute_of_day: 1080}]
+    capacity: 12
+    travel_minutes: {home_a: 14, home_b: 11, home_c: 7, home_d: 10, cafe_bar: 8, shop: 5, park: 9}
+  - location_id: park
+    location_type: PARK
+    display_name_key: location_park
+    open_intervals: [{start_minute_of_day: 300, end_minute_of_day: 1380}]
+    capacity: 20
+    travel_minutes: {home_a: 7, home_b: 8, home_c: 11, home_d: 6, cafe_bar: 5, shop: 7, workshop: 9}

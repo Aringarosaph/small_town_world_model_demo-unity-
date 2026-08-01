@@ -1,0 +1,24 @@
+{
+  "correlation_id": "action_0000098",
+  "message_id": "msg_000042",
+  "message_type": "action_started",
+  "payload": {
+    "action_id": "action_0000098",
+    "agent_ids": [
+      "npc_03"
+    ],
+    "animation_semantic": "EAT",
+    "behavior_id": "eat_at_home",
+    "destination_location_id": "home_b",
+    "planned_duration_minutes": 30,
+    "prop_semantic": "MEAL",
+    "target_object_ids": [
+      "home_b_fridge_01",
+      "home_b_seat_02"
+    ]
+  },
+  "protocol_version": "0.1.0",
+  "sent_at_utc": "2026-01-01T00:10:00Z",
+  "state_version": 1024,
+  "world_id": "demo_world"
+}

@@ -1,0 +1,9 @@
+feature_version: v0.1
+default_outcome_model: heuristic
+neural_model_status: deferred_to_m4
+max_context_events: 4
+relationship_prediction: TARGET_TO_ACTOR
+relationship_axes: [familiarity, affinity, trust, tension]
+need_axes: [hunger, energy, hygiene, fun, social]
+mood_axes: [valence, stress]
+acceptance_behaviors: [greet, chat, joke, compliment, invite_join, apologize, confront]

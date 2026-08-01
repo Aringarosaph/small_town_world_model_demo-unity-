@@ -1,0 +1,139 @@
+npcs:
+  - agent_id: npc_01
+    display_name_key: npc_01_name
+    life_stage: ADULT
+    household_id: household_a
+    home_location_id: home_a
+    assigned_work_location_id: cafe_bar
+    assigned_workstation_tag: CAFE_MORNING
+    schedule_id: schedule_npc_01
+    initial_needs: {hunger: 0.74, energy: 0.82, hygiene: 0.70, fun: 0.55, social: 0.48}
+    personality: {sociability: 0.70, discipline: 0.80, frugality: 0.40, irritability: 0.20}
+    initial_mood: {valence: 0.15, stress: 0.18}
+    enabled: true
+  - agent_id: npc_02
+    display_name_key: npc_02_name
+    life_stage: ADULT
+    household_id: household_a
+    home_location_id: home_a
+    assigned_work_location_id: workshop
+    assigned_workstation_tag: WORKSHOP
+    schedule_id: schedule_npc_02
+    initial_needs: {hunger: 0.78, energy: 0.78, hygiene: 0.72, fun: 0.52, social: 0.45}
+    personality: {sociability: 0.40, discipline: 0.70, frugality: 0.60, irritability: 0.30}
+    initial_mood: {valence: 0.08, stress: 0.20}
+    enabled: true
+  - agent_id: npc_03
+    display_name_key: npc_03_name
+    life_stage: ADULT
+    household_id: household_b
+    home_location_id: home_b
+    assigned_work_location_id: workshop
+    assigned_workstation_tag: WORKSHOP
+    schedule_id: schedule_npc_03
+    initial_needs: {hunger: 0.72, energy: 0.58, hygiene: 0.68, fun: 0.42, social: 0.54}
+    personality: {sociability: 0.60, discipline: 0.35, frugality: 0.30, irritability: 0.40}
+    initial_mood: {valence: 0.05, stress: 0.30}
+    enabled: true
+  - agent_id: npc_04
+    display_name_key: npc_04_name
+    life_stage: ADULT
+    household_id: household_b
+    home_location_id: home_b
+    assigned_work_location_id: workshop
+    assigned_workstation_tag: WORKSHOP
+    schedule_id: schedule_npc_04
+    initial_needs: {hunger: 0.76, energy: 0.84, hygiene: 0.75, fun: 0.50, social: 0.50}
+    personality: {sociability: 0.50, discipline: 0.85, frugality: 0.55, irritability: 0.25}
+    initial_mood: {valence: 0.10, stress: 0.16}
+    enabled: true
+  - agent_id: npc_05
+    display_name_key: npc_05_name
+    life_stage: ADULT
+    household_id: household_b
+    home_location_id: home_b
+    assigned_work_location_id: shop
+    assigned_workstation_tag: SHOP
+    schedule_id: schedule_npc_05
+    initial_needs: {hunger: 0.80, energy: 0.80, hygiene: 0.74, fun: 0.48, social: 0.52}
+    personality: {sociability: 0.55, discipline: 0.70, frugality: 0.80, irritability: 0.20}
+    initial_mood: {valence: 0.12, stress: 0.15}
+    enabled: true
+  - agent_id: npc_06
+    display_name_key: npc_06_name
+    life_stage: ADULT
+    household_id: household_c
+    home_location_id: home_c
+    assigned_work_location_id: cafe_bar
+    assigned_workstation_tag: CAFE_EVENING
+    schedule_id: schedule_npc_06
+    initial_needs: {hunger: 0.70, energy: 0.86, hygiene: 0.76, fun: 0.62, social: 0.60}
+    personality: {sociability: 0.80, discipline: 0.50, frugality: 0.30, irritability: 0.35}
+    initial_mood: {valence: 0.20, stress: 0.12}
+    enabled: true
+  - agent_id: npc_07
+    display_name_key: npc_07_name
+    life_stage: ADULT
+    household_id: household_c
+    home_location_id: home_c
+    assigned_work_location_id: shop
+    assigned_workstation_tag: SHOP
+    schedule_id: schedule_npc_07
+    initial_needs: {hunger: 0.77, energy: 0.79, hygiene: 0.78, fun: 0.46, social: 0.40}
+    personality: {sociability: 0.40, discipline: 0.75, frugality: 0.65, irritability: 0.15}
+    initial_mood: {valence: 0.06, stress: 0.14}
+    enabled: true
+  - agent_id: npc_08
+    display_name_key: npc_08_name
+    life_stage: ADULT
+    household_id: household_d
+    home_location_id: home_d
+    assigned_work_location_id: cafe_bar
+    assigned_workstation_tag: CAFE_EVENING
+    schedule_id: schedule_npc_08
+    initial_needs: {hunger: 0.73, energy: 0.85, hygiene: 0.71, fun: 0.58, social: 0.57}
+    personality: {sociability: 0.75, discipline: 0.60, frugality: 0.40, irritability: 0.30}
+    initial_mood: {valence: 0.16, stress: 0.17}
+    enabled: true
+  - agent_id: npc_09
+    display_name_key: npc_09_name
+    life_stage: ADULT
+    household_id: household_d
+    home_location_id: home_d
+    assigned_work_location_id: workshop
+    assigned_workstation_tag: WORKSHOP
+    schedule_id: schedule_npc_09
+    initial_needs: {hunger: 0.79, energy: 0.83, hygiene: 0.80, fun: 0.44, social: 0.36}
+    personality: {sociability: 0.30, discipline: 0.80, frugality: 0.70, irritability: 0.20}
+    initial_mood: {valence: 0.04, stress: 0.13}
+    enabled: true
+  - agent_id: npc_10
+    display_name_key: npc_10_name
+    life_stage: ADULT
+    household_id: household_d
+    home_location_id: home_d
+    assigned_work_location_id: cafe_bar
+    assigned_workstation_tag: CAFE_MORNING
+    schedule_id: schedule_npc_10
+    initial_needs: {hunger: 0.68, energy: 0.76, hygiene: 0.69, fun: 0.64, social: 0.55}
+    personality: {sociability: 0.65, discipline: 0.55, frugality: 0.20, irritability: 0.45}
+    initial_mood: {valence: 0.18, stress: 0.22}
+    enabled: true
+relationship_initialization:
+  generation_seed: 12345
+  role_priority: [HOUSEHOLD_MEMBER, COWORKER, ACQUAINTANCE]
+  same_household:
+    familiarity: {minimum: 0.75, maximum: 0.95}
+    affinity: {minimum: 0.50, maximum: 0.75}
+    trust: {minimum: 0.55, maximum: 0.80}
+    tension: {minimum: 0.05, maximum: 0.20}
+  coworker:
+    familiarity: {minimum: 0.30, maximum: 0.55}
+    affinity: {minimum: 0.35, maximum: 0.55}
+    trust: {minimum: 0.35, maximum: 0.60}
+    tension: {minimum: 0.05, maximum: 0.15}
+  other:
+    familiarity: {minimum: 0.00, maximum: 0.20}
+    affinity: {minimum: 0.40, maximum: 0.50}
+    trust: {minimum: 0.30, maximum: 0.45}
+    tension: {minimum: 0.00, maximum: 0.05}

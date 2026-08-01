@@ -1,0 +1,19 @@
+{
+  "claims": [],
+  "confidence": 0.86,
+  "invite_activity": null,
+  "referenced_agent_ids": [
+    "npc_03"
+  ],
+  "referenced_event_ids": [
+    "event_00001234"
+  ],
+  "requires_clarification": false,
+  "speech_act": "ASK_ABOUT_EVENT",
+  "target_agent_id": "npc_08",
+  "tone": {
+    "hostility": 0.1,
+    "urgency": 0.4,
+    "warmth": 0.3
+  }
+}

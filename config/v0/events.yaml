@@ -1,0 +1,26 @@
+append_only: true
+event_types:
+  - {event_type: MEAL_CONSUMED, category: LIFE_ECONOMY, default_importance: 0.20, witness_scope: PARTICIPANTS_ONLY}
+  - {event_type: GROCERIES_PURCHASED, category: LIFE_ECONOMY, default_importance: 0.35, witness_scope: PARTICIPANTS_ONLY}
+  - {event_type: HOUSEHOLD_FOOD_LOW, category: LIFE_ECONOMY, default_importance: 0.65, witness_scope: PARTICIPANTS_ONLY}
+  - {event_type: HOUSEHOLD_MONEY_LOW, category: LIFE_ECONOMY, default_importance: 0.70, witness_scope: PARTICIPANTS_ONLY}
+  - {event_type: NEED_CRISIS, category: LIFE_ECONOMY, default_importance: 0.75, witness_scope: PARTICIPANTS_ONLY}
+  - {event_type: WORK_STARTED, category: WORK, default_importance: 0.20, witness_scope: HIGH_LEVEL_LOCATION}
+  - {event_type: WORK_COMPLETED, category: WORK, default_importance: 0.30, witness_scope: HIGH_LEVEL_LOCATION}
+  - {event_type: WORK_LATE, category: WORK, default_importance: 0.60, witness_scope: HIGH_LEVEL_LOCATION}
+  - {event_type: WORK_MISSED, category: WORK, default_importance: 0.80, witness_scope: PARTICIPANTS_ONLY}
+  - {event_type: COWORKER_EXTRA_LOAD, category: WORK, default_importance: 0.75, witness_scope: PARTICIPANTS_ONLY}
+  - {event_type: FIRST_GREETING, category: SOCIAL, default_importance: 0.30, witness_scope: HIGH_LEVEL_LOCATION}
+  - {event_type: POSITIVE_INTERACTION, category: SOCIAL, default_importance: 0.35, witness_scope: HIGH_LEVEL_LOCATION}
+  - {event_type: AWKWARD_INTERACTION, category: SOCIAL, default_importance: 0.45, witness_scope: HIGH_LEVEL_LOCATION}
+  - {event_type: INVITATION_ACCEPTED, category: SOCIAL, default_importance: 0.45, witness_scope: PARTICIPANTS_ONLY}
+  - {event_type: INVITATION_REJECTED, category: SOCIAL, default_importance: 0.50, witness_scope: PARTICIPANTS_ONLY}
+  - {event_type: APOLOGY_ACCEPTED, category: SOCIAL, default_importance: 0.70, witness_scope: PARTICIPANTS_ONLY}
+  - {event_type: APOLOGY_REJECTED, category: SOCIAL, default_importance: 0.75, witness_scope: PARTICIPANTS_ONLY}
+  - {event_type: CONFLICT_STARTED, category: SOCIAL, default_importance: 0.75, witness_scope: HIGH_LEVEL_LOCATION}
+  - {event_type: CONFLICT_ESCALATED, category: SOCIAL, default_importance: 0.90, witness_scope: HIGH_LEVEL_LOCATION}
+  - {event_type: CONFLICT_REDUCED, category: SOCIAL, default_importance: 0.65, witness_scope: PARTICIPANTS_ONLY}
+  - {event_type: EVENT_SHARED, category: SOCIAL, default_importance: 0.55, witness_scope: PARTICIPANTS_ONLY}
+  - {event_type: CONVERSATION_STARTED, category: SOCIAL, default_importance: 0.15, witness_scope: HIGH_LEVEL_LOCATION}
+  - {event_type: CONVERSATION_ENDED, category: SOCIAL, default_importance: 0.15, witness_scope: HIGH_LEVEL_LOCATION}
+knowledge_acquisition_types: [DIRECT_PARTICIPANT, WITNESSED, TOLD, PLAYER_TOLD]

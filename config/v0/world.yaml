@@ -1,0 +1,18 @@
+config_version: v0
+schema_version: v0.1
+protocol_version: 0.1.0
+world_id: demo_world
+random_seed: 12345
+initial_game_minute: 0
+fixed_counts:
+  npcs: 10
+  households: 4
+  locations: 8
+  behaviors: 22
+  object_types: 15
+frozen:
+  unity_editor: 6000.4.2f1
+  relationship_prediction: TARGET_TO_ACTOR
+  joint_action_authority: CENTRAL_RESOLVER
+  perception_authority: HIGH_LEVEL_LOCATION
+  route_planning: DISABLED

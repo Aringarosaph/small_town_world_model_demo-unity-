@@ -1,0 +1,26 @@
+max_candidates_per_agent: 12
+need_decay_per_game_hour:
+  hunger: -0.045
+  energy: -0.035
+  hygiene: -0.018
+  fun: -0.020
+  social: -0.015
+need_crisis_thresholds:
+  hunger: 0.10
+  energy: 0.10
+  hygiene: 0.08
+  fun: 0.08
+  social: 0.08
+weights:
+  needs: 1.0
+  mood: 0.25
+  schedule: 1.2
+  relationship: 0.45
+  known_events: 0.25
+  money_cost: 0.5
+  travel_cost: 0.35
+  interrupt_cost: 0.4
+  repetition_penalty: 0.25
+  idle_penalty: 0.3
+personality_axes: [sociability, discipline, frugality, irritability]
+deterministic_noise_amplitude: 0.01

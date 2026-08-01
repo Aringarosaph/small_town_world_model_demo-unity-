@@ -1,0 +1,16 @@
+object_types:
+  - {object_type: BED, capability_tags: [SLEEP], default_slot_count: 1, persistent_occupancy: true, unity_binding_required: true}
+  - {object_type: FRIDGE, capability_tags: [FOOD_SOURCE_HOME], default_slot_count: 1, persistent_occupancy: false, unity_binding_required: true}
+  - {object_type: DINING_SEAT, capability_tags: [SIT, EAT], default_slot_count: 1, persistent_occupancy: true, unity_binding_required: true}
+  - {object_type: SHOWER, capability_tags: [HYGIENE], default_slot_count: 1, persistent_occupancy: true, unity_binding_required: true}
+  - {object_type: SOFA, capability_tags: [SIT, RELAX, WATCH_TV], default_slot_count: 2, persistent_occupancy: true, unity_binding_required: true}
+  - {object_type: TV, capability_tags: [ENTERTAINMENT], default_slot_count: 4, persistent_occupancy: false, unity_binding_required: true}
+  - {object_type: WORKSTATION, capability_tags: [WORK, CAFE_MORNING, CAFE_EVENING, SHOP, WORKSHOP], default_slot_count: 1, persistent_occupancy: true, unity_binding_required: true}
+  - {object_type: SHOP_SHELF, capability_tags: [GROCERY_SOURCE], default_slot_count: 2, persistent_occupancy: false, unity_binding_required: true}
+  - {object_type: CHECKOUT_COUNTER, capability_tags: [PURCHASE], default_slot_count: 1, persistent_occupancy: false, unity_binding_required: true}
+  - {object_type: CAFE_COUNTER, capability_tags: [BUY_MEAL], default_slot_count: 1, persistent_occupancy: false, unity_binding_required: true}
+  - {object_type: BAR_COUNTER, capability_tags: [BUY_DRINK], default_slot_count: 1, persistent_occupancy: false, unity_binding_required: true}
+  - {object_type: PUBLIC_SEAT, capability_tags: [SIT, REST], default_slot_count: 1, persistent_occupancy: true, unity_binding_required: true}
+  - {object_type: PARK_ROUTE, capability_tags: [WALK_ROUTE], default_slot_count: 8, persistent_occupancy: false, unity_binding_required: true}
+  - {object_type: LEISURE_SPOT, capability_tags: [RELAX], default_slot_count: 2, persistent_occupancy: false, unity_binding_required: true}
+  - {object_type: CONVERSATION_ANCHOR, capability_tags: [SOCIAL_POSITION], default_slot_count: 2, persistent_occupancy: true, unity_binding_required: true}

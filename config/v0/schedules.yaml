@@ -1,0 +1,21 @@
+schedules:
+  - schedule_id: schedule_npc_01
+    entries: [{entry_id: npc_01_work, kind: WORK, weekdays: [0, 1, 2, 3, 4], start_minute_of_day: 360, end_minute_of_day: 840, location_id: cafe_bar, required_behavior_id: work_shift, grace_minutes: 15, priority: 1.0}]
+  - schedule_id: schedule_npc_02
+    entries: [{entry_id: npc_02_work, kind: WORK, weekdays: [0, 1, 2, 3, 4], start_minute_of_day: 480, end_minute_of_day: 960, location_id: workshop, required_behavior_id: work_shift, grace_minutes: 15, priority: 1.0}]
+  - schedule_id: schedule_npc_03
+    entries: [{entry_id: npc_03_work, kind: WORK, weekdays: [0, 1, 2, 3, 4], start_minute_of_day: 480, end_minute_of_day: 960, location_id: workshop, required_behavior_id: work_shift, grace_minutes: 15, priority: 1.0}]
+  - schedule_id: schedule_npc_04
+    entries: [{entry_id: npc_04_work, kind: WORK, weekdays: [0, 1, 2, 3, 4], start_minute_of_day: 480, end_minute_of_day: 960, location_id: workshop, required_behavior_id: work_shift, grace_minutes: 15, priority: 1.0}]
+  - schedule_id: schedule_npc_05
+    entries: [{entry_id: npc_05_work, kind: WORK, weekdays: [0, 1, 2, 3, 4], start_minute_of_day: 540, end_minute_of_day: 1020, location_id: shop, required_behavior_id: work_shift, grace_minutes: 15, priority: 1.0}]
+  - schedule_id: schedule_npc_06
+    entries: [{entry_id: npc_06_work, kind: WORK, weekdays: [0, 1, 2, 3, 4], start_minute_of_day: 840, end_minute_of_day: 1320, location_id: cafe_bar, required_behavior_id: work_shift, grace_minutes: 15, priority: 1.0}]
+  - schedule_id: schedule_npc_07
+    entries: [{entry_id: npc_07_work, kind: WORK, weekdays: [0, 1, 2, 3, 4], start_minute_of_day: 540, end_minute_of_day: 1020, location_id: shop, required_behavior_id: work_shift, grace_minutes: 15, priority: 1.0}]
+  - schedule_id: schedule_npc_08
+    entries: [{entry_id: npc_08_work, kind: WORK, weekdays: [0, 1, 2, 3, 4], start_minute_of_day: 840, end_minute_of_day: 1320, location_id: cafe_bar, required_behavior_id: work_shift, grace_minutes: 15, priority: 1.0}]
+  - schedule_id: schedule_npc_09
+    entries: [{entry_id: npc_09_work, kind: WORK, weekdays: [0, 1, 2, 3, 4], start_minute_of_day: 480, end_minute_of_day: 960, location_id: workshop, required_behavior_id: work_shift, grace_minutes: 15, priority: 1.0}]
+  - schedule_id: schedule_npc_10
+    entries: [{entry_id: npc_10_work, kind: WORK, weekdays: [0, 1, 2, 3, 4], start_minute_of_day: 360, end_minute_of_day: 840, location_id: cafe_bar, required_behavior_id: work_shift, grace_minutes: 15, priority: 1.0}]

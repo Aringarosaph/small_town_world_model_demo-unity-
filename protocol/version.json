@@ -1,0 +1,21 @@
+{
+  "compatibility": {
+    "breaking_changes_require_protocol_bump": true
+  },
+  "config_version": "v0",
+  "feature_version": "v0.1",
+  "frozen_decisions": {
+    "event_witness_scopes": [
+      "PARTICIPANTS_ONLY",
+      "HIGH_LEVEL_LOCATION"
+    ],
+    "joint_action_authority": "CENTRAL_RESOLVER",
+    "perception_authority": "HIGH_LEVEL_LOCATION",
+    "relationship_prediction": "TARGET_TO_ACTOR",
+    "route_planning": "DISABLED"
+  },
+  "protocol_version": "0.1.0",
+  "python_version": "3.12",
+  "schema_version": "v0.1",
+  "unity_editor": "6000.4.2f1"
+}

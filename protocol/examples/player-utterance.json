@@ -1,0 +1,16 @@
+{
+  "correlation_id": "conversation_00042",
+  "message_id": "msg_000044",
+  "message_type": "player_utterance",
+  "payload": {
+    "client_state_version": 1030,
+    "conversation_id": "conversation_00042",
+    "player_id": "player",
+    "target_agent_id": "npc_05",
+    "text": "Why are you angry with npc_03?"
+  },
+  "protocol_version": "0.1.0",
+  "sent_at_utc": "2026-01-01T00:12:00Z",
+  "state_version": 1030,
+  "world_id": "demo_world"
+}

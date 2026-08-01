@@ -1,0 +1,458 @@
+behaviors:
+  - behavior_id: idle
+    category: ROUTINE
+    actor_count: 1
+    target_kind: NONE
+    allowed_location_types: &all_locations [HOME, CAFE_BAR, SHOP, WORKPLACE, PARK]
+    candidate_conditions: [always_available]
+    object_requirements: []
+    duration_minutes: {base: 10, variance: 5}
+    interruptible: true
+    hard_effects: []
+    soft_effect_mask: {needs: [], actor_mood: [stress], target_mood: [], relationship_target_to_actor: [], acceptance: false, events: false}
+    output_bounds: &no_bounds {need_deltas: {}, actor_mood_deltas: {}, target_mood_deltas: {}, relationship_target_to_actor: {}}
+    emitted_event_types: []
+    unity: {animation_semantics: [IDLE], requires_facing: false, prop_semantic: null}
+    cooldown_minutes: 0
+
+  - behavior_id: sleep
+    category: ROUTINE
+    actor_count: 1
+    target_kind: OBJECT_BUNDLE
+    allowed_location_types: [HOME]
+    candidate_conditions: [energy_below_full, own_home_accessible, work_interrupt_allowed]
+    object_requirements:
+      - {capability: SLEEP, accepted_object_types: [BED], quantity: 1, reservation_mode: EXCLUSIVE}
+    duration_minutes: {base: 255, variance: 225}
+    interruptible: true
+    hard_effects: []
+    soft_effect_mask: {needs: [hunger, energy, social], actor_mood: [], target_mood: [], relationship_target_to_actor: [], acceptance: false, events: false}
+    output_bounds:
+      need_deltas: {hunger: {minimum: -0.40, maximum: 0.0}, energy: {minimum: 0.05, maximum: 1.0}, social: {minimum: -0.20, maximum: 0.0}}
+      actor_mood_deltas: {}
+      target_mood_deltas: {}
+      relationship_target_to_actor: {}
+    emitted_event_types: []
+    unity: {animation_semantics: [SLEEP], requires_facing: false, prop_semantic: null}
+    cooldown_minutes: 0
+
+  - behavior_id: eat_at_home
+    category: ROUTINE
+    actor_count: 1
+    target_kind: OBJECT_BUNDLE
+    allowed_location_types: [HOME]
+    candidate_conditions: [own_household_food_at_least_one, own_home_accessible]
+    object_requirements:
+      - {capability: FOOD_SOURCE_HOME, accepted_object_types: [FRIDGE], quantity: 1, reservation_mode: TRANSIENT}
+      - {capability: EAT, accepted_object_types: [DINING_SEAT], quantity: 1, reservation_mode: EXCLUSIVE}
+    duration_minutes: {base: 32, variance: 7}
+    interruptible: true
+    hard_effects:
+      - {operation: HOUSEHOLD_FOOD_DELTA, timing: ON_COMPLETE, amount: -1, economy_key: null}
+    soft_effect_mask: {needs: [hunger], actor_mood: [valence], target_mood: [], relationship_target_to_actor: [], acceptance: false, events: true}
+    output_bounds:
+      need_deltas: {hunger: {minimum: 0.45, maximum: 0.80}}
+      actor_mood_deltas: {valence: {minimum: 0.0, maximum: 0.10}}
+      target_mood_deltas: {}
+      relationship_target_to_actor: {}
+    emitted_event_types: [MEAL_CONSUMED]
+    unity: {animation_semantics: [EAT], requires_facing: false, prop_semantic: MEAL}
+    cooldown_minutes: 15
+
+  - behavior_id: shower
+    category: ROUTINE
+    actor_count: 1
+    target_kind: OBJECT_BUNDLE
+    allowed_location_types: [HOME]
+    candidate_conditions: [hygiene_below_full, home_accessible]
+    object_requirements:
+      - {capability: HYGIENE, accepted_object_types: [SHOWER], quantity: 1, reservation_mode: EXCLUSIVE}
+    duration_minutes: {base: 27, variance: 7}
+    interruptible: true
+    hard_effects: []
+    soft_effect_mask: {needs: [hygiene], actor_mood: [stress], target_mood: [], relationship_target_to_actor: [], acceptance: false, events: false}
+    output_bounds:
+      need_deltas: {hygiene: {minimum: 0.50, maximum: 0.90}}
+      actor_mood_deltas: {stress: {minimum: -0.12, maximum: 0.0}}
+      target_mood_deltas: {}
+      relationship_target_to_actor: {}
+    emitted_event_types: []
+    unity: {animation_semantics: [SHOWER_HIDDEN], requires_facing: false, prop_semantic: null}
+    cooldown_minutes: 30
+
+  - behavior_id: watch_tv
+    category: LEISURE
+    actor_count: 1
+    target_kind: OBJECT_BUNDLE
+    allowed_location_types: [HOME]
+    candidate_conditions: [fun_below_full, home_accessible]
+    object_requirements:
+      - {capability: ENTERTAINMENT, accepted_object_types: [TV], quantity: 1, reservation_mode: SHARED}
+      - {capability: WATCH_TV, accepted_object_types: [SOFA], quantity: 1, reservation_mode: EXCLUSIVE}
+    duration_minutes: {base: 75, variance: 45}
+    interruptible: true
+    hard_effects: []
+    soft_effect_mask: {needs: [fun, social], actor_mood: [valence, stress], target_mood: [], relationship_target_to_actor: [], acceptance: false, events: false}
+    output_bounds:
+      need_deltas: {fun: {minimum: 0.15, maximum: 0.65}, social: {minimum: 0.0, maximum: 0.10}}
+      actor_mood_deltas: {valence: {minimum: 0.0, maximum: 0.15}, stress: {minimum: -0.15, maximum: 0.0}}
+      target_mood_deltas: {}
+      relationship_target_to_actor: {}
+    emitted_event_types: []
+    unity: {animation_semantics: [SIT], requires_facing: false, prop_semantic: null}
+    cooldown_minutes: 20
+
+  - behavior_id: relax_at_home
+    category: LEISURE
+    actor_count: 1
+    target_kind: OBJECT_BUNDLE
+    allowed_location_types: [HOME]
+    candidate_conditions: [fun_below_full, home_accessible]
+    object_requirements:
+      - {capability: RELAX, accepted_object_types: [SOFA, LEISURE_SPOT], quantity: 1, reservation_mode: EXCLUSIVE}
+    duration_minutes: {base: 40, variance: 20}
+    interruptible: true
+    hard_effects: []
+    soft_effect_mask: {needs: [fun], actor_mood: [valence, stress], target_mood: [], relationship_target_to_actor: [], acceptance: false, events: false}
+    output_bounds:
+      need_deltas: {fun: {minimum: 0.10, maximum: 0.40}}
+      actor_mood_deltas: {valence: {minimum: 0.0, maximum: 0.10}, stress: {minimum: -0.20, maximum: 0.0}}
+      target_mood_deltas: {}
+      relationship_target_to_actor: {}
+    emitted_event_types: []
+    unity: {animation_semantics: [SIT], requires_facing: false, prop_semantic: null}
+    cooldown_minutes: 15
+
+  - behavior_id: work_shift
+    category: WORK
+    actor_count: 1
+    target_kind: OBJECT_BUNDLE
+    allowed_location_types: [CAFE_BAR, SHOP, WORKPLACE]
+    candidate_conditions: [assigned_shift_active_or_imminent, assigned_workstation_available]
+    object_requirements:
+      - {capability: WORK, accepted_object_types: [WORKSTATION], quantity: 1, reservation_mode: EXCLUSIVE}
+    duration_minutes: {base: 120, variance: 0}
+    interruptible: true
+    hard_effects:
+      - {operation: RECORD_ATTENDANCE, timing: ON_START, amount: null, economy_key: null}
+      - {operation: PAY_SHIFT_WAGE, timing: ON_COMPLETE, amount: null, economy_key: fixed_shift_wage}
+    soft_effect_mask: {needs: [energy, hygiene, fun], actor_mood: [stress], target_mood: [], relationship_target_to_actor: [], acceptance: false, events: true}
+    output_bounds:
+      need_deltas: {energy: {minimum: -0.50, maximum: 0.0}, hygiene: {minimum: -0.25, maximum: 0.0}, fun: {minimum: -0.30, maximum: 0.0}}
+      actor_mood_deltas: {stress: {minimum: -0.05, maximum: 0.25}}
+      target_mood_deltas: {}
+      relationship_target_to_actor: {}
+    emitted_event_types: [WORK_STARTED, WORK_COMPLETED, WORK_LATE, WORK_MISSED]
+    unity: {animation_semantics: [WORK_DESK, WORK_STANDING, WORK_WORKSHOP], requires_facing: false, prop_semantic: null}
+    cooldown_minutes: 0
+
+  - behavior_id: take_break
+    category: WORK
+    actor_count: 1
+    target_kind: OBJECT_BUNDLE
+    allowed_location_types: [CAFE_BAR, SHOP, WORKPLACE]
+    candidate_conditions: [within_break_window, no_severe_schedule_conflict]
+    object_requirements:
+      - {capability: REST, accepted_object_types: [PUBLIC_SEAT], quantity: 1, reservation_mode: EXCLUSIVE}
+    duration_minutes: {base: 20, variance: 10}
+    interruptible: true
+    hard_effects: []
+    soft_effect_mask: {needs: [energy, fun], actor_mood: [stress], target_mood: [], relationship_target_to_actor: [], acceptance: false, events: false}
+    output_bounds:
+      need_deltas: {energy: {minimum: 0.02, maximum: 0.15}, fun: {minimum: 0.02, maximum: 0.15}}
+      actor_mood_deltas: {stress: {minimum: -0.10, maximum: 0.0}}
+      target_mood_deltas: {}
+      relationship_target_to_actor: {}
+    emitted_event_types: []
+    unity: {animation_semantics: [SIT], requires_facing: false, prop_semantic: null}
+    cooldown_minutes: 60
+
+  - behavior_id: buy_groceries
+    category: ECONOMIC
+    actor_count: 1
+    target_kind: OBJECT_BUNDLE
+    allowed_location_types: [SHOP]
+    candidate_conditions: [household_food_below_target, household_can_afford_groceries, shop_open]
+    object_requirements:
+      - {capability: GROCERY_SOURCE, accepted_object_types: [SHOP_SHELF], quantity: 1, reservation_mode: TRANSIENT}
+      - {capability: PURCHASE, accepted_object_types: [CHECKOUT_COUNTER], quantity: 1, reservation_mode: TRANSIENT}
+    duration_minutes: {base: 30, variance: 10}
+    interruptible: true
+    hard_effects:
+      - {operation: HOUSEHOLD_MONEY_DELTA, timing: ON_COMPLETE, amount: null, economy_key: groceries}
+      - {operation: HOUSEHOLD_FOOD_DELTA, timing: ON_COMPLETE, amount: null, economy_key: groceries}
+    soft_effect_mask: {needs: [], actor_mood: [valence, stress], target_mood: [], relationship_target_to_actor: [], acceptance: false, events: true}
+    output_bounds:
+      need_deltas: {}
+      actor_mood_deltas: {valence: {minimum: -0.05, maximum: 0.10}, stress: {minimum: -0.05, maximum: 0.05}}
+      target_mood_deltas: {}
+      relationship_target_to_actor: {}
+    emitted_event_types: [GROCERIES_PURCHASED]
+    unity: {animation_semantics: [WALK, CARRY_GROCERY], requires_facing: false, prop_semantic: GROCERY_BAG}
+    cooldown_minutes: 120
+
+  - behavior_id: eat_at_cafe
+    category: ECONOMIC
+    actor_count: 1
+    target_kind: OBJECT_BUNDLE
+    allowed_location_types: [CAFE_BAR]
+    candidate_conditions: [household_can_afford_cafe_meal, cafe_open]
+    object_requirements:
+      - {capability: BUY_MEAL, accepted_object_types: [CAFE_COUNTER], quantity: 1, reservation_mode: TRANSIENT}
+      - {capability: EAT, accepted_object_types: [DINING_SEAT], quantity: 1, reservation_mode: EXCLUSIVE}
+    duration_minutes: {base: 37, variance: 12}
+    interruptible: true
+    hard_effects:
+      - {operation: HOUSEHOLD_MONEY_DELTA, timing: ON_COMPLETE, amount: null, economy_key: cafe_meal}
+    soft_effect_mask: {needs: [hunger, fun], actor_mood: [valence], target_mood: [], relationship_target_to_actor: [], acceptance: false, events: true}
+    output_bounds:
+      need_deltas: {hunger: {minimum: 0.40, maximum: 0.75}, fun: {minimum: 0.02, maximum: 0.15}}
+      actor_mood_deltas: {valence: {minimum: 0.0, maximum: 0.12}}
+      target_mood_deltas: {}
+      relationship_target_to_actor: {}
+    emitted_event_types: [MEAL_CONSUMED]
+    unity: {animation_semantics: [EAT], requires_facing: false, prop_semantic: MEAL}
+    cooldown_minutes: 30
+
+  - behavior_id: drink_at_bar
+    category: ECONOMIC
+    actor_count: 1
+    target_kind: OBJECT_BUNDLE
+    allowed_location_types: [CAFE_BAR]
+    candidate_conditions: [household_can_afford_bar_drink, cafe_bar_open]
+    object_requirements:
+      - {capability: BUY_DRINK, accepted_object_types: [BAR_COUNTER], quantity: 1, reservation_mode: TRANSIENT}
+      - {capability: SIT, accepted_object_types: [DINING_SEAT, PUBLIC_SEAT], quantity: 1, reservation_mode: EXCLUSIVE}
+    duration_minutes: {base: 60, variance: 30}
+    interruptible: true
+    hard_effects:
+      - {operation: HOUSEHOLD_MONEY_DELTA, timing: ON_COMPLETE, amount: null, economy_key: bar_drink}
+    soft_effect_mask: {needs: [fun, energy], actor_mood: [valence, stress], target_mood: [], relationship_target_to_actor: [], acceptance: false, events: false}
+    output_bounds:
+      need_deltas: {fun: {minimum: 0.10, maximum: 0.45}, energy: {minimum: -0.15, maximum: 0.0}}
+      actor_mood_deltas: {valence: {minimum: 0.0, maximum: 0.20}, stress: {minimum: -0.20, maximum: 0.05}}
+      target_mood_deltas: {}
+      relationship_target_to_actor: {}
+    emitted_event_types: []
+    unity: {animation_semantics: [DRINK], requires_facing: false, prop_semantic: DRINK}
+    cooldown_minutes: 60
+
+  - behavior_id: walk_in_park
+    category: LEISURE
+    actor_count: 1
+    target_kind: OBJECT_BUNDLE
+    allowed_location_types: [PARK]
+    candidate_conditions: [park_open, fun_below_full]
+    object_requirements:
+      - {capability: WALK_ROUTE, accepted_object_types: [PARK_ROUTE], quantity: 1, reservation_mode: SHARED}
+    duration_minutes: {base: 40, variance: 20}
+    interruptible: true
+    hard_effects: []
+    soft_effect_mask: {needs: [fun], actor_mood: [valence, stress], target_mood: [], relationship_target_to_actor: [], acceptance: false, events: false}
+    output_bounds:
+      need_deltas: {fun: {minimum: 0.08, maximum: 0.35}}
+      actor_mood_deltas: {valence: {minimum: 0.0, maximum: 0.12}, stress: {minimum: -0.25, maximum: 0.0}}
+      target_mood_deltas: {}
+      relationship_target_to_actor: {}
+    emitted_event_types: []
+    unity: {animation_semantics: [WALK], requires_facing: false, prop_semantic: null}
+    cooldown_minutes: 20
+
+  - behavior_id: sit_in_park
+    category: LEISURE
+    actor_count: 1
+    target_kind: OBJECT_BUNDLE
+    allowed_location_types: [PARK]
+    candidate_conditions: [park_open, fun_below_full]
+    object_requirements:
+      - {capability: SIT, accepted_object_types: [PUBLIC_SEAT, LEISURE_SPOT], quantity: 1, reservation_mode: EXCLUSIVE}
+    duration_minutes: {base: 40, variance: 20}
+    interruptible: true
+    hard_effects: []
+    soft_effect_mask: {needs: [fun], actor_mood: [valence, stress], target_mood: [], relationship_target_to_actor: [], acceptance: false, events: false}
+    output_bounds:
+      need_deltas: {fun: {minimum: 0.08, maximum: 0.30}}
+      actor_mood_deltas: {valence: {minimum: 0.0, maximum: 0.10}, stress: {minimum: -0.20, maximum: 0.0}}
+      target_mood_deltas: {}
+      relationship_target_to_actor: {}
+    emitted_event_types: []
+    unity: {animation_semantics: [SIT], requires_facing: false, prop_semantic: null}
+    cooldown_minutes: 20
+
+  - behavior_id: greet
+    category: SOCIAL
+    actor_count: 1
+    target_kind: AGENT
+    allowed_location_types: *all_locations
+    candidate_conditions: &social_conditions [same_high_level_location, target_interactable, target_not_self, social_cooldown_clear]
+    object_requirements: []
+    duration_minutes: {base: 3, variance: 1}
+    interruptible: true
+    hard_effects: []
+    soft_effect_mask: {needs: [social], actor_mood: [valence], target_mood: [valence], relationship_target_to_actor: [familiarity, affinity], acceptance: true, events: true}
+    output_bounds:
+      need_deltas: {social: {minimum: 0.02, maximum: 0.08}}
+      actor_mood_deltas: {valence: {minimum: -0.03, maximum: 0.08}}
+      target_mood_deltas: {valence: {minimum: -0.03, maximum: 0.08}}
+      relationship_target_to_actor: {familiarity: {minimum: 0.01, maximum: 0.12}, affinity: {minimum: -0.03, maximum: 0.05}}
+    emitted_event_types: [FIRST_GREETING, CONVERSATION_STARTED]
+    unity: {animation_semantics: [TALK_NEUTRAL], requires_facing: true, prop_semantic: null}
+    cooldown_minutes: 120
+
+  - behavior_id: chat
+    category: SOCIAL
+    actor_count: 1
+    target_kind: AGENT
+    allowed_location_types: *all_locations
+    candidate_conditions: *social_conditions
+    object_requirements: []
+    duration_minutes: {base: 12, variance: 7}
+    interruptible: true
+    hard_effects: []
+    soft_effect_mask: {needs: [social, fun], actor_mood: [valence, stress], target_mood: [valence, stress], relationship_target_to_actor: [familiarity, affinity], acceptance: true, events: true}
+    output_bounds:
+      need_deltas: {social: {minimum: 0.08, maximum: 0.25}, fun: {minimum: -0.03, maximum: 0.12}}
+      actor_mood_deltas: {valence: {minimum: -0.05, maximum: 0.12}, stress: {minimum: -0.10, maximum: 0.08}}
+      target_mood_deltas: {valence: {minimum: -0.05, maximum: 0.12}, stress: {minimum: -0.10, maximum: 0.08}}
+      relationship_target_to_actor: {familiarity: {minimum: 0.0, maximum: 0.08}, affinity: {minimum: -0.04, maximum: 0.06}}
+    emitted_event_types: [POSITIVE_INTERACTION, AWKWARD_INTERACTION, CONVERSATION_STARTED]
+    unity: {animation_semantics: [TALK_NEUTRAL], requires_facing: true, prop_semantic: null}
+    cooldown_minutes: 30
+
+  - behavior_id: joke
+    category: SOCIAL
+    actor_count: 1
+    target_kind: AGENT
+    allowed_location_types: *all_locations
+    candidate_conditions: *social_conditions
+    object_requirements: []
+    duration_minutes: {base: 7, variance: 3}
+    interruptible: true
+    hard_effects: []
+    soft_effect_mask: {needs: [social, fun], actor_mood: [valence, stress], target_mood: [valence, stress], relationship_target_to_actor: [familiarity, affinity, trust, tension], acceptance: true, events: true}
+    output_bounds:
+      need_deltas: {social: {minimum: 0.0, maximum: 0.18}, fun: {minimum: -0.08, maximum: 0.25}}
+      actor_mood_deltas: {valence: {minimum: -0.08, maximum: 0.18}, stress: {minimum: -0.10, maximum: 0.12}}
+      target_mood_deltas: {valence: {minimum: -0.15, maximum: 0.22}, stress: {minimum: -0.10, maximum: 0.18}}
+      relationship_target_to_actor: {familiarity: {minimum: 0.0, maximum: 0.05}, affinity: {minimum: -0.10, maximum: 0.10}, trust: {minimum: -0.05, maximum: 0.04}, tension: {minimum: -0.05, maximum: 0.12}}
+    emitted_event_types: [POSITIVE_INTERACTION, AWKWARD_INTERACTION]
+    unity: {animation_semantics: [TALK_POSITIVE], requires_facing: true, prop_semantic: null}
+    cooldown_minutes: 45
+
+  - behavior_id: compliment
+    category: SOCIAL
+    actor_count: 1
+    target_kind: AGENT
+    allowed_location_types: *all_locations
+    candidate_conditions: *social_conditions
+    object_requirements: []
+    duration_minutes: {base: 5, variance: 2}
+    interruptible: true
+    hard_effects: []
+    soft_effect_mask: {needs: [social], actor_mood: [valence], target_mood: [valence], relationship_target_to_actor: [affinity, trust], acceptance: true, events: true}
+    output_bounds:
+      need_deltas: {social: {minimum: 0.0, maximum: 0.12}}
+      actor_mood_deltas: {valence: {minimum: -0.03, maximum: 0.10}}
+      target_mood_deltas: {valence: {minimum: -0.08, maximum: 0.18}}
+      relationship_target_to_actor: {affinity: {minimum: -0.05, maximum: 0.10}, trust: {minimum: -0.03, maximum: 0.05}}
+    emitted_event_types: [POSITIVE_INTERACTION, AWKWARD_INTERACTION]
+    unity: {animation_semantics: [TALK_POSITIVE], requires_facing: true, prop_semantic: null}
+    cooldown_minutes: 60
+
+  - behavior_id: share_event
+    category: SOCIAL
+    actor_count: 1
+    target_kind: AGENT
+    allowed_location_types: *all_locations
+    candidate_conditions: [same_high_level_location, target_interactable, target_not_self, social_cooldown_clear, actor_knows_selected_event]
+    object_requirements: []
+    duration_minutes: {base: 10, variance: 5}
+    interruptible: true
+    hard_effects:
+      - {operation: ADD_KNOWLEDGE_RECORD, timing: ON_COMPLETE, amount: null, economy_key: null}
+    soft_effect_mask: {needs: [social], actor_mood: [valence], target_mood: [valence, stress], relationship_target_to_actor: [familiarity, affinity, trust, tension], acceptance: false, events: true}
+    output_bounds:
+      need_deltas: {social: {minimum: 0.02, maximum: 0.15}}
+      actor_mood_deltas: {valence: {minimum: -0.05, maximum: 0.08}}
+      target_mood_deltas: {valence: {minimum: -0.10, maximum: 0.10}, stress: {minimum: -0.08, maximum: 0.20}}
+      relationship_target_to_actor: {familiarity: {minimum: 0.0, maximum: 0.05}, affinity: {minimum: -0.08, maximum: 0.06}, trust: {minimum: -0.10, maximum: 0.08}, tension: {minimum: -0.04, maximum: 0.12}}
+    emitted_event_types: [EVENT_SHARED]
+    unity: {animation_semantics: [TALK_NEUTRAL], requires_facing: true, prop_semantic: EVENT_ICON}
+    cooldown_minutes: 45
+
+  - behavior_id: invite_join
+    category: SOCIAL
+    actor_count: 1
+    target_kind: AGENT
+    allowed_location_types: *all_locations
+    candidate_conditions: [same_high_level_location, target_interactable, target_not_self, social_cooldown_clear, invited_activity_in_v0_allowlist]
+    object_requirements: []
+    duration_minutes: {base: 5, variance: 2}
+    interruptible: true
+    hard_effects: []
+    soft_effect_mask: {needs: [social], actor_mood: [valence, stress], target_mood: [valence, stress], relationship_target_to_actor: [affinity, trust, tension], acceptance: true, events: true}
+    output_bounds:
+      need_deltas: {social: {minimum: -0.03, maximum: 0.12}}
+      actor_mood_deltas: {valence: {minimum: -0.12, maximum: 0.12}, stress: {minimum: -0.05, maximum: 0.12}}
+      target_mood_deltas: {valence: {minimum: -0.08, maximum: 0.10}, stress: {minimum: -0.05, maximum: 0.10}}
+      relationship_target_to_actor: {affinity: {minimum: -0.06, maximum: 0.06}, trust: {minimum: -0.05, maximum: 0.05}, tension: {minimum: -0.04, maximum: 0.08}}
+    emitted_event_types: [INVITATION_ACCEPTED, INVITATION_REJECTED]
+    unity: {animation_semantics: [TALK_NEUTRAL], requires_facing: true, prop_semantic: null}
+    cooldown_minutes: 60
+
+  - behavior_id: apologize
+    category: SOCIAL
+    actor_count: 1
+    target_kind: AGENT
+    allowed_location_types: *all_locations
+    candidate_conditions: [same_high_level_location, target_interactable, target_not_self, social_cooldown_clear, tension_or_related_negative_event]
+    object_requirements: []
+    duration_minutes: {base: 8, variance: 2}
+    interruptible: true
+    hard_effects: []
+    soft_effect_mask: {needs: [social], actor_mood: [valence, stress], target_mood: [valence, stress], relationship_target_to_actor: [affinity, trust, tension], acceptance: true, events: true}
+    output_bounds:
+      need_deltas: {social: {minimum: -0.05, maximum: 0.15}}
+      actor_mood_deltas: {valence: {minimum: -0.10, maximum: 0.15}, stress: {minimum: -0.15, maximum: 0.10}}
+      target_mood_deltas: {valence: {minimum: -0.10, maximum: 0.18}, stress: {minimum: -0.20, maximum: 0.10}}
+      relationship_target_to_actor: {affinity: {minimum: -0.05, maximum: 0.10}, trust: {minimum: -0.05, maximum: 0.15}, tension: {minimum: -0.30, maximum: 0.05}}
+    emitted_event_types: [APOLOGY_ACCEPTED, APOLOGY_REJECTED, CONFLICT_REDUCED]
+    unity: {animation_semantics: [TALK_POSITIVE, TALK_NEUTRAL], requires_facing: true, prop_semantic: null}
+    cooldown_minutes: 60
+
+  - behavior_id: confront
+    category: SOCIAL
+    actor_count: 1
+    target_kind: AGENT
+    allowed_location_types: *all_locations
+    candidate_conditions: [same_high_level_location, target_interactable, target_not_self, social_cooldown_clear, high_tension_or_target_related_event]
+    object_requirements: []
+    duration_minutes: {base: 10, variance: 5}
+    interruptible: true
+    hard_effects: []
+    soft_effect_mask: {needs: [social], actor_mood: [valence, stress], target_mood: [valence, stress], relationship_target_to_actor: [familiarity, affinity, trust, tension], acceptance: true, events: true}
+    output_bounds:
+      need_deltas: {social: {minimum: -0.12, maximum: 0.08}}
+      actor_mood_deltas: {valence: {minimum: -0.20, maximum: 0.10}, stress: {minimum: -0.05, maximum: 0.30}}
+      target_mood_deltas: {valence: {minimum: -0.25, maximum: 0.10}, stress: {minimum: -0.05, maximum: 0.35}}
+      relationship_target_to_actor: {familiarity: {minimum: 0.0, maximum: 0.03}, affinity: {minimum: -0.20, maximum: 0.08}, trust: {minimum: -0.20, maximum: 0.08}, tension: {minimum: -0.20, maximum: 0.35}}
+    emitted_event_types: [CONFLICT_STARTED, CONFLICT_ESCALATED, CONFLICT_REDUCED]
+    unity: {animation_semantics: [TALK_NEGATIVE], requires_facing: true, prop_semantic: null}
+    cooldown_minutes: 90
+
+  - behavior_id: end_conversation
+    category: SOCIAL
+    actor_count: 1
+    target_kind: CONVERSATION
+    allowed_location_types: *all_locations
+    candidate_conditions: [same_high_level_location, active_conversation_exists]
+    object_requirements: []
+    duration_minutes: {base: 1, variance: 0}
+    interruptible: false
+    hard_effects:
+      - {operation: RELEASE_CONVERSATION, timing: ON_COMPLETE, amount: null, economy_key: null}
+    soft_effect_mask: {needs: [], actor_mood: [], target_mood: [], relationship_target_to_actor: [], acceptance: false, events: true}
+    output_bounds: *no_bounds
+    emitted_event_types: [CONVERSATION_ENDED]
+    unity: {animation_semantics: [IDLE], requires_facing: false, prop_semantic: null}
+    cooldown_minutes: 0

@@ -1,0 +1,153 @@
+{
+  "$defs": {
+    "BehaviorId": {
+      "enum": [
+        "idle",
+        "sleep",
+        "eat_at_home",
+        "shower",
+        "watch_tv",
+        "relax_at_home",
+        "work_shift",
+        "take_break",
+        "buy_groceries",
+        "eat_at_cafe",
+        "drink_at_bar",
+        "walk_in_park",
+        "sit_in_park",
+        "greet",
+        "chat",
+        "joke",
+        "compliment",
+        "share_event",
+        "invite_join",
+        "apologize",
+        "confront",
+        "end_conversation"
+      ],
+      "title": "BehaviorId",
+      "type": "string"
+    },
+    "SpeechAct": {
+      "enum": [
+        "GREET",
+        "SMALL_TALK",
+        "ASK_ABOUT_AGENT",
+        "ASK_ABOUT_EVENT",
+        "COMPLIMENT",
+        "JOKE",
+        "INVITE",
+        "APOLOGIZE",
+        "ACCUSE",
+        "CONFRONT",
+        "FAREWELL",
+        "UNKNOWN"
+      ],
+      "title": "SpeechAct",
+      "type": "string"
+    },
+    "SpeechTone": {
+      "additionalProperties": false,
+      "properties": {
+        "hostility": {
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "title": "Hostility",
+          "type": "number"
+        },
+        "urgency": {
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "title": "Urgency",
+          "type": "number"
+        },
+        "warmth": {
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "title": "Warmth",
+          "type": "number"
+        }
+      },
+      "required": [
+        "warmth",
+        "hostility",
+        "urgency"
+      ],
+      "title": "SpeechTone",
+      "type": "object"
+    }
+  },
+  "$id": "urn:ai-town:protocol:0.1.0:player-speech-parse",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "claims": {
+      "items": {
+        "type": "string"
+      },
+      "maxItems": 0,
+      "title": "Claims",
+      "type": "array"
+    },
+    "confidence": {
+      "maximum": 1.0,
+      "minimum": 0.0,
+      "title": "Confidence",
+      "type": "number"
+    },
+    "invite_activity": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/BehaviorId"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "referenced_agent_ids": {
+      "items": {
+        "pattern": "^npc_[0-9]{2}$",
+        "type": "string"
+      },
+      "title": "Referenced Agent Ids",
+      "type": "array"
+    },
+    "referenced_event_ids": {
+      "items": {
+        "pattern": "^event_[0-9]+$",
+        "type": "string"
+      },
+      "title": "Referenced Event Ids",
+      "type": "array"
+    },
+    "requires_clarification": {
+      "title": "Requires Clarification",
+      "type": "boolean"
+    },
+    "speech_act": {
+      "$ref": "#/$defs/SpeechAct"
+    },
+    "target_agent_id": {
+      "pattern": "^npc_[0-9]{2}$",
+      "title": "Target Agent Id",
+      "type": "string"
+    },
+    "tone": {
+      "$ref": "#/$defs/SpeechTone"
+    }
+  },
+  "required": [
+    "speech_act",
+    "target_agent_id",
+    "referenced_agent_ids",
+    "referenced_event_ids",
+    "invite_activity",
+    "tone",
+    "claims",
+    "confidence",
+    "requires_clarification"
+  ],
+  "title": "PlayerSpeechParse",
+  "type": "object"
+}

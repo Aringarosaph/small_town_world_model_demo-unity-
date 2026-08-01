@@ -1,0 +1,31 @@
+{
+  "acceptance_probability": 0.78,
+  "actor_mood_delta": {
+    "stress": -0.01,
+    "valence": 0.02
+  },
+  "candidate_id": "candidate_0012",
+  "event_probabilities": {
+    "AWKWARD_INTERACTION": 0.08,
+    "POSITIVE_INTERACTION": 0.62
+  },
+  "need_delta_preview": {
+    "energy": 0.0,
+    "fun": 0.03,
+    "hunger": 0.0,
+    "hygiene": 0.0,
+    "social": 0.08
+  },
+  "prediction_id": "prediction_0007",
+  "relationship_delta_target_to_actor": {
+    "affinity": 0.04,
+    "familiarity": 0.01,
+    "tension": -0.03,
+    "trust": 0.02
+  },
+  "relationship_direction": "TARGET_TO_ACTOR",
+  "target_mood_delta": {
+    "stress": -0.02,
+    "valence": 0.04
+  }
+}

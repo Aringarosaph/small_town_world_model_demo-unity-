@@ -1,0 +1,17 @@
+{
+  "action_id": "action_0000101",
+  "authority": "CENTRAL_RESOLVER",
+  "behavior_id": "watch_tv",
+  "location_id": "home_b",
+  "participants": [
+    {
+      "agent_id": "npc_03",
+      "proposal_id": "proposal_0011"
+    },
+    {
+      "agent_id": "npc_04",
+      "proposal_id": "proposal_0012"
+    }
+  ],
+  "state_version": 1031
+}

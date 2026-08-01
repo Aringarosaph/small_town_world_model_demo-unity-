@@ -1,0 +1,20 @@
+{
+  "authoritative_location_id": "workshop",
+  "authority": "HIGH_LEVEL_LOCATION",
+  "game_minute": 900,
+  "observer_agent_id": "npc_03",
+  "perceived_agents": [
+    {
+      "agent_id": "npc_04",
+      "location_id": "workshop"
+    }
+  ],
+  "perceived_objects": [
+    {
+      "enabled": true,
+      "location_id": "workshop",
+      "object_id": "workshop_station_01",
+      "object_type": "WORKSTATION"
+    }
+  ]
+}

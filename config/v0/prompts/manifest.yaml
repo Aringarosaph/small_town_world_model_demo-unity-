@@ -1,0 +1,18 @@
+runtime_status: deferred_to_m5
+templates:
+  - prompt_id: parse_player_utterance
+    prompt_version: v0.1
+    template_file: parse_player_utterance.md
+    model_name: deepseek-v4-flash
+    temperature: 0.0
+    max_tokens: 512
+    schema_version: v0.1
+    required_variables: [utterance, candidate_agent_ids, candidate_event_ids]
+  - prompt_id: verbalize_speech_plan
+    prompt_version: v0.1
+    template_file: verbalize_speech_plan.md
+    model_name: deepseek-v4-flash
+    temperature: 0.4
+    max_tokens: 256
+    schema_version: v0.1
+    required_variables: [speech_plan]

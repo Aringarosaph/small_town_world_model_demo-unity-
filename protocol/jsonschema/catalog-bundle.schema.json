@@ -1,0 +1,1838 @@
+{
+  "$defs": {
+    "AnimationSemantic": {
+      "enum": [
+        "IDLE",
+        "SLEEP",
+        "EAT",
+        "SHOWER_HIDDEN",
+        "SIT",
+        "WORK_DESK",
+        "WORK_STANDING",
+        "WORK_WORKSHOP",
+        "DRINK",
+        "WALK",
+        "TALK_NEUTRAL",
+        "TALK_POSITIVE",
+        "TALK_NEGATIVE",
+        "CARRY_GROCERY"
+      ],
+      "title": "AnimationSemantic",
+      "type": "string"
+    },
+    "BehaviorCatalog": {
+      "additionalProperties": false,
+      "properties": {
+        "behaviors": {
+          "items": {
+            "$ref": "#/$defs/BehaviorConfig"
+          },
+          "maxItems": 22,
+          "minItems": 22,
+          "title": "Behaviors",
+          "type": "array"
+        }
+      },
+      "required": [
+        "behaviors"
+      ],
+      "title": "BehaviorCatalog",
+      "type": "object"
+    },
+    "BehaviorCategory": {
+      "enum": [
+        "ROUTINE",
+        "WORK",
+        "ECONOMIC",
+        "LEISURE",
+        "SOCIAL"
+      ],
+      "title": "BehaviorCategory",
+      "type": "string"
+    },
+    "BehaviorConfig": {
+      "additionalProperties": false,
+      "properties": {
+        "actor_count": {
+          "const": 1,
+          "title": "Actor Count",
+          "type": "integer"
+        },
+        "allowed_location_types": {
+          "items": {
+            "$ref": "#/$defs/LocationType"
+          },
+          "minItems": 1,
+          "title": "Allowed Location Types",
+          "type": "array"
+        },
+        "behavior_id": {
+          "$ref": "#/$defs/BehaviorId"
+        },
+        "candidate_conditions": {
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Candidate Conditions",
+          "type": "array"
+        },
+        "category": {
+          "$ref": "#/$defs/BehaviorCategory"
+        },
+        "cooldown_minutes": {
+          "minimum": 0,
+          "title": "Cooldown Minutes",
+          "type": "integer"
+        },
+        "duration_minutes": {
+          "$ref": "#/$defs/DurationRange"
+        },
+        "emitted_event_types": {
+          "items": {
+            "$ref": "#/$defs/EventType"
+          },
+          "title": "Emitted Event Types",
+          "type": "array"
+        },
+        "hard_effects": {
+          "items": {
+            "$ref": "#/$defs/HardEffectSpec"
+          },
+          "title": "Hard Effects",
+          "type": "array"
+        },
+        "interruptible": {
+          "title": "Interruptible",
+          "type": "boolean"
+        },
+        "object_requirements": {
+          "items": {
+            "$ref": "#/$defs/ObjectRequirement"
+          },
+          "title": "Object Requirements",
+          "type": "array"
+        },
+        "output_bounds": {
+          "$ref": "#/$defs/BehaviorOutputBounds"
+        },
+        "soft_effect_mask": {
+          "$ref": "#/$defs/SoftEffectMask"
+        },
+        "target_kind": {
+          "$ref": "#/$defs/TargetKind"
+        },
+        "unity": {
+          "$ref": "#/$defs/UnityPresentation"
+        }
+      },
+      "required": [
+        "behavior_id",
+        "category",
+        "actor_count",
+        "target_kind",
+        "allowed_location_types",
+        "candidate_conditions",
+        "object_requirements",
+        "duration_minutes",
+        "interruptible",
+        "hard_effects",
+        "soft_effect_mask",
+        "output_bounds",
+        "emitted_event_types",
+        "unity",
+        "cooldown_minutes"
+      ],
+      "title": "BehaviorConfig",
+      "type": "object"
+    },
+    "BehaviorId": {
+      "enum": [
+        "idle",
+        "sleep",
+        "eat_at_home",
+        "shower",
+        "watch_tv",
+        "relax_at_home",
+        "work_shift",
+        "take_break",
+        "buy_groceries",
+        "eat_at_cafe",
+        "drink_at_bar",
+        "walk_in_park",
+        "sit_in_park",
+        "greet",
+        "chat",
+        "joke",
+        "compliment",
+        "share_event",
+        "invite_join",
+        "apologize",
+        "confront",
+        "end_conversation"
+      ],
+      "title": "BehaviorId",
+      "type": "string"
+    },
+    "BehaviorOutputBounds": {
+      "additionalProperties": false,
+      "properties": {
+        "actor_mood_deltas": {
+          "additionalProperties": {
+            "$ref": "#/$defs/DeltaBounds"
+          },
+          "propertyNames": {
+            "$ref": "#/$defs/MoodAxis"
+          },
+          "title": "Actor Mood Deltas",
+          "type": "object"
+        },
+        "need_deltas": {
+          "additionalProperties": {
+            "$ref": "#/$defs/DeltaBounds"
+          },
+          "propertyNames": {
+            "$ref": "#/$defs/NeedName"
+          },
+          "title": "Need Deltas",
+          "type": "object"
+        },
+        "relationship_target_to_actor": {
+          "additionalProperties": {
+            "$ref": "#/$defs/DeltaBounds"
+          },
+          "propertyNames": {
+            "$ref": "#/$defs/RelationshipAxis"
+          },
+          "title": "Relationship Target To Actor",
+          "type": "object"
+        },
+        "target_mood_deltas": {
+          "additionalProperties": {
+            "$ref": "#/$defs/DeltaBounds"
+          },
+          "propertyNames": {
+            "$ref": "#/$defs/MoodAxis"
+          },
+          "title": "Target Mood Deltas",
+          "type": "object"
+        }
+      },
+      "required": [
+        "need_deltas",
+        "actor_mood_deltas",
+        "target_mood_deltas",
+        "relationship_target_to_actor"
+      ],
+      "title": "BehaviorOutputBounds",
+      "type": "object"
+    },
+    "CapabilityTag": {
+      "enum": [
+        "SLEEP",
+        "FOOD_SOURCE_HOME",
+        "SIT",
+        "EAT",
+        "HYGIENE",
+        "RELAX",
+        "WATCH_TV",
+        "ENTERTAINMENT",
+        "WORK",
+        "CAFE_MORNING",
+        "CAFE_EVENING",
+        "SHOP",
+        "WORKSHOP",
+        "GROCERY_SOURCE",
+        "PURCHASE",
+        "BUY_MEAL",
+        "BUY_DRINK",
+        "REST",
+        "WALK_ROUTE",
+        "SOCIAL_POSITION"
+      ],
+      "title": "CapabilityTag",
+      "type": "string"
+    },
+    "DeltaBounds": {
+      "additionalProperties": false,
+      "properties": {
+        "maximum": {
+          "maximum": 1.0,
+          "minimum": -1.0,
+          "title": "Maximum",
+          "type": "number"
+        },
+        "minimum": {
+          "maximum": 1.0,
+          "minimum": -1.0,
+          "title": "Minimum",
+          "type": "number"
+        }
+      },
+      "required": [
+        "minimum",
+        "maximum"
+      ],
+      "title": "DeltaBounds",
+      "type": "object"
+    },
+    "DurationRange": {
+      "additionalProperties": false,
+      "properties": {
+        "base": {
+          "exclusiveMinimum": 0,
+          "title": "Base",
+          "type": "integer"
+        },
+        "variance": {
+          "minimum": 0,
+          "title": "Variance",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "base",
+        "variance"
+      ],
+      "title": "DurationRange",
+      "type": "object"
+    },
+    "EconomyConfig": {
+      "additionalProperties": false,
+      "properties": {
+        "allow_negative_food": {
+          "const": false,
+          "title": "Allow Negative Food",
+          "type": "boolean"
+        },
+        "allow_negative_money": {
+          "const": false,
+          "title": "Allow Negative Money",
+          "type": "boolean"
+        },
+        "bar_drink": {
+          "$ref": "#/$defs/PurchaseConfig"
+        },
+        "cafe_meal": {
+          "$ref": "#/$defs/PurchaseConfig"
+        },
+        "currency": {
+          "const": "minor_units",
+          "title": "Currency",
+          "type": "string"
+        },
+        "fixed_shift_wage": {
+          "exclusiveMinimum": 0,
+          "title": "Fixed Shift Wage",
+          "type": "integer"
+        },
+        "food_low_threshold": {
+          "minimum": 0,
+          "title": "Food Low Threshold",
+          "type": "integer"
+        },
+        "groceries": {
+          "$ref": "#/$defs/PurchaseConfig"
+        },
+        "money_low_threshold": {
+          "minimum": 0,
+          "title": "Money Low Threshold",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "currency",
+        "allow_negative_money",
+        "allow_negative_food",
+        "fixed_shift_wage",
+        "groceries",
+        "cafe_meal",
+        "bar_drink",
+        "food_low_threshold",
+        "money_low_threshold"
+      ],
+      "title": "EconomyConfig",
+      "type": "object"
+    },
+    "EffectTiming": {
+      "enum": [
+        "ON_START",
+        "ON_COMPLETE",
+        "CONTINUOUS"
+      ],
+      "title": "EffectTiming",
+      "type": "string"
+    },
+    "EventConfig": {
+      "additionalProperties": false,
+      "properties": {
+        "append_only": {
+          "const": true,
+          "title": "Append Only",
+          "type": "boolean"
+        },
+        "event_types": {
+          "items": {
+            "$ref": "#/$defs/EventTypeConfig"
+          },
+          "maxItems": 23,
+          "minItems": 23,
+          "title": "Event Types",
+          "type": "array"
+        },
+        "knowledge_acquisition_types": {
+          "items": {
+            "$ref": "#/$defs/KnowledgeAcquisitionType"
+          },
+          "maxItems": 4,
+          "minItems": 4,
+          "title": "Knowledge Acquisition Types",
+          "type": "array"
+        }
+      },
+      "required": [
+        "append_only",
+        "event_types",
+        "knowledge_acquisition_types"
+      ],
+      "title": "EventConfig",
+      "type": "object"
+    },
+    "EventType": {
+      "enum": [
+        "MEAL_CONSUMED",
+        "GROCERIES_PURCHASED",
+        "HOUSEHOLD_FOOD_LOW",
+        "HOUSEHOLD_MONEY_LOW",
+        "NEED_CRISIS",
+        "WORK_STARTED",
+        "WORK_COMPLETED",
+        "WORK_LATE",
+        "WORK_MISSED",
+        "COWORKER_EXTRA_LOAD",
+        "FIRST_GREETING",
+        "POSITIVE_INTERACTION",
+        "AWKWARD_INTERACTION",
+        "INVITATION_ACCEPTED",
+        "INVITATION_REJECTED",
+        "APOLOGY_ACCEPTED",
+        "APOLOGY_REJECTED",
+        "CONFLICT_STARTED",
+        "CONFLICT_ESCALATED",
+        "CONFLICT_REDUCED",
+        "EVENT_SHARED",
+        "CONVERSATION_STARTED",
+        "CONVERSATION_ENDED"
+      ],
+      "title": "EventType",
+      "type": "string"
+    },
+    "EventTypeConfig": {
+      "additionalProperties": false,
+      "properties": {
+        "category": {
+          "enum": [
+            "LIFE_ECONOMY",
+            "WORK",
+            "SOCIAL"
+          ],
+          "title": "Category",
+          "type": "string"
+        },
+        "default_importance": {
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "title": "Default Importance",
+          "type": "number"
+        },
+        "event_type": {
+          "$ref": "#/$defs/EventType"
+        },
+        "witness_scope": {
+          "$ref": "#/$defs/EventWitnessScope"
+        }
+      },
+      "required": [
+        "event_type",
+        "category",
+        "default_importance",
+        "witness_scope"
+      ],
+      "title": "EventTypeConfig",
+      "type": "object"
+    },
+    "EventWitnessScope": {
+      "enum": [
+        "PARTICIPANTS_ONLY",
+        "HIGH_LEVEL_LOCATION"
+      ],
+      "title": "EventWitnessScope",
+      "type": "string"
+    },
+    "FrozenDecisions": {
+      "additionalProperties": false,
+      "properties": {
+        "joint_action_authority": {
+          "const": "CENTRAL_RESOLVER",
+          "title": "Joint Action Authority",
+          "type": "string"
+        },
+        "perception_authority": {
+          "const": "HIGH_LEVEL_LOCATION",
+          "title": "Perception Authority",
+          "type": "string"
+        },
+        "relationship_prediction": {
+          "const": "TARGET_TO_ACTOR",
+          "title": "Relationship Prediction",
+          "type": "string"
+        },
+        "route_planning": {
+          "const": "DISABLED",
+          "title": "Route Planning",
+          "type": "string"
+        },
+        "unity_editor": {
+          "const": "6000.4.2f1",
+          "title": "Unity Editor",
+          "type": "string"
+        }
+      },
+      "required": [
+        "unity_editor",
+        "relationship_prediction",
+        "joint_action_authority",
+        "perception_authority",
+        "route_planning"
+      ],
+      "title": "FrozenDecisions",
+      "type": "object"
+    },
+    "HardEffectOperation": {
+      "enum": [
+        "HOUSEHOLD_MONEY_DELTA",
+        "HOUSEHOLD_FOOD_DELTA",
+        "RECORD_ATTENDANCE",
+        "PAY_SHIFT_WAGE",
+        "ADD_KNOWLEDGE_RECORD",
+        "RELEASE_CONVERSATION"
+      ],
+      "title": "HardEffectOperation",
+      "type": "string"
+    },
+    "HardEffectSpec": {
+      "additionalProperties": false,
+      "properties": {
+        "amount": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Amount"
+        },
+        "economy_key": {
+          "anyOf": [
+            {
+              "pattern": "^[a-z][a-z0-9_]*$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Economy Key"
+        },
+        "operation": {
+          "$ref": "#/$defs/HardEffectOperation"
+        },
+        "timing": {
+          "$ref": "#/$defs/EffectTiming"
+        }
+      },
+      "required": [
+        "operation",
+        "timing"
+      ],
+      "title": "HardEffectSpec",
+      "type": "object"
+    },
+    "HouseholdCatalog": {
+      "additionalProperties": false,
+      "properties": {
+        "households": {
+          "items": {
+            "$ref": "#/$defs/HouseholdConfig"
+          },
+          "maxItems": 4,
+          "minItems": 4,
+          "title": "Households",
+          "type": "array"
+        }
+      },
+      "required": [
+        "households"
+      ],
+      "title": "HouseholdCatalog",
+      "type": "object"
+    },
+    "HouseholdConfig": {
+      "additionalProperties": false,
+      "properties": {
+        "home_location_id": {
+          "pattern": "^[a-z][a-z0-9_]*$",
+          "title": "Home Location Id",
+          "type": "string"
+        },
+        "household_id": {
+          "pattern": "^household_[a-z]$",
+          "title": "Household Id",
+          "type": "string"
+        },
+        "initial_food_units": {
+          "minimum": 0,
+          "title": "Initial Food Units",
+          "type": "integer"
+        },
+        "initial_money": {
+          "minimum": 0,
+          "title": "Initial Money",
+          "type": "integer"
+        },
+        "member_ids": {
+          "items": {
+            "pattern": "^npc_[0-9]{2}$",
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Member Ids",
+          "type": "array"
+        }
+      },
+      "required": [
+        "household_id",
+        "member_ids",
+        "home_location_id",
+        "initial_money",
+        "initial_food_units"
+      ],
+      "title": "HouseholdConfig",
+      "type": "object"
+    },
+    "KnowledgeAcquisitionType": {
+      "enum": [
+        "DIRECT_PARTICIPANT",
+        "WITNESSED",
+        "TOLD",
+        "PLAYER_TOLD"
+      ],
+      "title": "KnowledgeAcquisitionType",
+      "type": "string"
+    },
+    "LocationCatalog": {
+      "additionalProperties": false,
+      "properties": {
+        "locations": {
+          "items": {
+            "$ref": "#/$defs/LocationConfig"
+          },
+          "maxItems": 8,
+          "minItems": 8,
+          "title": "Locations",
+          "type": "array"
+        }
+      },
+      "required": [
+        "locations"
+      ],
+      "title": "LocationCatalog",
+      "type": "object"
+    },
+    "LocationConfig": {
+      "additionalProperties": false,
+      "properties": {
+        "capacity": {
+          "exclusiveMinimum": 0,
+          "title": "Capacity",
+          "type": "integer"
+        },
+        "display_name_key": {
+          "pattern": "^[a-z][a-z0-9_]*$",
+          "title": "Display Name Key",
+          "type": "string"
+        },
+        "location_id": {
+          "pattern": "^[a-z][a-z0-9_]*$",
+          "title": "Location Id",
+          "type": "string"
+        },
+        "location_type": {
+          "$ref": "#/$defs/LocationType"
+        },
+        "open_intervals": {
+          "items": {
+            "$ref": "#/$defs/OpenInterval"
+          },
+          "minItems": 1,
+          "title": "Open Intervals",
+          "type": "array"
+        },
+        "travel_minutes": {
+          "patternProperties": {
+            "^[a-z][a-z0-9_]*$": {
+              "exclusiveMinimum": 0,
+              "type": "integer"
+            }
+          },
+          "title": "Travel Minutes",
+          "type": "object"
+        }
+      },
+      "required": [
+        "location_id",
+        "location_type",
+        "display_name_key",
+        "open_intervals",
+        "capacity",
+        "travel_minutes"
+      ],
+      "title": "LocationConfig",
+      "type": "object"
+    },
+    "LocationType": {
+      "enum": [
+        "HOME",
+        "CAFE_BAR",
+        "SHOP",
+        "WORKPLACE",
+        "PARK"
+      ],
+      "title": "LocationType",
+      "type": "string"
+    },
+    "ModelConfig": {
+      "additionalProperties": false,
+      "properties": {
+        "acceptance_behaviors": {
+          "items": {
+            "$ref": "#/$defs/BehaviorId"
+          },
+          "title": "Acceptance Behaviors",
+          "type": "array"
+        },
+        "default_outcome_model": {
+          "const": "heuristic",
+          "title": "Default Outcome Model",
+          "type": "string"
+        },
+        "feature_version": {
+          "const": "v0.1",
+          "title": "Feature Version",
+          "type": "string"
+        },
+        "max_context_events": {
+          "const": 4,
+          "title": "Max Context Events",
+          "type": "integer"
+        },
+        "mood_axes": {
+          "items": {
+            "$ref": "#/$defs/MoodAxis"
+          },
+          "maxItems": 2,
+          "minItems": 2,
+          "title": "Mood Axes",
+          "type": "array"
+        },
+        "need_axes": {
+          "items": {
+            "$ref": "#/$defs/NeedName"
+          },
+          "maxItems": 5,
+          "minItems": 5,
+          "title": "Need Axes",
+          "type": "array"
+        },
+        "neural_model_status": {
+          "const": "deferred_to_m4",
+          "title": "Neural Model Status",
+          "type": "string"
+        },
+        "relationship_axes": {
+          "items": {
+            "$ref": "#/$defs/RelationshipAxis"
+          },
+          "maxItems": 4,
+          "minItems": 4,
+          "title": "Relationship Axes",
+          "type": "array"
+        },
+        "relationship_prediction": {
+          "const": "TARGET_TO_ACTOR",
+          "title": "Relationship Prediction",
+          "type": "string"
+        }
+      },
+      "required": [
+        "feature_version",
+        "default_outcome_model",
+        "neural_model_status",
+        "max_context_events",
+        "relationship_prediction",
+        "relationship_axes",
+        "need_axes",
+        "mood_axes",
+        "acceptance_behaviors"
+      ],
+      "title": "ModelConfig",
+      "type": "object"
+    },
+    "MoodAxis": {
+      "enum": [
+        "valence",
+        "stress"
+      ],
+      "title": "MoodAxis",
+      "type": "string"
+    },
+    "MoodValues": {
+      "additionalProperties": false,
+      "properties": {
+        "stress": {
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "title": "Stress",
+          "type": "number"
+        },
+        "valence": {
+          "maximum": 1.0,
+          "minimum": -1.0,
+          "title": "Valence",
+          "type": "number"
+        }
+      },
+      "required": [
+        "valence",
+        "stress"
+      ],
+      "title": "MoodValues",
+      "type": "object"
+    },
+    "NeedName": {
+      "enum": [
+        "hunger",
+        "energy",
+        "hygiene",
+        "fun",
+        "social"
+      ],
+      "title": "NeedName",
+      "type": "string"
+    },
+    "NeedValues": {
+      "additionalProperties": false,
+      "properties": {
+        "energy": {
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "title": "Energy",
+          "type": "number"
+        },
+        "fun": {
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "title": "Fun",
+          "type": "number"
+        },
+        "hunger": {
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "title": "Hunger",
+          "type": "number"
+        },
+        "hygiene": {
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "title": "Hygiene",
+          "type": "number"
+        },
+        "social": {
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "title": "Social",
+          "type": "number"
+        }
+      },
+      "required": [
+        "hunger",
+        "energy",
+        "hygiene",
+        "fun",
+        "social"
+      ],
+      "title": "NeedValues",
+      "type": "object"
+    },
+    "NpcConfig": {
+      "additionalProperties": false,
+      "properties": {
+        "agent_id": {
+          "pattern": "^npc_[0-9]{2}$",
+          "title": "Agent Id",
+          "type": "string"
+        },
+        "assigned_work_location_id": {
+          "pattern": "^[a-z][a-z0-9_]*$",
+          "title": "Assigned Work Location Id",
+          "type": "string"
+        },
+        "assigned_workstation_tag": {
+          "$ref": "#/$defs/CapabilityTag"
+        },
+        "display_name_key": {
+          "pattern": "^[a-z][a-z0-9_]*$",
+          "title": "Display Name Key",
+          "type": "string"
+        },
+        "enabled": {
+          "const": true,
+          "title": "Enabled",
+          "type": "boolean"
+        },
+        "home_location_id": {
+          "pattern": "^[a-z][a-z0-9_]*$",
+          "title": "Home Location Id",
+          "type": "string"
+        },
+        "household_id": {
+          "pattern": "^household_[a-z]$",
+          "title": "Household Id",
+          "type": "string"
+        },
+        "initial_mood": {
+          "$ref": "#/$defs/MoodValues"
+        },
+        "initial_needs": {
+          "$ref": "#/$defs/NeedValues"
+        },
+        "life_stage": {
+          "const": "ADULT",
+          "title": "Life Stage",
+          "type": "string"
+        },
+        "personality": {
+          "$ref": "#/$defs/PersonalityValues"
+        },
+        "schedule_id": {
+          "pattern": "^schedule_npc_[0-9]{2}$",
+          "title": "Schedule Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "agent_id",
+        "display_name_key",
+        "life_stage",
+        "household_id",
+        "home_location_id",
+        "assigned_work_location_id",
+        "assigned_workstation_tag",
+        "schedule_id",
+        "initial_needs",
+        "personality",
+        "initial_mood",
+        "enabled"
+      ],
+      "title": "NpcConfig",
+      "type": "object"
+    },
+    "ObjectCatalog": {
+      "additionalProperties": false,
+      "properties": {
+        "object_types": {
+          "items": {
+            "$ref": "#/$defs/ObjectTypeConfig"
+          },
+          "maxItems": 15,
+          "minItems": 15,
+          "title": "Object Types",
+          "type": "array"
+        }
+      },
+      "required": [
+        "object_types"
+      ],
+      "title": "ObjectCatalog",
+      "type": "object"
+    },
+    "ObjectRequirement": {
+      "additionalProperties": false,
+      "properties": {
+        "accepted_object_types": {
+          "items": {
+            "$ref": "#/$defs/ObjectType"
+          },
+          "minItems": 1,
+          "title": "Accepted Object Types",
+          "type": "array"
+        },
+        "capability": {
+          "$ref": "#/$defs/CapabilityTag"
+        },
+        "quantity": {
+          "default": 1,
+          "exclusiveMinimum": 0,
+          "title": "Quantity",
+          "type": "integer"
+        },
+        "reservation_mode": {
+          "$ref": "#/$defs/ReservationMode"
+        }
+      },
+      "required": [
+        "capability",
+        "accepted_object_types",
+        "reservation_mode"
+      ],
+      "title": "ObjectRequirement",
+      "type": "object"
+    },
+    "ObjectType": {
+      "enum": [
+        "BED",
+        "FRIDGE",
+        "DINING_SEAT",
+        "SHOWER",
+        "SOFA",
+        "TV",
+        "WORKSTATION",
+        "SHOP_SHELF",
+        "CHECKOUT_COUNTER",
+        "CAFE_COUNTER",
+        "BAR_COUNTER",
+        "PUBLIC_SEAT",
+        "PARK_ROUTE",
+        "LEISURE_SPOT",
+        "CONVERSATION_ANCHOR"
+      ],
+      "title": "ObjectType",
+      "type": "string"
+    },
+    "ObjectTypeConfig": {
+      "additionalProperties": false,
+      "properties": {
+        "capability_tags": {
+          "items": {
+            "$ref": "#/$defs/CapabilityTag"
+          },
+          "minItems": 1,
+          "title": "Capability Tags",
+          "type": "array"
+        },
+        "default_slot_count": {
+          "exclusiveMinimum": 0,
+          "title": "Default Slot Count",
+          "type": "integer"
+        },
+        "object_type": {
+          "$ref": "#/$defs/ObjectType"
+        },
+        "persistent_occupancy": {
+          "title": "Persistent Occupancy",
+          "type": "boolean"
+        },
+        "unity_binding_required": {
+          "const": true,
+          "title": "Unity Binding Required",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "object_type",
+        "capability_tags",
+        "default_slot_count",
+        "persistent_occupancy",
+        "unity_binding_required"
+      ],
+      "title": "ObjectTypeConfig",
+      "type": "object"
+    },
+    "OpenInterval": {
+      "additionalProperties": false,
+      "properties": {
+        "end_minute_of_day": {
+          "exclusiveMinimum": 0,
+          "maximum": 1440,
+          "title": "End Minute Of Day",
+          "type": "integer"
+        },
+        "start_minute_of_day": {
+          "exclusiveMaximum": 1440,
+          "minimum": 0,
+          "title": "Start Minute Of Day",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "start_minute_of_day",
+        "end_minute_of_day"
+      ],
+      "title": "OpenInterval",
+      "type": "object"
+    },
+    "PersonalityAxis": {
+      "enum": [
+        "sociability",
+        "discipline",
+        "frugality",
+        "irritability"
+      ],
+      "title": "PersonalityAxis",
+      "type": "string"
+    },
+    "PersonalityValues": {
+      "additionalProperties": false,
+      "properties": {
+        "discipline": {
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "title": "Discipline",
+          "type": "number"
+        },
+        "frugality": {
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "title": "Frugality",
+          "type": "number"
+        },
+        "irritability": {
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "title": "Irritability",
+          "type": "number"
+        },
+        "sociability": {
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "title": "Sociability",
+          "type": "number"
+        }
+      },
+      "required": [
+        "sociability",
+        "discipline",
+        "frugality",
+        "irritability"
+      ],
+      "title": "PersonalityValues",
+      "type": "object"
+    },
+    "PopulationCatalog": {
+      "additionalProperties": false,
+      "properties": {
+        "npcs": {
+          "items": {
+            "$ref": "#/$defs/NpcConfig"
+          },
+          "maxItems": 10,
+          "minItems": 10,
+          "title": "Npcs",
+          "type": "array"
+        },
+        "relationship_initialization": {
+          "$ref": "#/$defs/RelationshipInitializationConfig"
+        }
+      },
+      "required": [
+        "npcs",
+        "relationship_initialization"
+      ],
+      "title": "PopulationCatalog",
+      "type": "object"
+    },
+    "PromptConfig": {
+      "additionalProperties": false,
+      "properties": {
+        "runtime_status": {
+          "const": "deferred_to_m5",
+          "title": "Runtime Status",
+          "type": "string"
+        },
+        "templates": {
+          "items": {
+            "$ref": "#/$defs/PromptTemplateConfig"
+          },
+          "maxItems": 2,
+          "minItems": 2,
+          "title": "Templates",
+          "type": "array"
+        }
+      },
+      "required": [
+        "runtime_status",
+        "templates"
+      ],
+      "title": "PromptConfig",
+      "type": "object"
+    },
+    "PromptTemplateConfig": {
+      "additionalProperties": false,
+      "properties": {
+        "max_tokens": {
+          "exclusiveMinimum": 0,
+          "title": "Max Tokens",
+          "type": "integer"
+        },
+        "model_name": {
+          "const": "deepseek-v4-flash",
+          "title": "Model Name",
+          "type": "string"
+        },
+        "prompt_id": {
+          "enum": [
+            "parse_player_utterance",
+            "verbalize_speech_plan"
+          ],
+          "title": "Prompt Id",
+          "type": "string"
+        },
+        "prompt_version": {
+          "const": "v0.1",
+          "title": "Prompt Version",
+          "type": "string"
+        },
+        "required_variables": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Required Variables",
+          "type": "array"
+        },
+        "schema_version": {
+          "const": "v0.1",
+          "title": "Schema Version",
+          "type": "string"
+        },
+        "temperature": {
+          "maximum": 2.0,
+          "minimum": 0.0,
+          "title": "Temperature",
+          "type": "number"
+        },
+        "template_file": {
+          "pattern": "^[a-z][a-z0-9_]*\\.md$",
+          "title": "Template File",
+          "type": "string"
+        }
+      },
+      "required": [
+        "prompt_id",
+        "prompt_version",
+        "template_file",
+        "model_name",
+        "temperature",
+        "max_tokens",
+        "schema_version",
+        "required_variables"
+      ],
+      "title": "PromptTemplateConfig",
+      "type": "object"
+    },
+    "PurchaseConfig": {
+      "additionalProperties": false,
+      "properties": {
+        "food_units_delta": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Food Units Delta",
+          "type": "integer"
+        },
+        "price": {
+          "exclusiveMinimum": 0,
+          "title": "Price",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "price"
+      ],
+      "title": "PurchaseConfig",
+      "type": "object"
+    },
+    "RelationshipAxis": {
+      "enum": [
+        "familiarity",
+        "affinity",
+        "trust",
+        "tension"
+      ],
+      "title": "RelationshipAxis",
+      "type": "string"
+    },
+    "RelationshipInitializationConfig": {
+      "additionalProperties": false,
+      "properties": {
+        "coworker": {
+          "$ref": "#/$defs/RelationshipRangeSet"
+        },
+        "generation_seed": {
+          "minimum": 0,
+          "title": "Generation Seed",
+          "type": "integer"
+        },
+        "other": {
+          "$ref": "#/$defs/RelationshipRangeSet"
+        },
+        "role_priority": {
+          "items": {
+            "$ref": "#/$defs/RelationshipRole"
+          },
+          "maxItems": 3,
+          "minItems": 3,
+          "title": "Role Priority",
+          "type": "array"
+        },
+        "same_household": {
+          "$ref": "#/$defs/RelationshipRangeSet"
+        }
+      },
+      "required": [
+        "generation_seed",
+        "role_priority",
+        "same_household",
+        "coworker",
+        "other"
+      ],
+      "title": "RelationshipInitializationConfig",
+      "type": "object"
+    },
+    "RelationshipRange": {
+      "additionalProperties": false,
+      "properties": {
+        "maximum": {
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "title": "Maximum",
+          "type": "number"
+        },
+        "minimum": {
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "title": "Minimum",
+          "type": "number"
+        }
+      },
+      "required": [
+        "minimum",
+        "maximum"
+      ],
+      "title": "RelationshipRange",
+      "type": "object"
+    },
+    "RelationshipRangeSet": {
+      "additionalProperties": false,
+      "properties": {
+        "affinity": {
+          "$ref": "#/$defs/RelationshipRange"
+        },
+        "familiarity": {
+          "$ref": "#/$defs/RelationshipRange"
+        },
+        "tension": {
+          "$ref": "#/$defs/RelationshipRange"
+        },
+        "trust": {
+          "$ref": "#/$defs/RelationshipRange"
+        }
+      },
+      "required": [
+        "familiarity",
+        "affinity",
+        "trust",
+        "tension"
+      ],
+      "title": "RelationshipRangeSet",
+      "type": "object"
+    },
+    "RelationshipRole": {
+      "enum": [
+        "HOUSEHOLD_MEMBER",
+        "COWORKER",
+        "NEIGHBOR",
+        "ACQUAINTANCE"
+      ],
+      "title": "RelationshipRole",
+      "type": "string"
+    },
+    "ReservationMode": {
+      "enum": [
+        "EXCLUSIVE",
+        "SHARED",
+        "TRANSIENT"
+      ],
+      "title": "ReservationMode",
+      "type": "string"
+    },
+    "ScheduleCatalog": {
+      "additionalProperties": false,
+      "properties": {
+        "schedules": {
+          "items": {
+            "$ref": "#/$defs/ScheduleConfig"
+          },
+          "maxItems": 10,
+          "minItems": 10,
+          "title": "Schedules",
+          "type": "array"
+        }
+      },
+      "required": [
+        "schedules"
+      ],
+      "title": "ScheduleCatalog",
+      "type": "object"
+    },
+    "ScheduleConfig": {
+      "additionalProperties": false,
+      "properties": {
+        "entries": {
+          "items": {
+            "$ref": "#/$defs/ScheduleEntry"
+          },
+          "maxItems": 1,
+          "minItems": 1,
+          "title": "Entries",
+          "type": "array"
+        },
+        "schedule_id": {
+          "pattern": "^schedule_npc_[0-9]{2}$",
+          "title": "Schedule Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "schedule_id",
+        "entries"
+      ],
+      "title": "ScheduleConfig",
+      "type": "object"
+    },
+    "ScheduleEntry": {
+      "additionalProperties": false,
+      "properties": {
+        "end_minute_of_day": {
+          "exclusiveMinimum": 0,
+          "maximum": 1440,
+          "title": "End Minute Of Day",
+          "type": "integer"
+        },
+        "entry_id": {
+          "pattern": "^npc_[0-9]{2}_work$",
+          "title": "Entry Id",
+          "type": "string"
+        },
+        "grace_minutes": {
+          "minimum": 0,
+          "title": "Grace Minutes",
+          "type": "integer"
+        },
+        "kind": {
+          "const": "WORK",
+          "title": "Kind",
+          "type": "string"
+        },
+        "location_id": {
+          "pattern": "^[a-z][a-z0-9_]*$",
+          "title": "Location Id",
+          "type": "string"
+        },
+        "priority": {
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "title": "Priority",
+          "type": "number"
+        },
+        "required_behavior_id": {
+          "const": "work_shift",
+          "title": "Required Behavior Id",
+          "type": "string"
+        },
+        "start_minute_of_day": {
+          "exclusiveMaximum": 1440,
+          "minimum": 0,
+          "title": "Start Minute Of Day",
+          "type": "integer"
+        },
+        "weekdays": {
+          "items": {
+            "maximum": 6,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "minItems": 1,
+          "title": "Weekdays",
+          "type": "array"
+        }
+      },
+      "required": [
+        "entry_id",
+        "kind",
+        "weekdays",
+        "start_minute_of_day",
+        "end_minute_of_day",
+        "location_id",
+        "required_behavior_id",
+        "grace_minutes",
+        "priority"
+      ],
+      "title": "ScheduleEntry",
+      "type": "object"
+    },
+    "SoftEffectMask": {
+      "additionalProperties": false,
+      "properties": {
+        "acceptance": {
+          "title": "Acceptance",
+          "type": "boolean"
+        },
+        "actor_mood": {
+          "items": {
+            "$ref": "#/$defs/MoodAxis"
+          },
+          "title": "Actor Mood",
+          "type": "array"
+        },
+        "events": {
+          "title": "Events",
+          "type": "boolean"
+        },
+        "needs": {
+          "items": {
+            "$ref": "#/$defs/NeedName"
+          },
+          "title": "Needs",
+          "type": "array"
+        },
+        "relationship_target_to_actor": {
+          "items": {
+            "$ref": "#/$defs/RelationshipAxis"
+          },
+          "title": "Relationship Target To Actor",
+          "type": "array"
+        },
+        "target_mood": {
+          "items": {
+            "$ref": "#/$defs/MoodAxis"
+          },
+          "title": "Target Mood",
+          "type": "array"
+        }
+      },
+      "required": [
+        "needs",
+        "actor_mood",
+        "target_mood",
+        "relationship_target_to_actor",
+        "acceptance",
+        "events"
+      ],
+      "title": "SoftEffectMask",
+      "type": "object"
+    },
+    "TargetKind": {
+      "enum": [
+        "NONE",
+        "OBJECT_BUNDLE",
+        "AGENT",
+        "CONVERSATION"
+      ],
+      "title": "TargetKind",
+      "type": "string"
+    },
+    "UnityPresentation": {
+      "additionalProperties": false,
+      "properties": {
+        "animation_semantics": {
+          "items": {
+            "$ref": "#/$defs/AnimationSemantic"
+          },
+          "minItems": 1,
+          "title": "Animation Semantics",
+          "type": "array"
+        },
+        "prop_semantic": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Prop Semantic"
+        },
+        "requires_facing": {
+          "title": "Requires Facing",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "animation_semantics",
+        "requires_facing"
+      ],
+      "title": "UnityPresentation",
+      "type": "object"
+    },
+    "UtilityConfig": {
+      "additionalProperties": false,
+      "properties": {
+        "deterministic_noise_amplitude": {
+          "maximum": 0.1,
+          "minimum": 0.0,
+          "title": "Deterministic Noise Amplitude",
+          "type": "number"
+        },
+        "max_candidates_per_agent": {
+          "const": 12,
+          "title": "Max Candidates Per Agent",
+          "type": "integer"
+        },
+        "need_crisis_thresholds": {
+          "additionalProperties": {
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "type": "number"
+          },
+          "propertyNames": {
+            "$ref": "#/$defs/NeedName"
+          },
+          "title": "Need Crisis Thresholds",
+          "type": "object"
+        },
+        "need_decay_per_game_hour": {
+          "additionalProperties": {
+            "maximum": 0.0,
+            "minimum": -1.0,
+            "type": "number"
+          },
+          "propertyNames": {
+            "$ref": "#/$defs/NeedName"
+          },
+          "title": "Need Decay Per Game Hour",
+          "type": "object"
+        },
+        "personality_axes": {
+          "items": {
+            "$ref": "#/$defs/PersonalityAxis"
+          },
+          "maxItems": 4,
+          "minItems": 4,
+          "title": "Personality Axes",
+          "type": "array"
+        },
+        "weights": {
+          "$ref": "#/$defs/UtilityWeights"
+        }
+      },
+      "required": [
+        "max_candidates_per_agent",
+        "need_decay_per_game_hour",
+        "need_crisis_thresholds",
+        "weights",
+        "personality_axes",
+        "deterministic_noise_amplitude"
+      ],
+      "title": "UtilityConfig",
+      "type": "object"
+    },
+    "UtilityWeights": {
+      "additionalProperties": false,
+      "properties": {
+        "idle_penalty": {
+          "title": "Idle Penalty",
+          "type": "number"
+        },
+        "interrupt_cost": {
+          "title": "Interrupt Cost",
+          "type": "number"
+        },
+        "known_events": {
+          "title": "Known Events",
+          "type": "number"
+        },
+        "money_cost": {
+          "title": "Money Cost",
+          "type": "number"
+        },
+        "mood": {
+          "title": "Mood",
+          "type": "number"
+        },
+        "needs": {
+          "title": "Needs",
+          "type": "number"
+        },
+        "relationship": {
+          "title": "Relationship",
+          "type": "number"
+        },
+        "repetition_penalty": {
+          "title": "Repetition Penalty",
+          "type": "number"
+        },
+        "schedule": {
+          "title": "Schedule",
+          "type": "number"
+        },
+        "travel_cost": {
+          "title": "Travel Cost",
+          "type": "number"
+        }
+      },
+      "required": [
+        "needs",
+        "mood",
+        "schedule",
+        "relationship",
+        "known_events",
+        "money_cost",
+        "travel_cost",
+        "interrupt_cost",
+        "repetition_penalty",
+        "idle_penalty"
+      ],
+      "title": "UtilityWeights",
+      "type": "object"
+    },
+    "WorldConfig": {
+      "additionalProperties": false,
+      "properties": {
+        "config_version": {
+          "const": "v0",
+          "title": "Config Version",
+          "type": "string"
+        },
+        "fixed_counts": {
+          "additionalProperties": {
+            "exclusiveMinimum": 0,
+            "type": "integer"
+          },
+          "propertyNames": {
+            "enum": [
+              "npcs",
+              "households",
+              "locations",
+              "behaviors",
+              "object_types"
+            ]
+          },
+          "title": "Fixed Counts",
+          "type": "object"
+        },
+        "frozen": {
+          "$ref": "#/$defs/FrozenDecisions"
+        },
+        "initial_game_minute": {
+          "minimum": 0,
+          "title": "Initial Game Minute",
+          "type": "integer"
+        },
+        "protocol_version": {
+          "const": "0.1.0",
+          "title": "Protocol Version",
+          "type": "string"
+        },
+        "random_seed": {
+          "minimum": 0,
+          "title": "Random Seed",
+          "type": "integer"
+        },
+        "schema_version": {
+          "const": "v0.1",
+          "title": "Schema Version",
+          "type": "string"
+        },
+        "world_id": {
+          "pattern": "^[a-z][a-z0-9_]*$",
+          "title": "World Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "config_version",
+        "schema_version",
+        "protocol_version",
+        "world_id",
+        "random_seed",
+        "initial_game_minute",
+        "fixed_counts",
+        "frozen"
+      ],
+      "title": "WorldConfig",
+      "type": "object"
+    }
+  },
+  "$id": "urn:ai-town:protocol:0.1.0:catalog-bundle",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "behaviors": {
+      "$ref": "#/$defs/BehaviorCatalog"
+    },
+    "economy": {
+      "$ref": "#/$defs/EconomyConfig"
+    },
+    "events": {
+      "$ref": "#/$defs/EventConfig"
+    },
+    "households": {
+      "$ref": "#/$defs/HouseholdCatalog"
+    },
+    "locations": {
+      "$ref": "#/$defs/LocationCatalog"
+    },
+    "model": {
+      "$ref": "#/$defs/ModelConfig"
+    },
+    "objects": {
+      "$ref": "#/$defs/ObjectCatalog"
+    },
+    "population": {
+      "$ref": "#/$defs/PopulationCatalog"
+    },
+    "prompts": {
+      "$ref": "#/$defs/PromptConfig"
+    },
+    "schedules": {
+      "$ref": "#/$defs/ScheduleCatalog"
+    },
+    "utility": {
+      "$ref": "#/$defs/UtilityConfig"
+    },
+    "world": {
+      "$ref": "#/$defs/WorldConfig"
+    }
+  },
+  "required": [
+    "world",
+    "population",
+    "households",
+    "locations",
+    "objects",
+    "behaviors",
+    "schedules",
+    "economy",
+    "utility",
+    "events",
+    "model",
+    "prompts"
+  ],
+  "title": "CatalogBundle",
+  "type": "object"
+}

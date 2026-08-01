@@ -1,0 +1,182 @@
+{
+  "$defs": {
+    "SpeechStance": {
+      "additionalProperties": false,
+      "properties": {
+        "approval": {
+          "maximum": 1.0,
+          "minimum": -1.0,
+          "title": "Approval",
+          "type": "number"
+        },
+        "certainty": {
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "title": "Certainty",
+          "type": "number"
+        }
+      },
+      "required": [
+        "certainty",
+        "approval"
+      ],
+      "title": "SpeechStance",
+      "type": "object"
+    },
+    "SpeechStyle": {
+      "additionalProperties": false,
+      "properties": {
+        "directness": {
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "title": "Directness",
+          "type": "number"
+        },
+        "verbosity": {
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "title": "Verbosity",
+          "type": "number"
+        },
+        "warmth": {
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "title": "Warmth",
+          "type": "number"
+        }
+      },
+      "required": [
+        "directness",
+        "warmth",
+        "verbosity"
+      ],
+      "title": "SpeechStyle",
+      "type": "object"
+    }
+  },
+  "$id": "urn:ai-town:protocol:0.1.0:speech-plan",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "allowed_agent_ids": {
+      "items": {
+        "pattern": "^npc_[0-9]{2}$",
+        "type": "string"
+      },
+      "title": "Allowed Agent Ids",
+      "type": "array"
+    },
+    "allowed_event_ids": {
+      "items": {
+        "pattern": "^event_[0-9]+$",
+        "type": "string"
+      },
+      "title": "Allowed Event Ids",
+      "type": "array"
+    },
+    "communicative_goal": {
+      "title": "Communicative Goal",
+      "type": "string"
+    },
+    "conversation_id": {
+      "pattern": "^conversation_[0-9]+$",
+      "title": "Conversation Id",
+      "type": "string"
+    },
+    "emotion_stress": {
+      "maximum": 1.0,
+      "minimum": 0.0,
+      "title": "Emotion Stress",
+      "type": "number"
+    },
+    "emotion_valence": {
+      "maximum": 1.0,
+      "minimum": -1.0,
+      "title": "Emotion Valence",
+      "type": "number"
+    },
+    "fact_payload": {
+      "additionalProperties": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "integer"
+          },
+          {
+            "type": "number"
+          },
+          {
+            "type": "boolean"
+          },
+          {
+            "type": "null"
+          }
+        ]
+      },
+      "title": "Fact Payload",
+      "type": "object"
+    },
+    "forbidden_topics": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Forbidden Topics",
+      "type": "array"
+    },
+    "listener_ids": {
+      "items": {
+        "type": "string"
+      },
+      "minItems": 1,
+      "title": "Listener Ids",
+      "type": "array"
+    },
+    "speaker_agent_id": {
+      "pattern": "^npc_[0-9]{2}$",
+      "title": "Speaker Agent Id",
+      "type": "string"
+    },
+    "speech_act": {
+      "pattern": "^[A-Z][A-Z0-9_]*$",
+      "title": "Speech Act",
+      "type": "string"
+    },
+    "speech_plan_id": {
+      "pattern": "^speech_plan_[0-9]+$",
+      "title": "Speech Plan Id",
+      "type": "string"
+    },
+    "stance": {
+      "$ref": "#/$defs/SpeechStance"
+    },
+    "state_version": {
+      "minimum": 0,
+      "title": "State Version",
+      "type": "integer"
+    },
+    "style": {
+      "$ref": "#/$defs/SpeechStyle"
+    }
+  },
+  "required": [
+    "speech_plan_id",
+    "conversation_id",
+    "speaker_agent_id",
+    "listener_ids",
+    "speech_act",
+    "communicative_goal",
+    "allowed_event_ids",
+    "allowed_agent_ids",
+    "fact_payload",
+    "stance",
+    "emotion_valence",
+    "emotion_stress",
+    "style",
+    "forbidden_topics",
+    "state_version"
+  ],
+  "title": "SpeechPlan",
+  "type": "object"
+}
