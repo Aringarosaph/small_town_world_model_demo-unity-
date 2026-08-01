@@ -1,0 +1,106 @@
+name: Python CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: python-ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  qa-baseline:
+    name: QA baseline (Python 3.12)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: .github/requirements/qa.txt
+
+      - name: Install QA tools
+        run: python -m pip install -r .github/requirements/qa.txt
+
+      - name: Ruff lint
+        run: >-
+          ruff check --output-format=github
+          tools/diagnostics python/tests/qa integration_tests
+
+      - name: Ruff format check
+        run: >-
+          ruff format --check
+          tools/diagnostics python/tests/qa integration_tests
+
+      - name: Mypy strict
+        run: >-
+          mypy --strict --explicit-package-bases
+          tools/diagnostics python/tests/qa integration_tests
+
+      - name: QA regression tests
+        run: >-
+          pytest --strict-config --strict-markers
+          -m "not contract_pending"
+          python/tests/qa integration_tests
+
+      - name: M0 diagnostics (pending upstream inputs allowed)
+        run: >-
+          python tools/diagnostics/check_m0.py
+          --allow-pending-m0-inputs
+
+  m0-readiness:
+    name: M0 readiness (gating)
+    needs: qa-baseline
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Install QA tools
+        run: python -m pip install -r .github/requirements/qa.txt
+
+      - name: Install project when CONTRACTS is present
+        shell: bash
+        run: |
+          if [[ -f pyproject.toml ]]; then
+            python -m pip install -e .
+          fi
+
+      - name: Build strict M0 diagnostic report
+        continue-on-error: true
+        run: >-
+          python tools/diagnostics/check_m0.py
+          --json-output "${RUNNER_TEMP}/m0-diagnostics.json"
+
+      - name: Ruff repository lint
+        run: ruff check --output-format=github .
+
+      - name: Mypy authority package
+        run: mypy python/town_core
+
+      - name: Run all Python tests
+        run: >-
+          pytest --strict-config --strict-markers
+          python/tests integration_tests
+
+      - name: Upload M0 diagnostics
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: m0-diagnostics
+          path: ${{ runner.temp }}/m0-diagnostics.json
+          if-no-files-found: warn
