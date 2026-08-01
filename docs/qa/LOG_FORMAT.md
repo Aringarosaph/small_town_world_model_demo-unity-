@@ -36,6 +36,8 @@ Example:
   version.
 - `actions.jsonl`: action ID, behavior/participants, lifecycle phase, reserved
   resources, result, and failure/cancellation reason.
+- `transactions.jsonl`: transaction ID, expected/before/after authority version,
+  accepted/rejected result, stable rejection code, and bounded state deltas.
 - `llm_requests.jsonl`: backend/model/prompt version, request kind, deadline,
   latency, cache/fallback status, validation status, and redacted payload hashes.
 - `metrics.jsonl`: metric name, numeric value, unit, tags, and aggregation
@@ -43,6 +45,12 @@ Example:
 
 The product's authoritative DTO/Schema thread owns exact payload structures.
 This document freezes only the operational envelope and evidence properties.
+
+For M1, every selected action must be traceable across decisions, actions,
+transactions, and emitted events by stable IDs. Authority-bearing records are
+never sampled. `summary.json` is ordinary UTF-8 JSON rather than JSONL and
+contains counts, invariant observations, and canonical state/ordered-log hashes
+defined by `docs/qa/M1_SIM_QA_INTERFACE.md`.
 
 ## Safety and quality rules
 

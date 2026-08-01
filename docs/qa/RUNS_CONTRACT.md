@@ -2,21 +2,24 @@
 
 This contract describes evidence layout; it does not implement simulation or
 change domain Schema. Every executable world run, replay, soak test, or focused
-reproduction writes to a new directory:
+reproduction writes to a new directory. The M1 accepted minimum is:
 
 ```text
 runs/<run_id>/
   metadata.json
   config_snapshot/
   initial_snapshot.json
-  events.jsonl
   decisions.jsonl
   actions.jsonl
-  llm_requests.jsonl
-  metrics.jsonl
-  periodic_snapshots/
-  errors.log
+  transactions.jsonl
+  events.jsonl
+  final_snapshot.json
+  summary.json
 ```
+
+Redacted `metrics.jsonl`, `periodic_snapshots/`, and `errors.log` are optional.
+`llm_requests.jsonl` begins only in a milestone that actually enables an LLM;
+M1 must not call or log language/model services.
 
 `runs/` is local/generated evidence and must never be committed. CI may upload a
 redacted subset as an artifact, but the repository remains the source of code
@@ -35,7 +38,8 @@ Example: `20260802T031500Z-headless-12345-a1b2c3d4-7f2a`.
 
 The same ID appears in `metadata.json` and every log record. A replay creates a
 new run directory and names the source run in metadata; it never writes into the
-source directory.
+source directory or a descendant. QA-generated M1 runs use a temporary output
+root outside the repository.
 
 ## Required metadata
 
@@ -62,6 +66,10 @@ secrets.
   committed state.
 - Retention is external policy. Deleting old local runs must never delete a
   source run still referenced by a retained replay report.
+- `summary.json` is written after all JSONL streams and snapshots are flushed;
+  its status may not claim success if an invariant or hash comparison failed.
+- Canonical authority state and ordered-log hashes exclude timestamps, run IDs,
+  output paths, and other non-authority metadata.
 
 ## Sensitive data
 
@@ -70,6 +78,6 @@ forbidden. LLM request records must be redacted or stored separately with access
 controls. QA artifacts should prefer IDs, hashes, status, latency, and bounded
 error summaries over raw payloads.
 
-M0 acceptance validates this documented contract and Git exclusion only. It
-does not require a headless run, replay, golden chain, or soak output; those are
-M1/M3/M6 capabilities.
+M0 acceptance validates this documented contract and Git exclusion only. M1
+requires the minimum layout, Headless run, and authority replay. Golden-chain
+and soak output remain later milestone capabilities.

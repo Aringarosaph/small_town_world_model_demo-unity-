@@ -1,4 +1,21 @@
-# M0 diagnostics
+# M0 and M1 diagnostics
+
+`check_m1.py` is the pending-capable black-box M1 adapter. It executes the
+SIM-owned `town_core.simulation.qa_adapter` after integration and validates the
+three-day run matrix, invariants, deterministic hashes, replay, work/wage and
+rejection probes. It never implements simulation rules.
+
+```bash
+python tools/diagnostics/check_m1.py \
+  --output-root /tmp/stwm-m1-qa \
+  --json-output /tmp/stwm-m1-diagnostics.json
+```
+
+Add `--require-sim` only for the final integrated M1 gate. Before SIM is present,
+the default command reports one readable `PENDING`; partial or broken
+integration always fails.
+
+## M0 freeze diagnostics
 
 `check_m0.py` provides four independent groups:
 
