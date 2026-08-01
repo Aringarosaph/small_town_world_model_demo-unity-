@@ -32,8 +32,14 @@ pythonpath = ["python"]
 markers = [
   "qa: QA-owned regression coverage",
   "m0: M0 acceptance and contract coverage",
+  "m1: M1 headless authority acceptance and contract coverage",
   "integration: cross-component repository checks",
   "contract_pending: temporary marker for an unavailable upstream contract",
+  "sim_pending: temporary marker allowed only before the M1 simulation runtime is integrated",
+  "headless: exercises or validates the headless authority runtime",
+  "determinism: validates same-seed and tick-chunk equivalence",
+  "replay: validates snapshot and ordered-transaction replay",
+  "invariant: validates authority-state rejection and safety invariants",
   "slow: tests excluded from the default fast lane",
 ]
 

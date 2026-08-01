@@ -128,6 +128,7 @@ jobs:
           python tools/diagnostics/check_m1.py
           --output-root "${RUNNER_TEMP}/stwm-m1-qa"
           --json-output "${RUNNER_TEMP}/m1-diagnostics.json"
+          --require-sim
 
       - name: Run M1 black-box acceptance adapter
         shell: bash

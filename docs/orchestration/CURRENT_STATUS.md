@@ -2,14 +2,14 @@
 
 ## Milestone
 
-`M1 - Headless hard-rule vertical slice (active)`
+`M1 - Headless hard-rule vertical slice (local acceptance complete)`
 
 ## State
 
 - Orchestrator thread: `AITOWN-ORCH`
 - Contracts thread: M0 handoff integrated; retained as long-term owner
-- QA thread: M0 handoff integrated; retained as long-term owner
-- Simulation thread: `AITOWN-SIM`, active for M1
+- QA thread: M1 QA handoff integrated; retained as long-term owner
+- Simulation thread: M1 handoff integrated; retained as long-term owner
 - Git branch: `main`
 - Remote: `origin`
 - Unity version: `6000.4.2f1`
@@ -29,22 +29,34 @@
 - [x] Push the accepted M0 baseline to `origin/main`.
 - [x] Pass GitHub Actions `QA baseline` and `M0 readiness` on integration commit `a5ee1af`.
 
-## Next gate
+## M1 acceptance result
 
-M1 exits only when one active NPC runs three deterministic game days without an
-illegal state, produces complete structured decision/action/event/transaction
-evidence, and authoritative replay reaches the identical final-state hash.
+- Exactly one active NPC (`npc_01`) runs from minute 0 to 4320.
+- Only `idle`, `sleep`, `eat_at_home`, and `work_shift` are available.
+- Baseline, repeat, 7-minute chunks, and 60-minute chunks reach identical final
+  state and four-log authority hashes.
+- Replay applies ordered authority transactions without recomputing policy and
+  reaches the recorded final-state hash.
+- Normal, late-within-grace, and missed work sessions produce the expected
+  events and exactly-once wage results.
+- M0 frozen configuration, protocol, and domain DTOs remain unchanged.
+- Local integration validation: 64 tests, 58/58 M0 diagnostics, 15/15 M1
+  diagnostics, Ruff, format, and strict Mypy all pass on Python 3.12.11.
+- Accepted final-state hash:
+  `dda5aae504b65700c2a6e2da4386ee6dab022ee8792917887c7bf905960e3cbd`.
+- Accepted four-log authority hash:
+  `a0268e4f88b1b861959fa26137d73c656b8c3d1ab5d4b1590b124844d7487297`.
 
-## M1 in progress
+## M1 completion
 
 - [x] Accept M0 on public `origin/main`.
 - [x] Freeze the M1 execution and acceptance boundary.
 - [x] Activate `AITOWN-SIM` and `AITOWN-QA` for M1.
-- [ ] Integrate the Headless authority runtime and CLI.
-- [ ] Integrate deterministic/replay QA gates.
-- [ ] Pass local and GitHub M1 acceptance.
-- [ ] Push the accepted M1 baseline.
+- [x] Integrate the Headless authority runtime and CLI.
+- [x] Integrate deterministic/replay QA gates.
+- [x] Pass local M1 acceptance.
+- [ ] Pass GitHub M1 acceptance and push the accepted M1 baseline.
 
 ## Blockers
 
-None. Real DeepSeek credentials, Unity assets, and the cloud training host are intentionally not required in M0.
+None. Real DeepSeek credentials, Unity assets, and the cloud training host are intentionally not required in M1.

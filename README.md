@@ -17,7 +17,7 @@ Small Town World Model 是一个使用 **Python + Unity** 构建的小型社会�
 - DeepSeek 只负责玩家语言的结构化解析和自然语言表达；
 - 所有关键决策、事件和状态变化都可以追踪、检查和重放。
 
-当前仓库正在开发 **V0 Demo**。M0 契约基线已经完成，M1 Headless 单 NPC 垂直切片正在实现。
+当前仓库正在开发 **V0 Demo**。M0 契约基线与 M1 Headless 单 NPC 垂直切片已经完成；下一阶段是 M2 Unity Bridge。
 
 ## 目录
 
@@ -104,7 +104,7 @@ M0 已冻结以下内容规模：
 | 里程碑 | 状态 | 结果 |
 | --- | --- | --- |
 | M0 规范与仓库基线 | 已完成 | 配置、Schema、协议、CI、冻结清单和 Unity 目录骨架 |
-| M1 Headless 硬规则切片 | 进行中 | 单 NPC 的 Idle、Sleep、EatAtHome、WorkShift、三日运行与回放 |
+| M1 Headless 硬规则切片 | 已完成 | 单 NPC 四行为、三日确定性运行、权威日志与事务回放 |
 | M2 Unity Bridge 切片 | 未开始 | 单 NPC 完成“家 -> 工作 -> 家”的表现闭环 |
 | M3 完整规则小社会 | 未开始 | 10 NPC、22 行为、经济与事件传播、30 日规则 Soak |
 | M4 社会锚点与世界模型 | 未开始 | 云端训练小型社会 Outcome Model，本地 CPU 推理 |
@@ -120,6 +120,17 @@ M0 的公开 `main` 已通过：
 - 配置交叉引用验证；
 - JSON Schema 和协议示例漂移检查；
 - GitHub Actions 的 QA baseline 与 M0 readiness gate。
+
+M1 在此基础上新增并通过：
+
+- 64 项 Python 测试、15 项严格 M1 黑盒诊断、Ruff 与严格 Mypy；
+- `npc_01` 从游戏分钟 0 连续运行到 4320；
+- baseline、同 seed 重复、7 分钟 chunk、60 分钟 chunk 四组运行等价；
+- Idle、Sleep、EatAtHome、WorkShift 四种行为均由 Utility 自然选出；
+- 正常上班、宽限期内迟到完成、缺勤不发薪三种班次结果；
+- 决策、Action、事务、事件四类权威日志联合哈希；
+- 从初始快照和有序事务回放到完全相同的最终状态哈希；
+- 非法版本、负资源、需求越界、重叠 Action 和事件篡改拒绝检查。
 
 ## 快速开始
 
@@ -182,7 +193,7 @@ uv run --no-editable python -m town_core.cli \
 }
 ```
 
-### 5. 运行完整 M0 验收
+### 5. 运行完整仓库验收
 
 ```bash
 uv run --no-editable pytest
@@ -190,6 +201,8 @@ uv run --no-editable ruff check .
 uv run --no-editable ruff format --check .
 uv run --no-editable mypy
 uv run --no-editable python tools/diagnostics/check_m0.py
+uv run --no-editable python tools/diagnostics/check_m1.py \
+  --output-root /tmp/stwm-m1-qa --require-sim
 ```
 
 ## 常用命令
@@ -220,6 +233,23 @@ uv run --no-editable python -m town_core.cli replay \
 
 两个命令都输出单行机器可读 JSON；运行证据写入已被 Git 忽略的 `runs/`。
 
+一次 Headless 运行会生成：
+
+```text
+runs/<run_id>/
+├── metadata.json
+├── config_snapshot/catalog.json
+├── initial_snapshot.json
+├── decisions.jsonl
+├── actions.jsonl
+├── transactions.jsonl
+├── events.jsonl
+├── final_snapshot.json
+└── summary.json
+```
+
+`replay` 不重新运行 Utility 或决策逻辑，而是从初始快照按顺序应用已经提交的权威事务；它同时校验每笔事务、最终快照、四类日志联合哈希和源运行未被修改。
+
 ## 仓库结构
 
 ```text
@@ -237,8 +267,8 @@ uv run --no-editable python -m town_core.cli replay \
 │   ├── examples/               # Python/Unity 协议样例
 │   └── jsonschema/             # 由 Pydantic 生成的 JSON Schema
 ├── python/
-│   ├── tests/                  # contracts、QA 及后续 simulation 测试
-│   └── town_core/              # Python 权威核心包
+│   ├── tests/                  # contracts、simulation、QA 与集成测试
+│   └── town_core/              # 权威核心、decision、simulation、events、replay
 ├── tools/diagnostics/          # 冻结清单与仓库诊断
 ├── unity/                      # Unity 工程与语义桥目录
 ├── pyproject.toml
@@ -256,7 +286,7 @@ uv run --no-editable python -m town_core.cli replay \
 - 建立 CI、诊断、ADR、长期任务和配置冻结清单；
 - 不依赖 Unity、模型或 DeepSeek 即可验证全部配置。
 
-### M1：Headless 硬规则垂直切片（进行中）
+### M1：Headless 硬规则垂直切片（完成）
 
 - 只激活 1 名 NPC；
 - 首批行为：Idle、Sleep、EatAtHome、WorkShift；
@@ -266,6 +296,8 @@ uv run --no-editable python -m town_core.cli replay \
 - 相同 seed 结果一致；
 - 从初始快照和权威日志重放到相同最终状态；
 - 决策、Action 和事件均有结构化追踪。
+
+M1 保留全部 10 名 NPC 与 90 条有向关系边，但只启用 `npc_01`。其余角色不会衰减需求、决策、行动、领薪、见证或产生事件。M1 使用受冻结配置约束的确定性 Heuristic Outcome Provider；小型神经模型仍属于 M4。
 
 ### M2：Unity Bridge 垂直切片
 

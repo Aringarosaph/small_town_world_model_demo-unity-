@@ -32,9 +32,12 @@ Long-term responsibility threads:
 
 Every change must land as a working vertical increment. Cross-thread contract changes require an ADR, version update, tests, and an updated handoff.
 
-## Active milestone
+## Accepted milestone
 
 M1 implements one active NPC in `HEADLESS_FAST` mode using only `idle`, `sleep`,
 `eat_at_home`, and `work_shift`. Its accepted output is a deterministic three-day
 run plus authoritative replay with matching final-state hash. The exact boundary
 and gate live in `docs/orchestration/M1_EXECUTION_BASELINE.md`.
+
+The next product boundary is M2: a one-NPC Unity bridge slice. M2 does not start
+until the M1 integration commit passes the remote Python CI gate.

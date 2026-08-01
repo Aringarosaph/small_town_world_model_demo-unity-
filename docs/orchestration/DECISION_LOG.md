@@ -9,3 +9,4 @@
 | ADR-0005 | M4 distills reviewed social reactions rather than claiming discovery of social laws | Accepted |
 | ADR-0006 | Freeze the unprefixed 22-value V0 behavior-ID namespace | Accepted |
 | ADR-0007 | Use Small Town World Model (STWM) as the public project name while preserving M0 compatibility IDs | Accepted |
+| ADR-0008 | Freeze M1 work lateness, grace, completion, and exactly-once wage semantics | Accepted |

@@ -37,3 +37,11 @@ with an M0 artifact are frozen inputs to that work.
 3. QA adapters and independent determinism/replay/invariant gates.
 4. Full repository validation and an audited three-day run.
 5. Public `main` push followed by both GitHub Actions gates.
+
+## M1 integration record
+
+- Public naming and execution baseline: `a8c23b8`
+- Simulation runtime handoff: source `2afad99`, integrated as `7b59c0c`
+- Independent QA handoff: source `99da488`, integrated as `4b19cdd`
+- Work attendance semantics: ADR-0008
+- Final strict gate: `tools/diagnostics/check_m1.py --require-sim`

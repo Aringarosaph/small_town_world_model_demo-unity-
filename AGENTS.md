@@ -26,12 +26,15 @@
 
 ## Milestone boundary
 
-M0 is accepted and frozen. M1 is active and is limited to the one-NPC Headless
-authority slice: clock, state initialization, candidates, utility, resolver,
-action lifecycle, needs, work/wage settlement, append-only events, run evidence,
-and authoritative replay for `idle`, `sleep`, `eat_at_home`, and `work_shift`.
+M0 is accepted and frozen. M1 is implemented and locally accepted as the
+one-NPC Headless authority slice: clock, state initialization, candidates,
+utility, resolver, action lifecycle, needs, work/wage settlement, append-only
+events, run evidence, and authoritative replay for `idle`, `sleep`,
+`eat_at_home`, and `work_shift`.
 
-M1 must not add Unity transport/runtime behavior, enable the complete 10-NPC
-society, implement neural inference/training, call DeepSeek, or introduce any
-post-V0 roadmap feature. Changes to M0-frozen files require an ADR, version
-review, regenerated artifacts and hashes, and Orchestrator acceptance.
+M2 is the next product boundary but is not active until Orchestrator assigns it.
+Do not add Unity transport/runtime behavior, enable the complete 10-NPC society,
+implement neural inference/training, call DeepSeek, or introduce any post-V0
+roadmap feature without the matching milestone handoff. Changes to frozen M0 or
+accepted M1 contracts require an ADR, version review, regenerated evidence, and
+Orchestrator acceptance.
