@@ -21,6 +21,10 @@ files, generated CONTRACTS Schema, Unity product code, or `pyproject.toml`.
   assembler for the real SIM seven-artifact bundle, Unity partial bundle, and
   repository readiness report. Missing owner facts remain machine-readable;
   no boolean is synthesized.
+- `tools/diagnostics/run_m3_regressions.py`: executable final repository lane
+  that owns `M3_M0_M2_REGRESSIONS`; it runs the exact M0/M1/M2 strict commands,
+  rejects skips/pending, binds generated M1 evidence to current source/hash,
+  and atomically writes PASS or FAIL into readiness.
 - exact JSON Schemas/templates for `stwm.qa.m3-readiness/v1` and
   `stwm.qa.m3-acceptance-evidence/v1`.
 - executable release, targeted 22-behavior and full-registry/capacity profiles
@@ -213,6 +217,14 @@ regression lane. The current Unity partial was produced from
 commit, and must be regenerated on the final release source together with its
 projection. These are deliberate blockers, not fields for the assembler to
 guess.
+
+The repository-lane follow-up closes the manual-report gap. It emits
+`stwm.qa.m3-regression-run/v1`, generates M1 three-day evidence exactly once and
+reuses it for the M1 integration test, and runs M2 strict checks against
+explicit external registry/evidence. Reports, JUnit and logs remain external,
+hashed and sanitized. The assembler requires the bound attestation and copies
+its manifest/descriptors with the repository report; editing only readiness or
+changing the manifest after publication is a blocking digest failure.
 
 ## M3 current integration-aware state
 

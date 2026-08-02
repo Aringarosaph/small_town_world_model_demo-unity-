@@ -13,6 +13,11 @@ from pathlib import Path
 from typing import cast
 
 from tools.diagnostics import check_m3 as m3
+from tools.diagnostics.run_m3_regressions import (
+    RegressionError,
+    copy_regression_attestation,
+    validate_regression_finding_artifact,
+)
 
 ASSEMBLY_SCHEMA = "stwm.qa.m3-acceptance-assembly/v1"
 SIM_BUNDLE_SCHEMA = "stwm.simulation.m3-release-bundle/v1"
@@ -643,6 +648,11 @@ def _load_repository_report(
             assessment.error(f"repository report {code} reports FAIL")
         elif status == "PENDING" and code not in ALLOWED_REPOSITORY_PENDING_CODES:
             assessment.missing(f"repository report {code} PASS")
+        if code == "M3_M0_M2_REGRESSIONS" and status == "PASS":
+            try:
+                validate_regression_finding_artifact(report_path, finding, root)
+            except (RegressionError, OSError) as exc:
+                assessment.error(f"repository regression finding is not executable evidence: {exc}")
     for code in sorted(REPOSITORY_PASS_CODES):
         observed_status = status_by_code.get(code)
         if observed_status == "FAIL":
@@ -712,6 +722,24 @@ def _write_complete_bundle(
                 raise m3.DiagnosticError(f"artifact {name} suffix changed during assembly")
             destination = artifact_root / f"{name}{suffix}"
             shutil.copyfile(source, destination)
+            if name == "repository_report":
+                repository_document = _read_json(source, "M3 repository report")
+                regression_finding = next(
+                    (
+                        cast(Mapping[str, object], raw)
+                        for raw in m3._sequence(repository_document["findings"], "repository findings")
+                        if cast(Mapping[str, object], raw).get("code") == "M3_M0_M2_REGRESSIONS"
+                    ),
+                    None,
+                )
+                if regression_finding is None:
+                    raise m3.DiagnosticError("repository report lacks the bound M0/M1/M2 regression finding")
+                copy_regression_attestation(
+                    repository_report_path=source,
+                    finding=regression_finding,
+                    destination_report_path=destination,
+                    root=root,
+                )
             raw = destination.read_bytes()
             descriptors[name] = {
                 "path": destination.relative_to(temporary_root).as_posix(),

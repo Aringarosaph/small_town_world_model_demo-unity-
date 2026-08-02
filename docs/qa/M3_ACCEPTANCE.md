@@ -267,6 +267,23 @@ pre-assembly `M3_ACCEPTANCE_EVIDENCE_PENDING`, it must contain a real
 `M3_M0_M2_REGRESSIONS=PASS` finding created by the final regression lane.
 Repository ancestry alone does not prove that those regressions ran.
 
+`tools/diagnostics/run_m3_regressions.py` is the sole writer for that finding.
+It runs strict M0 diagnostics/tests, strict M1 diagnostics that generate the
+three-day evidence once, the M1 integration test reusing that evidence, then
+strict M2 diagnostics/tests against explicit external registry/evidence.
+Every pytest step writes JUnit and requires at least one executed test with zero
+failure, error or skip. Every diagnostic report requires a positive PASS count
+and zero FAIL/PENDING.
+
+The external `stwm.qa.m3-regression-run/v1` manifest binds the exact normalized
+command list, exit codes, reports, JUnit, sanitized logs, generated M1 evidence
+hash/current source, and M2 input hashes. A failed step writes a real FAIL
+finding and returns nonzero; later steps are `NOT_RUN`, which is forbidden in a
+PASS manifest. The readiness update and manifest publication are atomic. The
+final assembler revalidates the finding digest and copies its manifest and
+owned descriptors beside the repository-report copy, so editing only the
+readiness JSON cannot manufacture PASS.
+
 ## Fast and slow shutters
 
 The fast shutter targets 10 minutes and has a 15-minute hard limit using 2
@@ -294,6 +311,14 @@ pytest --strict-config --strict-markers -m "m3 and m3_fast" integration_tests
 Final release after CONTRACTS/SIM/UNITY integration and the ordered soak:
 
 ```bash
+python tools/diagnostics/check_m3.py \
+  --registry /absolute/external/m3/full-registry.json \
+  --json-output /absolute/external/m3/repository/m3-readiness.json
+python tools/diagnostics/run_m3_regressions.py \
+  --repository-report /absolute/external/m3/repository/m3-readiness.json \
+  --output-root /absolute/external/m3/repository/m0-m2-regressions \
+  --m2-registry /absolute/external/m2/asset-registry.json \
+  --m2-evidence /absolute/external/m2/m2-evidence.json
 python tools/diagnostics/assemble_m3_acceptance.py \
   --sim-bundle /absolute/external/m3/sim/bundle-manifest.json \
   --unity-bundle /absolute/external/m3/unity/m3-unity-partial-acceptance-evidence.json \
@@ -307,8 +332,12 @@ python tools/diagnostics/check_m3.py \
   --require-m3 \
   --registry /absolute/external/m3/full-registry.json \
   --evidence /absolute/external/m3/final/m3-acceptance-evidence.json \
-  --json-output /absolute/external/m3/m3-readiness.json
+  --json-output /absolute/external/m3/final-validation.json
 ```
+
+The last command writes a distinct final-validation report. It must not
+overwrite the pre-assembly repository report whose bound regression finding is
+already copied into acceptance evidence.
 
 Final acceptance requires exit code zero, zero `FAIL`, zero `PENDING`, zero
 Unity skips, and evidence for every fixed soak entry. A missing upstream owner

@@ -97,6 +97,21 @@ pytest --strict-config --strict-markers -m "m3 and m3_fast" integration_tests
 python tools/diagnostics/check_m3.py --json-output /absolute/external/m3-readiness.json
 ```
 
+Final M0–M2 repository regression attestation:
+
+```bash
+python tools/diagnostics/run_m3_regressions.py \
+  --repository-report /absolute/external/m3/repository/m3-readiness.json \
+  --output-root /absolute/external/m3/repository/m0-m2-regressions \
+  --m2-registry /absolute/external/m2/asset-registry.json \
+  --m2-evidence /absolute/external/m2/m2-evidence.json
+```
+
+This command owns `M3_M0_M2_REGRESSIONS`. A green subprocess with diagnostic
+PENDING or pytest skip is still a lane failure. M1 three-day evidence is
+generated once and hash/source-bound before its integration test reuses it.
+The command does not run any M3 7/30-day soak.
+
 `m3_slow`, `soak7`, `soak30`, and `performance` are release-shutter labels, not
 permission to run the full matrix on an ordinary pull request. On the producer
 MacBook Air, slow Python and Unity work is serialized to one instance.

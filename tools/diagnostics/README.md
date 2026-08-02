@@ -51,6 +51,27 @@ exact 18-field Unity matrix and an ordered 22-row behavior-presentation
 projection. Aggregate soak counts, fixture declarations, and test names never
 become implicit PASS values.
 
+`run_m3_regressions.py` creates the executable repository-lane fact consumed by
+the assembler. It sequentially runs strict M0 diagnostics/tests, one M1
+three-day diagnostic generation plus an integration test reusing that exact
+evidence, and strict M2 diagnostics/tests with the accepted external registry
+and Unity evidence. Diagnostic PENDING, pytest skip, nonzero exit, missing
+report, malformed JUnit or digest mismatch is FAIL.
+
+```bash
+python tools/diagnostics/run_m3_regressions.py \
+  --repository-report /external/m3/repository/m3-readiness.json \
+  --output-root /external/m3/repository/m0-m2-regressions \
+  --m2-registry /external/m2/asset-registry.json \
+  --m2-evidence /external/m2/m2-evidence.json
+```
+
+The output is `stwm.qa.m3-regression-run/v1`, with normalized command tokens,
+source SHA, hash/byte/redaction descriptors and a current-source binding for
+the M1 evidence produced in that invocation. The CLI atomically inserts or
+replaces `M3_M0_M2_REGRESSIONS` in the same readiness report. No manual report
+editing is an accepted interface.
+
 The sole SIM readiness adapter is
 `python/town_core/society/m3_qa_adapter.py`, invoked with `python -m
 town_core.society.m3_qa_adapter`; a `simulation/` copy fails the gate. Its

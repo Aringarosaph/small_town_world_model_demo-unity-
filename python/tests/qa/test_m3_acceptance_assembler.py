@@ -2,15 +2,18 @@ from __future__ import annotations
 
 import hashlib
 import json
+import subprocess
 from collections.abc import Mapping
 from pathlib import Path
 from typing import cast
 
 import pytest
+from tests.qa.m3_regression_test_support import FakeRegressionRunner
 from tests.qa.test_m3_diagnostics import _passing_evidence
 
 from tools.diagnostics import assemble_m3_acceptance as assembler
 from tools.diagnostics import check_m3 as m3
+from tools.diagnostics import run_m3_regressions as regressions
 
 pytestmark = [pytest.mark.qa, pytest.mark.m3, pytest.mark.m3_fast]
 
@@ -45,7 +48,7 @@ def _complete_inputs(tmp_path: Path) -> tuple[Path, Path, Path]:
     evidence_path = _passing_evidence(root, source)
     evidence = json.loads(evidence_path.read_text(encoding="utf-8"))
     matrices = cast(dict[str, object], evidence["matrices"])
-    source_commit = cast(str, evidence["source_commit"])
+    source_commit = subprocess.check_output(("git", "rev-parse", "HEAD"), cwd=root, text=True).strip()
 
     sim_projection = {name: matrices[name] for name in assembler.SIM_MATRIX_KEYS}
     authority_path = source / "authority_evidence.json"
@@ -171,7 +174,7 @@ def _complete_inputs(tmp_path: Path) -> tuple[Path, Path, Path]:
             "path": None,
             "remediation": None,
         }
-        for code in sorted(assembler.REPOSITORY_PASS_CODES)
+        for code in sorted(assembler.REPOSITORY_PASS_CODES - {regressions.FINDING_CODE})
     ]
     findings.append(
         {
@@ -200,6 +203,26 @@ def _complete_inputs(tmp_path: Path) -> tuple[Path, Path, Path]:
             "summary": {"pass": len(findings) - 1, "pending": 1, "fail": 0},
         },
     )
+    m2_registry = source / "m2-registry-input.json"
+    _write_json(m2_registry, {"protocol_version": "0.2.0", "message_type": "asset_registry", "payload": {}})
+    m2_evidence = source / "m2-evidence-input.json"
+    _write_json(
+        m2_evidence,
+        {
+            "schema": "stwm.qa.m2-acceptance-evidence/v1",
+            "project_name": m3.PROJECT_NAME,
+            "source_commit": "b" * 40,
+        },
+    )
+    result = regressions.run_regression_lane(
+        root=root,
+        repository_report_path=repository_report_path,
+        output_root=source / "m0-m2-regressions",
+        m2_registry_path=m2_registry,
+        m2_evidence_path=m2_evidence,
+        runner=FakeRegressionRunner(),
+    )
+    assert result["status"] == "PASS"
     return sim_bundle_path, unity_bundle_path, repository_report_path
 
 
@@ -232,6 +255,10 @@ def test_complete_real_owner_projections_assemble_exact_acceptance(tmp_path: Pat
     assert [(item.status, item.code) for item in findings] == [(m3.Status.PASS, "M3_ACCEPTANCE_EVIDENCE_VALID")]
     evidence = json.loads(evidence_path.read_text(encoding="utf-8"))
     assert evidence["artifacts"]["repository_report"]["schema"] == m3.READINESS_SCHEMA
+    copied_report = evidence_path.parent / evidence["artifacts"]["repository_report"]["path"]
+    copied_document = json.loads(copied_report.read_text(encoding="utf-8"))
+    copied_finding = next(item for item in copied_document["findings"] if item["code"] == regressions.FINDING_CODE)
+    regressions.validate_regression_finding_artifact(copied_report, copied_finding, _root())
 
 
 def test_missing_owner_probes_are_pending_and_strict_failure_without_output(tmp_path: Path) -> None:
