@@ -6,6 +6,7 @@ using System.Linq;
 using Newtonsoft.Json.Linq;
 using NUnit.Framework;
 using STWM.AITown.Bridge;
+using STWM.AITown.Debugging;
 using STWM.AITown.NPC;
 using STWM.AITown.Semantic;
 using UnityEngine;
@@ -119,10 +120,17 @@ namespace STWM.AITown.Tests.PlayMode
             Assert.That(bridge.ActivePresentationGroupCount, Is.Zero);
             Assert.That(TownSceneAssetRegistry.FindObject("park_conversation_01").InteractionSlots
                 .All(item => item.LocalPresentationClaimId == null), Is.True);
+
+            Assert.That(bridge.ProcessInboundJson(ReadRepositoryFile("protocol/examples/debug-decision-trace-v030.json")), Is.True);
+            var debugPanel = UnityEngine.Object.FindFirstObjectByType<TownDebugPanel>();
+            Assert.That(debugPanel.SelectedDecisionTrace, Is.Not.Null);
+            Assert.That(debugPanel.SelectedDecisionTrace.Candidates.Count, Is.EqualTo(3));
+            Assert.That(debugPanel.SelectedDecisionTrace.Candidates.Single(item => item.Rank == 1).ResolverResult,
+                Is.EqualTo("ACCEPTED"));
         }
 
         [UnityTest]
-        public IEnumerator Live030PythonBridgeCompletesFullRegistrySnapshotAndReadyWhenEnabled()
+        public IEnumerator Live030PythonBridgeCompletesFullRegistrySnapshotTopKAndReconnectWhenEnabled()
         {
             if (!string.Equals(Environment.GetEnvironmentVariable("STWM_M3_LIVE_BRIDGE"), "1", StringComparison.Ordinal))
             {
@@ -134,8 +142,26 @@ namespace STWM.AITown.Tests.PlayMode
             var endpoint = Environment.GetEnvironmentVariable("STWM_M3_LIVE_BRIDGE_URL")
                            ?? TownBridgeClient.DefaultEndpointUrl;
             var errors = new List<string>();
+            var inboundTypes = new HashSet<string>(StringComparer.Ordinal);
+            TownEnvelope acceptedRegistry = null;
+            JObject liveDebugTrace = null;
             bridge.ConfigureM3(endpoint, TownProtocol.DefaultWorldId, false);
             bridge.BridgeError += errors.Add;
+            bridge.EnvelopeApplied += envelope =>
+            {
+                inboundTypes.Add(envelope.MessageType);
+                if (envelope.MessageType == "debug_decision_trace" && liveDebugTrace == null)
+                {
+                    liveDebugTrace = JObject.FromObject(envelope);
+                }
+            };
+            bridge.EnvelopeSending += envelope =>
+            {
+                if (envelope.MessageType == "asset_registry")
+                {
+                    acceptedRegistry = envelope;
+                }
+            };
             bridge.Connect();
 
             var deadline = Time.realtimeSinceStartup + 20f;
@@ -150,8 +176,80 @@ namespace STWM.AITown.Tests.PlayMode
             Assert.That(bridge.ConnectionState, Is.EqualTo(BridgeConnectionState.Ready), string.Join(" | ", errors));
             Assert.That(bridge.ActiveProtocolVersion, Is.EqualTo("0.3.0"));
             Assert.That(bridge.EndpointUrl, Does.EndWith("/town"));
+            Assert.That(inboundTypes, Does.Contain("world_snapshot"));
+            Assert.That(acceptedRegistry, Is.Not.Null);
+            Assert.That(acceptedRegistry.ProtocolVersion, Is.EqualTo(TownProtocol.M3Version));
+            Assert.That(acceptedRegistry.Payload["locations"].Count(), Is.EqualTo(8));
+            Assert.That(acceptedRegistry.Payload["npc_views"].Count(), Is.EqualTo(10));
+
+            var authorityDeadline = Time.realtimeSinceStartup + 5f;
+            while ((!inboundTypes.Contains("action_started") || !inboundTypes.Contains("debug_decision_trace"))
+                   && Time.realtimeSinceStartup < authorityDeadline)
+            {
+                yield return null;
+            }
+
+            Assert.That(inboundTypes, Does.Contain("action_started"), "Production server emitted no structured action_started.");
+            Assert.That(inboundTypes, Does.Contain("debug_decision_trace"), "Production server emitted no authoritative Top-K trace.");
+            Assert.That(errors, Is.Empty, "Production 0.3 messages must pass strict Unity decoding: " + string.Join(" | ", errors));
+            var debugPanel = UnityEngine.Object.FindFirstObjectByType<TownDebugPanel>();
+            Assert.That(debugPanel.SelectedDecisionTrace, Is.Not.Null);
+            Assert.That(debugPanel.SelectedDecisionTrace.Candidates, Is.Not.Empty);
+            WriteLiveArtifactsWhenRequested(acceptedRegistry, liveDebugTrace);
+
+            var firstStateVersion = bridge.LastAppliedStateVersion;
             bridge.Disconnect();
             yield return null;
+            UnityEngine.Object.Destroy(bridge.gameObject);
+            yield return null;
+
+            var reconnectObject = new GameObject("M3LiveReconnectBridge");
+            var reconnect = reconnectObject.AddComponent<TownBridgeClient>();
+            var reconnectErrors = new List<string>();
+            var reconnectInboundTypes = new HashSet<string>(StringComparer.Ordinal);
+            reconnect.ConfigureM3(endpoint, TownProtocol.DefaultWorldId, false);
+            reconnect.BridgeError += reconnectErrors.Add;
+            reconnect.EnvelopeApplied += envelope => reconnectInboundTypes.Add(envelope.MessageType);
+            reconnect.Connect();
+
+            deadline = Time.realtimeSinceStartup + 20f;
+            while (reconnect.ConnectionState != BridgeConnectionState.Ready
+                   && reconnect.ConnectionState != BridgeConnectionState.ProtocolRejected
+                   && reconnect.ConnectionState != BridgeConnectionState.DiagnosticOnly
+                   && Time.realtimeSinceStartup < deadline)
+            {
+                yield return null;
+            }
+
+            Assert.That(reconnect.ConnectionState, Is.EqualTo(BridgeConnectionState.Ready), string.Join(" | ", reconnectErrors));
+            Assert.That(reconnectInboundTypes, Does.Contain("world_snapshot"));
+            Assert.That(reconnect.LastAppliedStateVersion, Is.GreaterThanOrEqualTo(firstStateVersion));
+            Assert.That(reconnectErrors, Is.Empty, "Reconnect messages must pass strict Unity decoding: " + string.Join(" | ", reconnectErrors));
+            reconnect.Disconnect();
+            yield return null;
+        }
+
+        private static void WriteLiveArtifactsWhenRequested(TownEnvelope registry, JObject debugTraceEnvelope)
+        {
+            var registryPath = Environment.GetEnvironmentVariable("STWM_M3_LIVE_REGISTRY_OUTPUT");
+            if (!string.IsNullOrWhiteSpace(registryPath))
+            {
+                Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(registryPath)));
+                File.WriteAllText(registryPath, registry.ToJson());
+            }
+
+            var tracePath = Environment.GetEnvironmentVariable("STWM_M3_LIVE_DEBUG_TRACE_OUTPUT");
+            if (!string.IsNullOrWhiteSpace(tracePath))
+            {
+                Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(tracePath)));
+                var record = new JObject
+                {
+                    ["schema"] = "stwm.unity.m3-debug-trace/v1",
+                    ["evidence_source"] = "live_python_bridge",
+                    ["envelope"] = debugTraceEnvelope
+                };
+                File.WriteAllText(tracePath, record.ToString(Newtonsoft.Json.Formatting.None) + Environment.NewLine);
+            }
         }
 
         private static string ReadRepositoryFile(string relativePath)

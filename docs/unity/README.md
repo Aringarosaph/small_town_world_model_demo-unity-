@@ -1,12 +1,13 @@
 # Unity M2/M3 Functional Greyboxes
 
-## M3 full-town CONTRACTS-consumption increment
+## M3 full-town live bridge and partial acceptance evidence
 
 M3 starts from frozen entry `2a51615`, `M3_EXECUTION_BASELINE`, and ADR-0011.
 CONTRACTS commits `3fe06f6` and `ca8944b` freeze protocol `0.3.0` and the shared
-semantic-instance catalog. Unity consumes those contracts directly. SIM live
-interop and authority evidence are not present in this increment and remain
-explicitly PENDING; Unity does not claim SIM acceptance.
+semantic-instance catalog. Unity consumes those contracts directly. The M3
+SIM server/readiness inputs are exercised only through their production entry
+points; Python remains sole authority and Unity does not translate a one-day
+readiness run into final release acceptance.
 
 The committed M3 fixture is
 `Assets/AITown/Scenes/M3FunctionalGraybox.unity`. It contains exactly 8
@@ -42,9 +43,10 @@ Rebuild and validate the scene in the Editor with
 capability or default-slot drift, missing per-NPC animation/prop/facing
 components, and unreachable routes as blocking errors. `ScanM2Fixture` remains
 unchanged as the accepted scoped regression profile. The M3 scene selects
-`M3_FULL_V030` and rejects a `0.2.0` fallback. It keeps auto-connect disabled
-until the production M3 SIM server lands; using 0.2 for an M3 session is
-forbidden.
+`M3_FULL_V030` and rejects a `0.2.0` fallback. The committed M3 fixture keeps
+auto-connect disabled so normal editor and recorded-fixture runs remain
+isolated; the environment-gated production smoke explicitly configures and
+connects the real `/town` endpoint. Using 0.2 for an M3 session is forbidden.
 
 `NpcPropPresenter`, `SocialFacingController`, and
 `ActionPresentationGroup` are presentation-only. Protocol 0.3 structured
@@ -75,7 +77,7 @@ Run the combined M2 regression plus M3 contract-consumption tests with:
   -logFile /tmp/stwm-m3-playmode.log
 ```
 
-The framework exporter writes only external, auditable PENDING evidence:
+The A/B framework exporter remains available for local builder readiness:
 
 ```bash
 "$STWM_UNITY_EDITOR" \
@@ -86,28 +88,86 @@ The framework exporter writes only external, auditable PENDING evidence:
   -logFile /tmp/stwm-m3-readiness-export.log
 ```
 
-It reports CONTRACTS 0.3 consumption and the Unity-local fixture independently,
-but overall status and `acceptance_eligible` remain `PENDING`/`false` until SIM
-authority, zero-skipped final EditMode/PlayMode, and live `/town` inputs are
-consumed. The document records the manifest locator rather than copying the
-catalog. It never fabricates Python facts.
+It records the manifest locator rather than copying the catalog and never
+fabricates Python facts.
 
-The production live seam is environment-gated:
+Start a fresh production M3 server exactly as follows:
+
+```bash
+uv run --frozen python -m town_core.bridge.m3_server \
+  --config config/v0 --seed 12345 \
+  --host 127.0.0.1 --port 8765 --path /town
+```
+
+The production live seam is environment-gated and can retain the exact
+accepted registry envelope plus an authoritative Top-K trace outside Git:
 
 ```bash
 STWM_M3_LIVE_BRIDGE=1 \
 STWM_M3_LIVE_BRIDGE_URL=ws://127.0.0.1:8765/town \
+STWM_M3_LIVE_REGISTRY_OUTPUT=/absolute/external/m3/unity/live-full-registry.json \
+STWM_M3_LIVE_DEBUG_TRACE_OUTPUT=/absolute/external/m3/unity/live-debug-trace.jsonl \
 "$STWM_UNITY_EDITOR" \
   -batchmode -nographics \
   -projectPath "$PWD/unity" \
   -runTests -testPlatform PlayMode \
-  -testFilter STWM.AITown.Tests.PlayMode.M3FunctionalGrayboxPlayModeTests.Live030PythonBridgeCompletesFullRegistrySnapshotAndReadyWhenEnabled \
+  -testFilter STWM.AITown.Tests.PlayMode.M3FunctionalGrayboxPlayModeTests \
   -testResults /tmp/stwm-m3-live-playmode.xml \
   -logFile /tmp/stwm-m3-live-playmode.log
 ```
 
-Without a production M3 server this case is explicitly ignored and cannot be
-used as final zero-skipped evidence.
+Against a freshly started canonical-seed server, all four M3 cases must pass
+with zero skip. The live
+case verifies 0.3 hello, server acceptance of the complete `M3_FULL` registry,
+fresh snapshot/Ready, structured action and Top-K messages, strict decode with
+no bridge errors, then destroys the first client and completes a fresh second
+ClientWebSocket handshake/snapshot/Ready. The other three cases cover the
+authoritative YAML/route surface and deterministic JointAction/facing/slot/
+explicit-clear presentation fixtures. Without a production server the live
+case is explicitly ignored and cannot be used as acceptance evidence.
+
+The SIM-owned rich readiness document has the distinct exact schema
+`stwm.simulation.m3-readiness-evidence/v1`; the similarly named
+`stwm.qa.m3-readiness/v1` belongs only to `check_m3` repository reporting and
+is rejected by the Unity exporter. Generate the real one-day producer input
+directly inside the external bundle:
+
+```bash
+uv run --frozen python -m town_core.society.m3_qa_adapter \
+  --config config/v0 \
+  --output-root /absolute/external/m3 \
+  --evidence /absolute/external/m3/m3-simulation-readiness-evidence.json \
+  --seed 12345 --days 1
+```
+
+After the zero-skip EditMode and live PlayMode commands above, export the
+truthful Unity partial bundle with:
+
+```bash
+"$STWM_UNITY_EDITOR" \
+  -batchmode -nographics -quit \
+  -projectPath "$PWD/unity" \
+  -executeMethod STWM.AITown.Editor.M3AcceptanceEvidenceExporter.ExportPartialBatch \
+  -m3OutputRoot /absolute/external/m3 \
+  -m3SimReadiness /absolute/external/m3/m3-simulation-readiness-evidence.json \
+  -m3LiveRegistry /absolute/external/m3/unity/live-full-registry.json \
+  -m3LiveDebugTrace /absolute/external/m3/unity/live-debug-trace.jsonl \
+  -m3EditModeResults /absolute/external/raw/m3-editmode.xml \
+  -m3PlayModeResults /absolute/external/raw/m3-live-playmode.xml \
+  -m3BatchLog /absolute/external/raw/m3-live-playmode.log \
+  -m3SourceCommit '<40-lowercase-hex>' \
+  -logFile /absolute/external/raw/m3-partial-export.log
+```
+
+The exporter requires external non-dangling SIM/registry/trace inputs, exact
+producer identity/version/bridge observations, `passed=true`, the frozen seed
+lists, zero-failure/zero-skip XML, and all named live/JointAction/clear cases.
+It sanitizes Unity XML/logs, hashes every retained artifact, and writes
+`stwm.unity.m3-partial-acceptance-evidence/v1`. Because the current SIM input
+explicitly says `full_slow_soak_executed=false`, status is necessarily
+`PENDING` and `acceptance_eligible=false`. It never emits the PASS-only
+`stwm.qa.m3-acceptance-evidence/v1` without the separately owned 7/30-day
+release producer artifacts.
 
 ## M2 accepted one-NPC bridge
 

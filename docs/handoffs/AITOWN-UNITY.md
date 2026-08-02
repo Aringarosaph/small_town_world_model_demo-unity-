@@ -1,8 +1,66 @@
 # AITOWN-UNITY M2/M3 handoff
 
-## M3 active A/B increment
+## M3 active live/evidence increment
 
-### C-F CONTRACTS consumption (current)
+### Production 0.3 interoperability and evidence (current)
+
+- Local test-only SIM inputs were cherry-picked without changing Unity
+  authority ownership: `d110b37` -> `0586b87`, `22a076c` -> `bfe1095`,
+  `71f45ec` -> `18d49e3`, and the rich-readiness schema separation
+  `cfc566a` -> `8079bfb`. The delta-wire fix
+  `364d444a48bac90984d30267957d94dabe45f67b` was consumed locally as
+  `5263e19` after ORCH integrated it as `1c709a5`. ORCH must take only the new
+  Unity-owned commit from this branch because those SIM commits are already
+  integrated upstream.
+- The strict producer input is now
+  `stwm.simulation.m3-readiness-evidence/v1`. Unity explicitly rejects the old
+  `stwm.qa.m3-readiness/v1`, which remains QA's repository report only.
+- `TownBridgeClient.EnvelopeSending` exposes read-only wire evidence; it does
+  not alter send order, state, or authority. The environment-gated live test
+  retains the exact `asset_registry` envelope accepted by Python and one real
+  authoritative `debug_decision_trace` JSONL record.
+- The strengthened live case requires production 0.3 `/town`, the full
+  registry/snapshot/Ready sequence, structured action and Top-K messages with
+  zero strict-decode errors, then a second fresh ClientWebSocket connection
+  that again reaches snapshot/Ready without state regression.
+- Recorded fixtures still own deterministic coverage for multi-participant
+  JointAction binding, stable distinct slots/facing, active snapshot rebind,
+  explicit-null field-mask clear, terminal release, and complete Top-K rows.
+- `M3AcceptanceEvidenceExporter.ExportPartialBatch` consumes only the real SIM
+  artifact, real live registry/trace, zero-skip XML and batch log. It writes
+  hashed/sanitized external Unity registry/semantic/test artifacts plus
+  `stwm.unity.m3-partial-acceptance-evidence/v1`.
+- The current one-day SIM artifact declares
+  `full_slow_soak_executed=false`; therefore exporter status remains
+  `PENDING`, `acceptance_eligible=false`, and the PASS-only QA release schema
+  is never emitted. Separate SIM 7/30-day release artifacts remain an
+  ORCH-ordered slow gate.
+
+During the first strengthened live run, Unity correctly found a production
+wire mismatch: `m3_server.py` used `model_dump_json(exclude_none=False)`, so
+unset optional agent-delta fields were serialized as present nulls and violated
+the frozen exact field-mask rule. Unity did not relax validation or claim a
+pass. SIM fixed only delta payload serialization by preserving
+`model_fields_set`; ordinary masks omit unmasked fields, explicit null clear is
+retained, household deltas use the same rule, and full snapshot defaults remain
+complete. After consuming the exact SHA above, Unity's unchanged strict
+validator completed the real rerun with no bridge errors.
+
+Current validation:
+
+| Check | Result | External evidence |
+| --- | --- | --- |
+| real SIM one-day readiness input | PASS, schema `stwm.simulation.m3-readiness-evidence/v1`, `passed=true`, slow soak explicitly false | `/tmp/stwm-m3-unity-delivery.9ylDR4/m3-simulation-readiness-evidence.json` |
+| combined EditMode | PASS, 46/46, skipped 0 | `/tmp/stwm-m3-editmode-final.xml` |
+| SIM M3 bridge/wire regression | PASS, 11/11 | `uv run --frozen --extra test pytest python/tests/bridge/test_m3_bridge.py -q` |
+| strengthened production live PlayMode | PASS, 4/4, skipped 0, strict decode errors 0; real first/second ClientWebSocket sessions | `/tmp/stwm-m3-live-final.xml`, `/tmp/stwm-m3-live-final.log` |
+| combined M2/M3 default PlayMode regression | PASS, 6/6 executable cases; only the two environment-gated live cases explicitly ignored | `/tmp/stwm-m3-playmode-regression.xml` |
+| live registry/debug inputs | PASS, accepted 0.3 registry 8/10/15/105/14 and real Top-K JSONL | `/tmp/stwm-m3-unity-delivery.9ylDR4/unity/live-full-registry.json`, `/tmp/stwm-m3-unity-delivery.9ylDR4/unity/live-debug-trace.jsonl` |
+| partial acceptance bundle | valid hashed/sanitized artifact references; overall truthfully PENDING because 7/30 slow-soak producer artifacts are absent | `/tmp/stwm-m3-unity-delivery.9ylDR4/m3-unity-partial-acceptance-evidence.json` |
+
+## M3 A/B and CONTRACTS consumption history
+
+### C-F CONTRACTS consumption (historical)
 
 - Unity-owned implementation commit: `93c21cb`.
 - CONTRACTS inputs were cherry-picked in the required order:
@@ -35,10 +93,9 @@
   gates for SIM authority, real 0.3 `/town` interop, and final zero-skipped XML.
   It remains `acceptance_eligible=false` and does not fabricate final QA PASS.
 
-The M3 scene intentionally keeps `connectOnStart=false` until the production
-M3 SIM bridge/evidence surface lands. A real `ClientWebSocket` 0.3 `/town`
-PlayMode seam exists behind `STWM_M3_LIVE_BRIDGE=1`; it has not been run in
-this increment because no production M3 server was supplied.
+At that increment, the M3 scene intentionally kept `connectOnStart=false` and
+the `STWM_M3_LIVE_BRIDGE=1` seam remained unrun because no production server
+had been supplied. The current increment above supersedes that evidence state.
 
 Current validation evidence:
 

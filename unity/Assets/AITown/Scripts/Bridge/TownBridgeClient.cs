@@ -69,6 +69,7 @@ namespace STWM.AITown.Bridge
         private CancellationTokenSource connectionCancellation;
         private bool connectInFlight;
         private bool shuttingDown;
+        private bool recordedReplaySession;
         private float reconnectAtUnscaledTime;
         private int reconnectAttempt;
         private DateTime lastInboundUtc;
@@ -94,6 +95,7 @@ namespace STWM.AITown.Bridge
 
         public event Action<BridgeConnectionState> ConnectionStateChanged;
         public event Action<TownEnvelope> EnvelopeApplied;
+        public event Action<TownEnvelope> EnvelopeSending;
         public event Action<string> BridgeError;
         public event Action<string, string, MovementCancellationReason> MovementCancellationReported;
 
@@ -123,6 +125,13 @@ namespace STWM.AITown.Bridge
 
         private void Update()
         {
+            if (shuttingDown)
+            {
+                while (mainThreadActions.TryDequeue(out _)) { }
+                while (inboundMessages.TryDequeue(out _)) { }
+                return;
+            }
+
             while (mainThreadActions.TryDequeue(out var callback))
             {
                 callback();
@@ -159,6 +168,7 @@ namespace STWM.AITown.Bridge
         private void OnDestroy()
         {
             shuttingDown = true;
+            ResetPresentationProjection();
             connectionCancellation?.Cancel();
             transport?.Dispose();
             transport = null;
@@ -209,6 +219,7 @@ namespace STWM.AITown.Bridge
             }
 
             connectInFlight = true;
+            recordedReplaySession = false;
             recordedRegistryMessageId = null;
             clientHelloMessageId = null;
             var generation = Interlocked.Increment(ref connectionGeneration);
@@ -248,6 +259,7 @@ namespace STWM.AITown.Bridge
             registryMessageId = null;
             recordedRegistryMessageId = registryMessageIdOverride;
             clientHelloMessageId = clientHelloMessageIdOverride;
+            recordedReplaySession = true;
             Interlocked.Increment(ref connectionGeneration);
             lastInboundUtc = DateTime.UtcNow;
             Transition(BridgeConnectionState.AwaitingServerHello);
@@ -1022,6 +1034,11 @@ namespace STWM.AITown.Bridge
 
         private void Send(TownEnvelope envelope)
         {
+            EnvelopeSending?.Invoke(envelope);
+            if (recordedReplaySession)
+            {
+                return;
+            }
             SendAsync(envelope).Forget(this, $"send {envelope.MessageType}");
         }
 
