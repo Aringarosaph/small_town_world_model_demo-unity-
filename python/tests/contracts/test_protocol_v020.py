@@ -92,9 +92,7 @@ def test_catalog_protocol_version_is_provenance_not_bridge_negotiation() -> None
 
 
 def test_client_hello_bootstrap_preserves_preference_order() -> None:
-    hello = TypeAdapter(ClientHelloMessage).validate_python(
-        _client_hello("0.2.0", ["0.2.0", "0.1.0"])
-    )
+    hello = TypeAdapter(ClientHelloMessage).validate_python(_client_hello("0.2.0", ["0.2.0", "0.1.0"]))
 
     assert hello.payload.supported_protocol_versions == ["0.2.0", "0.1.0"]
     assert select_protocol_version(hello.payload.supported_protocol_versions) == "0.2.0"
@@ -218,9 +216,7 @@ def test_all_action_messages_require_exact_action_correlation(
     message_type: str,
     payload: dict[str, Any],
 ) -> None:
-    assert PROTOCOL_ADAPTER.validate_python(
-        _envelope(message_type, payload, correlation_id="action_00000001")
-    )
+    assert PROTOCOL_ADAPTER.validate_python(_envelope(message_type, payload, correlation_id="action_00000001"))
 
     with pytest.raises(ValidationError, match="correlation_id"):
         PROTOCOL_ADAPTER.validate_python(_envelope(message_type, payload, correlation_id="action_00000002"))

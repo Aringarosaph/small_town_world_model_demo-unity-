@@ -116,9 +116,7 @@ EXAMPLES: Mapping[str, tuple[TypeAdapter[Any], dict[str, Any]]] = {
                         "location_id": "home_a",
                         "capability_tags": ["SLEEP"],
                         "enabled": True,
-                        "interaction_slots": [
-                            {"slot_index": 0, "supported_animation_semantics": ["SLEEP"]}
-                        ],
+                        "interaction_slots": [{"slot_index": 0, "supported_animation_semantics": ["SLEEP"]}],
                     },
                     {
                         "object_id": "cafe_bar_workstation_01",
@@ -126,9 +124,7 @@ EXAMPLES: Mapping[str, tuple[TypeAdapter[Any], dict[str, Any]]] = {
                         "location_id": "cafe_bar",
                         "capability_tags": ["WORK", "CAFE_MORNING"],
                         "enabled": True,
-                        "interaction_slots": [
-                            {"slot_index": 0, "supported_animation_semantics": ["WORK_STANDING"]}
-                        ],
+                        "interaction_slots": [{"slot_index": 0, "supported_animation_semantics": ["WORK_STANDING"]}],
                     },
                 ],
                 "npc_views": [{"agent_id": "npc_01"}],
