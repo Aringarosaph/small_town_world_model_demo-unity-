@@ -1,4 +1,58 @@
-# AITOWN-UNITY M2 handoff
+# AITOWN-UNITY M2/M3 handoff
+
+## M3 active A/B increment
+
+- Frozen entry: `2a51615` (`M3_EXECUTION_BASELINE` + ADR-0011).
+- Branch: `codex/aitown-unity-m3`; no remote push.
+- Unity A/B implementation commit: `664786f`.
+- Scope: Unity-owned, wire-independent full-town functional greybox and local
+  presentation seams. Python, protocol, and QA files are untouched.
+
+Delivered in this increment:
+
+- a single replaceable manifest-driven builder for 8 locations, 10 capsule
+  NPCs, 74 semantic objects spanning all 15 types, 105 catalog-default slots,
+  and a baked 840-route matrix;
+- strict local `M3_FULL` scanning for exact IDs/types/locations/capabilities,
+  component coverage, 14 animation semantics, four props, eight facing
+  behaviors, and NavMesh reachability, while preserving `M2_SCOPED`;
+- greybox-only `NpcPropPresenter`, `SocialFacingController`, and an
+  `ActionPresentationGroup` that claims only explicit future authority
+  bindings in stable order and rolls back atomically on local conflicts;
+- a ten-NPC read-only Debug selector/surface with protocol-0.3 fields visibly
+  PENDING rather than inferred;
+- targeted EditMode/PlayMode fixtures and an external readiness exporter whose
+  overall result is necessarily PENDING and `acceptance_eligible=false` until
+  real CONTRACTS/SIM/test inputs exist.
+
+The local manifest records `shared_contract_manifest_status=PENDING_CONTRACTS_0_3`.
+ADR-0011 requires the eventual CONTRACTS manifest to be shared by Python and
+Unity; this baseline projection must be replaced/adapted when that commit is
+delivered, not maintained as a competing authority source.
+
+Deferred exactly as assigned:
+
+- protocol 0.3 hello/DTOs and M3 registry wire profile;
+- explicit-null field-mask application, participant DTO binding, active-action
+  snapshot rebind, complete Top-K decision UI, and 0.3 live `/town` smoke;
+- SIM-owned authority/transcript and final QA acceptance composition.
+
+Validation evidence for this increment:
+
+| Check | Result | External evidence |
+| --- | --- | --- |
+| deterministic builder + `M3_FULL` + NavMesh routes | PASS, 8 entrances, 105 slots, 840 complete routes | `/tmp/stwm-m3-graybox-final.log` |
+| combined EditMode | PASS, 33/33, skipped 0 | `/tmp/stwm-m3-editmode-final.xml` |
+| M3-only PlayMode fixture | PASS, 2/2, skipped 0 | `/tmp/stwm-m3-playmode-fixture-final.xml` |
+| combined PlayMode regression | 5 PASS, 0 fail, 1 expected M2 live-smoke Ignore | `/tmp/stwm-m3-playmode-full-final.xml` |
+| readiness framework export | local fixture PASS; overall PENDING, acceptance ineligible | `/tmp/stwm-m3-readiness-2a51615` |
+
+The combined PlayMode skip is the accepted environment-gated M2 protocol 0.2
+live smoke. It is not accepted as final M3 evidence. Protocol 0.3 live smoke is
+not present in this increment and is reported PENDING rather than skipped/pass.
+The fixed Editor was `6000.4.2f1` on macOS ARM64. A stale orphaned versioned
+Licensing Client from the first failed batch launch was the only process
+terminated; Unity Hub and all Editor processes were left untouched.
 
 ## Outcome
 
