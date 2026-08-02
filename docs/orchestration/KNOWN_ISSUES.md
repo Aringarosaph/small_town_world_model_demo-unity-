@@ -15,9 +15,17 @@
   as the M2 release gate. A macOS ARM64 runner may be added later as optional
   infrastructure, without reopening M2.
 
+## Open for M3
+
+- Protocol `0.3.0`, the full semantic-instance manifest, and the M3 contract
+  re-freeze are authorized by ADR-0011 but not yet implemented.
+- The existing M1 engine is intentionally single-agent. M3 will add a separate
+  society profile instead of silently changing accepted M1 hashes.
+- Full 22-behavior and 30-day evidence remains pending until the M3 runtime,
+  QA adapter, and Unity full-town surface are integrated.
+
 ## Explicitly deferred
 
-- Full 22-behavior society: M3.
 - Neural training and generated datasets: M4.
 - Real DeepSeek calls: M5.
 - Claim/Belief, Commitment, graph models, institutions, and other roadmap stages: post-V0.

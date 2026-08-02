@@ -13,3 +13,5 @@
 | ADR-0009 | Use an M2 functional greybox and a blocking one-NPC asset-validation profile | Accepted |
 | ADR-0010 | Add non-authoritative Unity movement cancellation reporting in protocol 0.2.0 | Accepted |
 | M2-RELEASE | Accept reproducible local zero-skipped Unity batchmode, live `/town` interoperability, and external evidence as the M2 Unity release gate; remote licensed Unity CI is optional | Accepted by producer |
+| ADR-0011 | Preserve M1/M2 profiles while M3 adds a society authority checkpoint and protocol 0.3 multiplayer/debug semantics | Accepted |
+| M3-ACTIVATION | Start the complete heuristic society milestone; keep M4 neural and M5 DeepSeek work closed | Accepted by producer |

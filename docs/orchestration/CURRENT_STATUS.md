@@ -2,17 +2,17 @@
 
 ## Milestone
 
-`M2 - One-NPC Unity Bridge functional-greybox slice (accepted)`
+`M3 - Complete heuristic small society (active)`
 
 ## State
 
 - Orchestrator thread: `AITOWN-ORCH`
-- Contracts thread: M2 delivery complete; available for compatibility review
-- QA thread: M2 local and remote Python gates complete
-- Simulation thread: M2 Python bridge and authority evidence complete
-- Unity thread: M2 client, greybox, evidence exporter, and tests complete
-- Accepted branch: public `main`
-- Source integration branch: `codex/aitown-orch-m2`
+- Contracts thread: active for protocol `0.3.0`, shared manifests, and re-freeze
+- QA thread: active for M3 readiness, behavior matrix, soak, and release evidence
+- Simulation thread: active for the M3 heuristic society runtime and checkpoint
+- Unity thread: active for the M3 full-town functional greybox
+- Accepted base branch: public `main`
+- Active integration branch: `codex/aitown-orch-m3`
 - Remote: `origin`
 - Unity version: `6000.4.2f1`
 - Training environment: deferred to M4 cloud validation
@@ -95,8 +95,36 @@
 - On 2026-08-02 the producer accepted the reproducible local Unity evidence as
   the M2 release gate. This closes M2 without requiring a remote Unity license.
 
+## M3 activation
+
+- [x] Producer authorized M3 on 2026-08-02.
+- [x] Entry audits completed for CONTRACTS, SIM, QA, and UNITY.
+- [x] Freeze `docs/orchestration/M3_EXECUTION_BASELINE.md`.
+- [x] Accept ADR-0011: compatibility profiles, M3 AuthorityCheckpoint, and
+  additive protocol `0.3.0`.
+- [x] Freeze fixed 7/30-day seed lists, pathology/performance thresholds, and
+  the full-town semantic capacity policy.
+- [ ] Integrate CONTRACTS protocol/catalog artifacts and re-freeze.
+- [ ] Integrate the ten-NPC heuristic society runtime and M3 replay.
+- [ ] Integrate independent M3 QA readiness and release evidence gates.
+- [ ] Integrate the full-town Unity greybox and multiplayer presentation.
+- [ ] Pass fixed multi-seed soak, local Unity batchmode, and remote Python CI.
+- [ ] Obtain producer acceptance and publish M3 to public `main`.
+
+## M3 frozen boundary
+
+- M3 activates exactly 10 NPCs, 22 behaviors, 4 households, 8 locations,
+  15 object types, and 90 directed relationship edges.
+- The only outcome provider is the deterministic HeuristicOutcomeModel.
+- Protocol `0.3.0` is mandatory for M3; protocol `0.2.0` remains the immutable
+  M2 compatibility profile.
+- M3 includes deterministic background templates but no DeepSeek or player
+  language authority.
+- M4 neural work, M5 DeepSeek, and M6 golden-chain release work remain closed.
+
 ## Blockers
 
-None. M3 remains inactive until a separate producer authorization and
-Orchestrator handoff. Final art, DeepSeek credentials, and the cloud training
-host remain intentionally out of scope.
+No producer blocker. The next technical gate is the CONTRACTS `0.3.0` and
+semantic-manifest re-freeze required before SIM and UNITY exchange new M3 wire
+artifacts. Final art, DeepSeek credentials, and the cloud training host remain
+intentionally out of scope.

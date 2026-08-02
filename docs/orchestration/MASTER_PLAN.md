@@ -44,5 +44,9 @@ defined in `docs/orchestration/M2_EXECUTION_BASELINE.md`. Acceptance includes a
 real Python `/town` WebSocket handshake, zero-skipped Unity EditMode/PlayMode,
 external authority evidence, and passing remote Python gates. The producer
 accepted reproducible local Unity batchmode evidence as the M2 release gate;
-a licensed remote Unity lane is optional future infrastructure. M3 and later
-work remain closed.
+a licensed remote Unity lane is optional future infrastructure.
+
+M3 is active under `docs/orchestration/M3_EXECUTION_BASELINE.md` and ADR-0011.
+It adds a compatibility-preserving society runtime, protocol `0.3.0`, the full
+functional greybox, deterministic background templates, and fixed multi-seed
+7/30-day heuristic soak. M4 and later remain closed.

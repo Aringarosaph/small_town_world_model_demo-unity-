@@ -5,13 +5,15 @@
 | Domain IDs and enums | CONTRACTS | SIM, UNITY, MODEL, DIALOGUE, QA | Python DTOs and JSON Schema | Schema version + ADR |
 | World configuration | CONTRACTS | SIM, MODEL, QA | `config/v0/` | Config hash + validation |
 | Behavior/object catalogs | CONTRACTS | SIM, UNITY, MODEL, QA | YAML catalogs | Catalog version + coverage test |
-| Message envelope | CONTRACTS | SIM, UNITY, QA | Protocol `0.2.0`; `0.1.0` legacy decode | Protocol semver + compatibility test |
+| Message envelope | CONTRACTS | SIM, UNITY, QA | M3 `0.3.0`; M2 `0.2.0`; `0.1.0` legacy decode | Protocol semver + compatibility test |
 | Authority transactions | SIM | UNITY, MODEL, QA | M1 | ADR + invariant tests |
 | Semantic asset registry | UNITY | SIM, QA | M2 scoped profile from ADR-0009 | Protocol update + Unity validation |
 | Movement/presentation reports | CONTRACTS | SIM, UNITY, QA | Directional `0.2.0` DTO/Schema | ADR + direction/version/idempotency tests |
 | OutcomeModel DTO | CONTRACTS | SIM, MODEL, QA | M0 protocol only | Feature/model version + regression |
 | Knowledge/SpeechPlan | CONTRACTS | SIM, DIALOGUE, UNITY, QA | M0 schema | Schema + permission tests |
 | Decision trace and run layout | QA | All | M0 docs/checks | Observability review |
+| M3 authority checkpoint | SIM | QA, replay | ADR-0011 sidecar v1 | Checkpoint schema + resume/replay hashes |
+| Full-town semantic instances | CONTRACTS | SIM, UNITY, QA | M3 shared manifest | Catalog re-freeze + dual registry gate |
 
 ## Merge order for M0
 
@@ -79,3 +81,26 @@ with an M0 artifact are frozen inputs to that work.
   M0, M1, and M2 jobs on `codex/aitown-orch-m2`
 - Producer accepted the reproducible local Unity evidence gate; a remote
   licensed macOS ARM64 Unity lane is optional future infrastructure
+
+## Merge order for M3
+
+1. Orchestrator execution baseline, ADR-0011, thresholds, and ownership.
+2. CONTRACTS protocol `0.3.0`, shared semantic/template catalogs, compatibility
+   artifacts, and re-freeze.
+3. SIM society runtime in vertical increments, checkpoint/replay, bridge, and
+   authority evidence.
+4. QA independent readiness, behavior/economy/knowledge/JointAction/pathology,
+   and soak gates.
+5. UNITY full-town builder, strict local registry, multiplayer presentation,
+   Debug UI, and zero-skipped evidence.
+6. Orchestrator integrated regressions, fixed-seed soak, release evidence,
+   producer acceptance, and public `main` publication.
+
+## M3 activation record
+
+- Accepted base: public `main@7b2618de09bd87eb49716ac40f1d0ba697f00351`
+- Integration branch: `codex/aitown-orch-m3`
+- Execution baseline: `docs/orchestration/M3_EXECUTION_BASELINE.md`
+- Contract decision: ADR-0011
+- M3 active protocol: exactly `0.3.0`
+- Accepted M2 compatibility protocol: exactly `0.2.0`
