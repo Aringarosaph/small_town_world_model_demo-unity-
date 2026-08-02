@@ -227,10 +227,46 @@ The original failed release attempt remains unchanged. The release producer
 also now preserves the child CLI's machine-readable error detail in its own
 failed-attempt record rather than retaining only the exception type.
 
-This 7-day result linearly projects to about `17m30s` for 30 days, so it exposes
-a performance risk against the `<15m` single-run gate that the earlier one-day
-projection did not reveal. It is recorded as a scheduling/optimization issue,
-not relabeled as a passing 30-day result; no additional slow soak was started.
+The pre-optimization 7-day result linearly projected to about `17m30s` for 30
+days, exposing a performance risk against the `<15m` single-run gate that the
+earlier one-day projection did not reveal. The following authority-neutral
+performance correction addresses that risk without relabeling this historical
+run as a 30-day result.
+
+### M3 checkpoint commit performance correction
+
+Early and late six-hour checkpoint windows were profiled against the preserved
+7-day run. The early window (minute 0-360) took `1.899901s`; the late window
+(minute 9360-9720, starting with 556 events and 920 knowledge records) took
+`8.473803s`. In the late window, `_commit` consumed `7.980s`. Its dominant cost
+was two complete checkpoint `model_dump`/`model_validate` round trips per tick:
+serialization accumulated `3.194s` and validation `3.067s`, repeatedly walking
+immutable ledger history. Transaction diffing/equality (`0.600s`) and both
+invariant passes (`0.675s`) were the next growth-sensitive costs.
+
+The engine retains the first complete round trip before transaction/authority
+hash derivation, so normalized authority bytes are unchanged. It removes only
+the second round trip after internally generating the non-negative authority
+record count and SHA-256 cursor. Both per-tick society invariant calls remain;
+the immutable M3 catalog hash is computed once per engine and supplied to each
+invariant comparison rather than serializing the same catalog twice per tick.
+No decision, transaction, event, knowledge, checkpoint, replay, or evidence
+content changed.
+
+With the correction, the profiled early window took `1.013114s` and the late
+window `5.432073s`; both reproduced the preserved checkpoint and authority hash
+exactly. A fresh seed-`12345`, chunk-`60` 7-day production run completed in
+`110.850422s`, down from `245.034862s` (`54.8%` faster). Its final state,
+checkpoint, ledger, transaction chain, ordered authority log, record counts,
+behavior counts, events, and economy are identical to the pre-optimization
+success. Production replay again matched all hashes and all 29 checkpoints
+with zero source mutation or invariant violation.
+
+The observed 7-day result gives a simple 30-day projection of `475.073237s`
+(`7m55.1s`), leaving `47.2%` below the frozen 900-second gate. Peak RSS was
+`67,895,296` bytes; performance acceptance should therefore use the measured
+wall improvement rather than claiming a memory reduction. This remains a
+projection until the ORCH-scheduled 30-day matrix runs.
 
 The independent one-day production observation for this increment completed
 in `7.682316s`, peaked at `51,593,216` bytes RSS, used `38 MiB` on disk, and

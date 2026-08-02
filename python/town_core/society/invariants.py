@@ -17,9 +17,12 @@ def assert_society_invariants(
     checkpoint: AuthorityCheckpoint,
     catalog: CatalogBundle,
     m3_catalogs: M3Catalogs,
+    *,
+    expected_m3_catalog_hash: str | None = None,
 ) -> None:
     state = checkpoint.world
-    if checkpoint.m3_catalog_hash != m3_catalog_hash(m3_catalogs):
+    catalog_hash = expected_m3_catalog_hash or m3_catalog_hash(m3_catalogs)
+    if checkpoint.m3_catalog_hash != catalog_hash:
         raise SocietyInvariantViolation("M3 additive catalog identity changed")
     manifest_ids = {item.object_id for item in m3_catalogs.semantic_instances.objects}
     if set(state.objects) != manifest_ids:

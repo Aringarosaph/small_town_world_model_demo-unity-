@@ -7,6 +7,7 @@ from dataclasses import dataclass
 from time import perf_counter
 from typing import Any, cast
 
+from town_core.catalogs import m3_catalog_hash
 from town_core.domain.config_models import BehaviorConfig, CatalogBundle, MoodValues, NeedValues, ScheduleEntry
 from town_core.domain.decision_models import ActionProposal, HardCostPreview, JointAction, JointActionParticipant
 from town_core.domain.enums import (
@@ -157,13 +158,19 @@ class SocietyEngine:
             raise ValueError("M3 movement timeout must be positive")
         self.movement_timeout_minutes = movement_timeout_minutes
         self.templates = BackgroundTemplateProvider(m3_catalogs.background_dialogue)
+        self._m3_catalog_hash = m3_catalog_hash(m3_catalogs)
         self._event_config = {item.event_type: item for item in catalog.events.event_types}
         self._npc_config = {item.agent_id: item for item in catalog.population.npcs}
         self._schedules: dict[str, ScheduleEntry] = {}
         schedule_by_id = {item.schedule_id: item for item in catalog.schedules.schedules}
         for agent_id, agent in checkpoint.world.agents.items():
             self._schedules[agent_id] = schedule_by_id[agent.schedule_id].entries[0]
-        assert_society_invariants(checkpoint, catalog, m3_catalogs)
+        assert_society_invariants(
+            checkpoint,
+            catalog,
+            m3_catalogs,
+            expected_m3_catalog_hash=self._m3_catalog_hash,
+        )
         self.tick_durations_ms: list[float] = []
         self.decision_batch_durations_ms: list[float] = []
 
@@ -342,7 +349,12 @@ class SocietyEngine:
                 raise ValueError("external M3 action input cannot advance game time")
             if committed.world.state_version != previous.world.state_version + 1:
                 raise ValueError("external M3 action input must increment state version once")
-        assert_society_invariants(committed, self.catalog, self.m3_catalogs)
+        assert_society_invariants(
+            committed,
+            self.catalog,
+            self.m3_catalogs,
+            expected_m3_catalog_hash=self._m3_catalog_hash,
+        )
         for decision in context.decisions:
             decision["committed_state_version"] = committed.world.state_version
         for action in context.actions:
@@ -382,8 +394,17 @@ class SocietyEngine:
                 "authority_log_hash": authority_log_hash,
             }
         )
-        committed = AuthorityCheckpoint.model_validate(committed.model_dump(mode="json", exclude_none=False))
-        assert_society_invariants(committed, self.catalog, self.m3_catalogs)
+        # `committed` was fully normalized above before the transaction and
+        # authority hashes were derived. The only updates since then are this
+        # internally generated non-negative count and SHA-256 digest; another
+        # whole-checkpoint JSON round-trip would revalidate immutable ledger
+        # history on every tick without adding an authority boundary.
+        assert_society_invariants(
+            committed,
+            self.catalog,
+            self.m3_catalogs,
+            expected_m3_catalog_hash=self._m3_catalog_hash,
+        )
         self.checkpoint = committed
         return SocietyAdvanceResult(
             previous_game_minute=previous.world.game_minute,

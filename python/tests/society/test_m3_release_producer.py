@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import platform
+import subprocess
 from collections.abc import Mapping
 from pathlib import Path
 from types import SimpleNamespace
@@ -209,7 +210,7 @@ def test_production_child_failure_preserves_machine_readable_error_detail(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     monkeypatch.setattr(
-        producer.subprocess,
+        subprocess,
         "run",
         lambda *args, **kwargs: SimpleNamespace(
             returncode=1,
