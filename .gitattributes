@@ -7,10 +7,12 @@
 *.yml text eol=lf
 *.md text eol=lf
 
-*.unity text eol=lf
+*.unity text eol=lf whitespace=-blank-at-eol
 *.prefab text eol=lf
-*.asset text eol=lf
-*.meta text eol=lf
+*.asset text eol=lf whitespace=-blank-at-eol
+*.meta text eol=lf whitespace=-blank-at-eol
+
+unity/Assets/AITown/Scenes/*NavMesh.asset binary
 
 *.png binary
 *.jpg binary
@@ -21,4 +23,3 @@
 *.wav binary
 *.mp3 binary
 *.mp4 binary
-

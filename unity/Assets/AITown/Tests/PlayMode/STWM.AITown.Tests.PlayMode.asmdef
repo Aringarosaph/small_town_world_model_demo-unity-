@@ -1,0 +1,20 @@
+{
+  "name": "STWM.AITown.Tests.PlayMode",
+  "rootNamespace": "STWM.AITown.Tests.PlayMode",
+  "references": [
+    "STWM.AITown.Runtime",
+    "Unity.AI.Navigation"
+  ],
+  "includePlatforms": [],
+  "excludePlatforms": [],
+  "allowUnsafeCode": false,
+  "overrideReferences": false,
+  "precompiledReferences": [],
+  "autoReferenced": false,
+  "defineConstraints": [],
+  "versionDefines": [],
+  "noEngineReferences": false,
+  "optionalUnityReferences": [
+    "TestAssemblies"
+  ]
+}

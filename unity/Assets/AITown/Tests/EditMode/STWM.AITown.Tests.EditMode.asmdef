@@ -1,0 +1,23 @@
+{
+  "name": "STWM.AITown.Tests.EditMode",
+  "rootNamespace": "STWM.AITown.Tests.EditMode",
+  "references": [
+    "STWM.AITown.Runtime",
+    "STWM.AITown.Editor",
+    "Unity.Newtonsoft.Json"
+  ],
+  "includePlatforms": [
+    "Editor"
+  ],
+  "excludePlatforms": [],
+  "allowUnsafeCode": false,
+  "overrideReferences": false,
+  "precompiledReferences": [],
+  "autoReferenced": false,
+  "defineConstraints": [],
+  "versionDefines": [],
+  "noEngineReferences": false,
+  "optionalUnityReferences": [
+    "TestAssemblies"
+  ]
+}
