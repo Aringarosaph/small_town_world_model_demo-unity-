@@ -17,12 +17,26 @@ from town_core.bridge.m3_runtime import M3BridgeRuntime
 from town_core.bridge.session import BridgeProtocolError
 from town_core.catalogs import load_catalog, load_m3_catalogs
 from town_core.domain.enums import M3_PROTOCOL_VERSION
-from town_core.domain.protocol_models import PythonToUnityMessageV030
+from town_core.domain.protocol_models import (
+    AgentStateDeltaV030Message,
+    HouseholdStateDeltaV030Message,
+    PythonToUnityMessageV030,
+)
 from town_core.simulation.clock import RuntimeMode
 from town_core.society.engine import SocietyEngine
 from town_core.society.initialization import build_initial_society_checkpoint
 
 _PYTHON_TO_UNITY_ADAPTER: TypeAdapter[PythonToUnityMessageV030] = TypeAdapter(PythonToUnityMessageV030)
+
+
+def serialize_outbound_message(message: PythonToUnityMessageV030) -> str:
+    """Serialize a 0.3 envelope while preserving delta field-mask presence."""
+
+    outbound = _PYTHON_TO_UNITY_ADAPTER.validate_python(message)
+    document = outbound.model_dump(mode="json", exclude_none=False)
+    if isinstance(outbound, (AgentStateDeltaV030Message, HouseholdStateDeltaV030Message)):
+        document["payload"] = outbound.payload.model_dump(mode="json", exclude_unset=True)
+    return json.dumps(document, ensure_ascii=False, separators=(",", ":"))
 
 
 class M3BridgeWebSocketServer:
@@ -130,8 +144,7 @@ class M3BridgeWebSocketServer:
             return
         async with self._send_lock:
             for message in messages:
-                outbound = _PYTHON_TO_UNITY_ADAPTER.validate_python(message)
-                await connection.send(outbound.model_dump_json(exclude_none=False))
+                await connection.send(serialize_outbound_message(message))
 
     async def _clock_loop(self) -> None:
         while True:

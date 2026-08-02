@@ -9,19 +9,22 @@ from typing import Any, cast
 import pytest
 from town_core.bridge.m3_registry import M3FullAssetRegistryValidator
 from town_core.bridge.m3_runtime import M3BridgeRuntime
-from town_core.bridge.m3_server import M3BridgeWebSocketServer
+from town_core.bridge.m3_server import M3BridgeWebSocketServer, serialize_outbound_message
 from town_core.bridge.session import BridgeProtocolError, SessionPhase
 from town_core.catalogs import load_catalog, load_m3_catalogs
 from town_core.domain.config_models import NeedValues
 from town_core.domain.enums import (
     M3_PROTOCOL_VERSION,
     ActionPhase,
+    AgentDeltaField,
     BehaviorId,
     MessageType,
     MovementCancellationReason,
     MovementFailureReason,
 )
 from town_core.domain.protocol_models import (
+    AgentStateDeltaV030Message,
+    AgentStateDeltaV030Payload,
     AssetRegistryPayload,
     AssetRegistryV030Message,
     ClientHelloV030Message,
@@ -420,6 +423,69 @@ def test_m3_household_delta_is_emitted_from_real_home_meal_settlement() -> None:
     assert household_delta.payload.household_id == "household_a"
     assert household_delta.payload.food_units == initial_food - 1
     assert household_delta.payload.field_mask == ["food_units"]
+    household_wire = json.loads(serialize_outbound_message(household_delta))
+    assert set(household_wire["payload"]) == {"household_id", "field_mask", "food_units"}
+    assert "money" not in household_wire["payload"]
+
+
+def test_m3_agent_delta_wire_keys_exactly_follow_field_mask_and_preserve_explicit_null() -> None:
+    runtime = _runtime()
+    ordinary = AgentStateDeltaV030Message(
+        protocol_version=cast(Any, M3_PROTOCOL_VERSION),
+        message_id="msg_76000001",
+        message_type=MessageType.AGENT_STATE_DELTA,
+        sent_at_utc=NOW,
+        world_id=runtime.world_id,
+        state_version=runtime.engine.state.state_version,
+        correlation_id=None,
+        payload=AgentStateDeltaV030Payload(
+            agent_id="npc_01",
+            field_mask=[AgentDeltaField.CURRENT_LOCATION_ID],
+            current_location_id="home_a",
+        ),
+    )
+    ordinary_wire = json.loads(serialize_outbound_message(ordinary))
+    assert set(ordinary_wire["payload"]) == {"agent_id", "field_mask", "current_location_id"}
+    assert set(ordinary_wire["payload"]) - {"agent_id", "field_mask"} == set(ordinary_wire["payload"]["field_mask"])
+
+    explicit_clear = AgentStateDeltaV030Message(
+        protocol_version=cast(Any, M3_PROTOCOL_VERSION),
+        message_id="msg_76000002",
+        message_type=MessageType.AGENT_STATE_DELTA,
+        sent_at_utc=NOW,
+        world_id=runtime.world_id,
+        state_version=runtime.engine.state.state_version,
+        correlation_id=None,
+        payload=AgentStateDeltaV030Payload(
+            agent_id="npc_01",
+            field_mask=[AgentDeltaField.CURRENT_ACTION_ID],
+            current_action_id=None,
+        ),
+    )
+    clear_wire = json.loads(serialize_outbound_message(explicit_clear))
+    assert set(clear_wire["payload"]) == {"agent_id", "field_mask", "current_action_id"}
+    assert clear_wire["payload"]["current_action_id"] is None
+
+
+def test_m3_outbound_serializer_keeps_full_non_delta_envelope_and_snapshot_defaults() -> None:
+    runtime = _runtime()
+    snapshot = runtime.snapshot_message()
+    wire = json.loads(serialize_outbound_message(snapshot))
+
+    assert set(wire) == {
+        "protocol_version",
+        "message_id",
+        "message_type",
+        "sent_at_utc",
+        "world_id",
+        "state_version",
+        "correlation_id",
+        "payload",
+    }
+    assert set(wire["payload"]) == {"world", "active_presentations"}
+    assert set(wire["payload"]["world"]) == set(snapshot.payload.world.model_dump(mode="json", exclude_none=False))
+    assert "active_actions" in wire["payload"]["world"]
+    assert wire["payload"]["active_presentations"] == []
 
 
 def test_m3_social_resolution_emits_directed_relationship_and_dialogue_deltas() -> None:
