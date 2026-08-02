@@ -352,7 +352,8 @@ uv run --no-editable python -m town_core.bridge.m3_server \
 # 顺序生成一日 determinism/replay/resume/economy/Bridge readiness 证据
 uv run --no-editable python -m town_core.society.m3_qa_adapter \
   --config config/v0 --output-root /tmp/stwm-m3-readiness \
-  --evidence /tmp/stwm-m3-readiness/m3-readiness.json --seed 12345 --days 1
+  --evidence /tmp/stwm-m3-readiness/m3-simulation-readiness-evidence.json \
+  --seed 12345 --days 1
 ```
 
 M3 在线会话必须协商 `0.3.0`，但冻结配置来源仍单独记为
@@ -360,6 +361,11 @@ M3 在线会话必须协商 `0.3.0`，但冻结配置来源仍单独记为
 fresh snapshot 的 `active_presentations` 与权威 active action 完全对齐，
 `client_ready` 前时钟必须保持关闭。外置 readiness 证据只运行短矩阵；
 7/30 日固定种子 slow soak 由 ORCH/QA 在 MacBook Air 上单实例顺序调度。
+
+SIM 产生的 rich 运行事实 schema 是
+`stwm.simulation.m3-readiness-evidence/v1`。它与 `check_m3 --json-output`
+拥有的 exact `stwm.qa.m3-readiness/v1` 仓库集成报告严格分离，不复制、
+生成或冒充 QA findings/summary。
 
 ## 仓库结构
 

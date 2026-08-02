@@ -1,4 +1,4 @@
-"""Generate external M3 readiness evidence from production authority entry points."""
+"""Generate SIM-owned M3 readiness evidence from production authority entry points."""
 
 from __future__ import annotations
 
@@ -37,7 +37,7 @@ from town_core.society.engine import SocietyEngine
 from town_core.society.initialization import build_initial_society_checkpoint
 from town_core.society.run import run_society
 
-EVIDENCE_SCHEMA = "stwm.qa.m3-readiness/v1"
+EVIDENCE_SCHEMA = "stwm.simulation.m3-readiness-evidence/v1"
 PROJECT_NAME = "Small Town World Model（STWM）"
 FIXED_7_DAY_SEEDS = (12345, 24680, 97531, 314159, 271828)
 FIXED_30_DAY_SEEDS = (12345, 24680, 97531)

@@ -85,11 +85,15 @@ The additive CLI commands are:
 ```text
 python -m town_core.cli run-society --config config/v0 --days 1 --seed 12345 --chunk-minutes 60
 python -m town_core.cli replay-society --run <m3-run> --output-root <external-root>
-python -m town_core.society.m3_qa_adapter --config config/v0 --output-root <external-root> --evidence <external-root>/m3-readiness.json
+python -m town_core.society.m3_qa_adapter --config config/v0 --output-root <external-root> --evidence <external-root>/m3-simulation-readiness-evidence.json
 ```
 
-The adapter writes UTF-8 `stwm.qa.m3-readiness/v1` evidence outside the
-repository. It invokes production run/replay/Bridge paths for the canonical
+The adapter writes UTF-8 `stwm.simulation.m3-readiness-evidence/v1` evidence
+outside the repository. This rich document is SIM-owned production-run
+evidence; it is intentionally distinct from QA's exact
+`stwm.qa.m3-readiness/v1` repository-integration report emitted by
+`check_m3 --json-output`, and it never copies or synthesizes QA findings or
+summary fields. It invokes production run/replay/Bridge paths for the canonical
 one-day baseline/repeat/chunk-7/chunk-60 matrix, checkpoint-360 resume, exact
 four-household economy reconstruction, pathology/performance metrics, fresh
 snapshot/ready/reconnect observations, and machine-readable CLI failures. It

@@ -8,9 +8,14 @@ from town_core.bridge.m3_registry import M3FullAssetRegistryValidator
 from town_core.catalogs import load_catalog, load_m3_catalogs
 from town_core.cli import main as cli_main
 from town_core.society.initialization import build_initial_society_checkpoint
-from town_core.society.m3_qa_adapter import _ensure_external, _registry_payload
+from town_core.society.m3_qa_adapter import EVIDENCE_SCHEMA, _ensure_external, _registry_payload
 
 ROOT = Path(__file__).resolve().parents[3]
+
+
+def test_m3_simulation_evidence_does_not_claim_the_qa_integration_schema() -> None:
+    assert EVIDENCE_SCHEMA == "stwm.simulation.m3-readiness-evidence/v1"
+    assert EVIDENCE_SCHEMA != "stwm.qa.m3-readiness/v1"
 
 
 def test_m3_readiness_output_must_be_external() -> None:
