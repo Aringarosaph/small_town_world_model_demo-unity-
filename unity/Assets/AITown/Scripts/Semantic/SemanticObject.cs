@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 
 namespace STWM.AITown.Semantic
@@ -85,6 +86,11 @@ namespace STWM.AITown.Semantic
             }
 
             return null;
+        }
+
+        public InteractionSlot FindSlot(int slotIndex)
+        {
+            return interactionSlots?.FirstOrDefault(slot => slot != null && slot.SlotIndex == slotIndex);
         }
 
         public void Configure(

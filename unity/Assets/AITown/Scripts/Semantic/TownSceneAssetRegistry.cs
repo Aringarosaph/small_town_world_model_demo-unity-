@@ -5,11 +5,14 @@ using STWM.AITown.Animation;
 using STWM.AITown.Bridge;
 using STWM.AITown.NPC;
 using UnityEngine;
+using UnityEngine.AI;
 
 namespace STWM.AITown.Semantic
 {
     public sealed class TownAssetRegistryScan
     {
+        public string Profile { get; set; }
+        public string ManifestSchema { get; set; }
         public AssetRegistryPayload Payload { get; set; }
         public List<AssetValidationIssueDto> Issues { get; set; }
         public bool HasErrors => Issues.Any(issue => issue.Severity == AssetValidationSeverity.ERROR.ToString());
@@ -121,6 +124,7 @@ namespace STWM.AITown.Semantic
             issues.Sort(CompareIssues);
             return new TownAssetRegistryScan
             {
+                Profile = "M2_SCOPED",
                 Payload = new AssetRegistryPayload
                 {
                     Locations = locations
@@ -141,6 +145,117 @@ namespace STWM.AITown.Semantic
                         .ToList(),
                     MappedAnimationSemantics = mapped.OrderBy(item => item, StringComparer.Ordinal).ToList()
                 },
+                Issues = issues
+            };
+        }
+
+        public static TownAssetRegistryScan ScanFullV0(
+            bool validateRoutes = true,
+            M3SemanticManifestDocument manifest = null)
+        {
+            manifest = manifest ?? M3SemanticManifestDocument.LoadDefault();
+            manifest.ValidateDefinition();
+            var locations = FindLocations();
+            var objects = FindObjects();
+            var views = FindNpcViews();
+            var drivers = FindAnimationDrivers();
+            var issues = new List<AssetValidationIssueDto>();
+
+            AddDuplicateIssues(locations, item => item.LocationId, "DUPLICATE_LOCATION_ID", issues);
+            AddDuplicateIssues(objects, item => item.ObjectId, "DUPLICATE_OBJECT_ID", issues);
+            AddDuplicateIssues(views, item => item.AgentId, "DUPLICATE_AGENT_ID", issues);
+
+            var expectedLocations = manifest.Locations.ToDictionary(item => item.LocationId, StringComparer.Ordinal);
+            foreach (var expected in expectedLocations.Values)
+            {
+                var actual = locations.FirstOrDefault(item => string.Equals(item.LocationId, expected.LocationId, StringComparison.Ordinal));
+                if (actual == null)
+                {
+                    AddIssue(issues, AssetValidationSeverity.ERROR, "M3_LOCATION_MISSING", "Required M3 SemanticLocation is missing.", expected.LocationId);
+                    continue;
+                }
+
+                if (!string.Equals(actual.LocationType.ToString(), expected.LocationType, StringComparison.Ordinal))
+                {
+                    AddIssue(issues, AssetValidationSeverity.ERROR, "M3_LOCATION_TYPE_MISMATCH", $"Expected {expected.LocationType}, received {actual.LocationType}.", expected.LocationId);
+                }
+
+                if (actual.PrimaryEntrance == null)
+                {
+                    AddIssue(issues, AssetValidationSeverity.ERROR, "MISSING_ENTRANCE_ANCHOR", "Location has no entrance/navigation anchor.", actual.LocationId);
+                }
+            }
+
+            foreach (var unexpected in locations.Where(item => !expectedLocations.ContainsKey(item.LocationId)))
+            {
+                AddIssue(issues, AssetValidationSeverity.ERROR, "M3_UNKNOWN_LOCATION", "Location is outside the frozen M3 manifest.", unexpected.LocationId);
+            }
+
+            var expectedAgents = new HashSet<string>(manifest.Npcs.Select(item => item.AgentId), StringComparer.Ordinal);
+            foreach (var agentId in expectedAgents)
+            {
+                var view = views.FirstOrDefault(item => string.Equals(item.AgentId, agentId, StringComparison.Ordinal));
+                if (view == null)
+                {
+                    AddIssue(issues, AssetValidationSeverity.ERROR, "M3_NPC_VIEW_MISSING", "Required M3 NpcView is missing.", agentId);
+                    continue;
+                }
+
+                ValidateFullNpcView(view, manifest, issues);
+            }
+
+            foreach (var unexpected in views.Where(item => !expectedAgents.Contains(item.AgentId)))
+            {
+                AddIssue(issues, AssetValidationSeverity.ERROR, "M3_UNKNOWN_NPC_VIEW", "NpcView is outside the frozen M3 manifest.", unexpected.AgentId);
+            }
+
+            var expectedObjects = manifest.ExpandObjects().ToDictionary(item => item.ObjectId, StringComparer.Ordinal);
+            foreach (var expected in expectedObjects.Values)
+            {
+                var actual = objects.FirstOrDefault(item => string.Equals(item.ObjectId, expected.ObjectId, StringComparison.Ordinal));
+                if (actual == null)
+                {
+                    AddIssue(issues, AssetValidationSeverity.ERROR, "M3_OBJECT_MISSING", "Required M3 semantic object is missing.", expected.ObjectId);
+                    continue;
+                }
+
+                ValidateFullObject(actual, expected, locations, issues);
+            }
+
+            foreach (var unexpected in objects.Where(item => !expectedObjects.ContainsKey(item.ObjectId)))
+            {
+                AddIssue(issues, AssetValidationSeverity.ERROR, "M3_UNKNOWN_OBJECT", "Semantic object is outside the frozen M3 manifest.", unexpected.ObjectId);
+            }
+
+            var mapped = new HashSet<string>(
+                drivers.SelectMany(item => item.MappedSemantics).Select(item => item.ToString()),
+                StringComparer.Ordinal);
+            foreach (var semantic in manifest.RequiredAnimationSemantics)
+            {
+                if (!mapped.Contains(semantic))
+                {
+                    AddIssue(issues, AssetValidationSeverity.ERROR, "M3_ANIMATION_SEMANTIC_MISSING", "Required M3 animation semantic is not mapped.", semantic);
+                }
+            }
+
+            if (validateRoutes)
+            {
+                issues.AddRange(M3RouteValidator.Validate(locations, objects).Issues);
+                foreach (var view in views)
+                {
+                    if (!NavMesh.SamplePosition(view.transform.position, out _, 2f, NavMesh.AllAreas))
+                    {
+                        AddIssue(issues, AssetValidationSeverity.ERROR, "M3_NPC_OFF_NAVMESH", "NpcView start point is outside the baked NavMesh.", view.AgentId);
+                    }
+                }
+            }
+
+            issues.Sort(CompareIssues);
+            return new TownAssetRegistryScan
+            {
+                Profile = "M3_FULL",
+                ManifestSchema = manifest.Schema,
+                Payload = BuildPayload(locations, objects, views, mapped),
                 Issues = issues
             };
         }
@@ -226,6 +341,137 @@ namespace STWM.AITown.Semantic
                     })
                     .ToList()
             };
+        }
+
+        private static AssetRegistryPayload BuildPayload(
+            IEnumerable<SemanticLocation> locations,
+            IEnumerable<SemanticObject> objects,
+            IEnumerable<NpcView> views,
+            IEnumerable<string> mapped)
+        {
+            return new AssetRegistryPayload
+            {
+                Locations = locations
+                    .Where(item => !string.IsNullOrEmpty(item.LocationId))
+                    .OrderBy(item => item.LocationId, StringComparer.Ordinal)
+                    .Select(item => new RegisteredLocationDto
+                    {
+                        LocationId = item.LocationId,
+                        LocationType = item.LocationType.ToString()
+                    })
+                    .ToList(),
+                Objects = objects
+                    .Where(item => !string.IsNullOrEmpty(item.ObjectId))
+                    .OrderBy(item => item.ObjectId, StringComparer.Ordinal)
+                    .Select(ToRegisteredObject)
+                    .ToList(),
+                NpcViews = views
+                    .Where(item => !string.IsNullOrEmpty(item.AgentId))
+                    .OrderBy(item => item.AgentId, StringComparer.Ordinal)
+                    .Select(item => new RegisteredNpcViewDto { AgentId = item.AgentId })
+                    .ToList(),
+                MappedAnimationSemantics = mapped.OrderBy(item => item, StringComparer.Ordinal).ToList()
+            };
+        }
+
+        private static void ValidateFullNpcView(
+            NpcView view,
+            M3SemanticManifestDocument manifest,
+            ICollection<AssetValidationIssueDto> issues)
+        {
+            if (view.NavigationController == null)
+            {
+                AddIssue(issues, AssetValidationSeverity.ERROR, "MISSING_NAVIGATION_CONTROLLER", "NpcView has no navigation controller.", view.AgentId);
+            }
+
+            if (view.GetComponent<NavMeshAgent>() == null)
+            {
+                AddIssue(issues, AssetValidationSeverity.ERROR, "M3_NAVMESH_AGENT_MISSING", "NpcView has no NavMeshAgent presentation component.", view.AgentId);
+            }
+
+            if (view.AnimationDriver == null)
+            {
+                AddIssue(issues, AssetValidationSeverity.ERROR, "MISSING_ANIMATION_DRIVER", "NpcView has no animation-semantic adapter.", view.AgentId);
+            }
+            else
+            {
+                var mapped = new HashSet<string>(view.AnimationDriver.MappedSemantics.Select(item => item.ToString()), StringComparer.Ordinal);
+                foreach (var semantic in manifest.RequiredAnimationSemantics.Where(item => !mapped.Contains(item)))
+                {
+                    AddIssue(issues, AssetValidationSeverity.ERROR, "M3_NPC_ANIMATION_MISSING", "NpcView cannot present a required behavior animation.", $"{view.AgentId}/{semantic}");
+                }
+            }
+
+            if (view.PropPresenter == null)
+            {
+                AddIssue(issues, AssetValidationSeverity.ERROR, "M3_PROP_PRESENTER_MISSING", "NpcView has no prop-semantic presenter.", view.AgentId);
+            }
+            else
+            {
+                var props = new HashSet<string>(view.PropPresenter.SupportedSemantics.Select(item => item.ToString()), StringComparer.Ordinal);
+                foreach (var semantic in manifest.RequiredPropSemantics.Where(item => !props.Contains(item)))
+                {
+                    AddIssue(issues, AssetValidationSeverity.ERROR, "M3_PROP_SEMANTIC_MISSING", "NpcView cannot present a required prop semantic.", $"{view.AgentId}/{semantic}");
+                }
+            }
+
+            if (view.SocialFacingController == null)
+            {
+                AddIssue(issues, AssetValidationSeverity.ERROR, "M3_FACING_CONTROLLER_MISSING", "NpcView has no social-facing controller.", view.AgentId);
+            }
+            else
+            {
+                foreach (var behaviorId in manifest.FacingBehaviorIds.Where(item => !view.SocialFacingController.SupportsBehavior(item)))
+                {
+                    AddIssue(issues, AssetValidationSeverity.ERROR, "M3_FACING_BEHAVIOR_MISSING", "NpcView cannot face its authoritative social target.", $"{view.AgentId}/{behaviorId}");
+                }
+            }
+        }
+
+        private static void ValidateFullObject(
+            SemanticObject actual,
+            M3ObjectDefinition expected,
+            IReadOnlyCollection<SemanticLocation> locations,
+            ICollection<AssetValidationIssueDto> issues)
+        {
+            ValidateObject(actual, locations, issues);
+            if (!string.Equals(actual.ObjectType.ToString(), expected.ObjectType, StringComparison.Ordinal))
+            {
+                AddIssue(issues, AssetValidationSeverity.ERROR, "M3_OBJECT_TYPE_MISMATCH", $"Expected {expected.ObjectType}, received {actual.ObjectType}.", expected.ObjectId);
+            }
+
+            if (!string.Equals(actual.LocationId, expected.LocationId, StringComparison.Ordinal))
+            {
+                AddIssue(issues, AssetValidationSeverity.ERROR, "M3_OBJECT_LOCATION_MISMATCH", $"Expected {expected.LocationId}, received {actual.LocationId}.", expected.ObjectId);
+            }
+
+            if (!actual.SemanticEnabled)
+            {
+                AddIssue(issues, AssetValidationSeverity.ERROR, "M3_OBJECT_DISABLED", "Required M3 semantic object is disabled.", expected.ObjectId);
+            }
+
+            var actualCapabilities = new HashSet<string>(actual.CapabilityTags.Select(item => item.ToString()), StringComparer.Ordinal);
+            if (!actualCapabilities.SetEquals(expected.CapabilityTags))
+            {
+                AddIssue(issues, AssetValidationSeverity.ERROR, "M3_OBJECT_CAPABILITY_MISMATCH", $"Expected [{string.Join(",", expected.CapabilityTags)}].", expected.ObjectId);
+            }
+
+            var actualSlots = actual.InteractionSlots.Where(item => item != null).OrderBy(item => item.SlotIndex).ToArray();
+            if (actualSlots.Length != expected.SlotCount
+                || !actualSlots.Select(item => item.SlotIndex).SequenceEqual(Enumerable.Range(0, expected.SlotCount)))
+            {
+                AddIssue(issues, AssetValidationSeverity.ERROR, "M3_DEFAULT_SLOT_COUNT_MISMATCH", $"Expected contiguous slots 0..{expected.SlotCount - 1}.", expected.ObjectId);
+            }
+
+            var requiredSemantics = new HashSet<string>(expected.AnimationSemantics, StringComparer.Ordinal);
+            foreach (var slot in actualSlots)
+            {
+                var actualSemantics = new HashSet<string>(slot.SupportedAnimationSemantics.Select(item => item.ToString()), StringComparer.Ordinal);
+                if (!actualSemantics.SetEquals(requiredSemantics))
+                {
+                    AddIssue(issues, AssetValidationSeverity.ERROR, "M3_SLOT_ANIMATION_MISMATCH", $"Expected [{string.Join(",", expected.AnimationSemantics)}].", $"{expected.ObjectId}/slot_{slot.SlotIndex}");
+                }
+            }
         }
 
         private static void ValidateObject(

@@ -4,6 +4,7 @@
   "references": [
     "STWM.AITown.Runtime",
     "STWM.AITown.Editor",
+    "Unity.AI.Navigation",
     "Unity.Newtonsoft.Json"
   ],
   "includePlatforms": [

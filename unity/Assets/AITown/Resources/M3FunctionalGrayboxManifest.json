@@ -1,0 +1,82 @@
+{
+  "schema": "stwm.unity.m3-functional-graybox-manifest/v1",
+  "baseline_commit": "2a51615",
+  "shared_contract_manifest_status": "PENDING_CONTRACTS_0_3",
+  "locations": [
+    {"location_id":"home_a","location_type":"HOME","display_name":"Home A","x":-18,"z":-11},
+    {"location_id":"home_b","location_type":"HOME","display_name":"Home B","x":-6,"z":-11},
+    {"location_id":"home_c","location_type":"HOME","display_name":"Home C","x":6,"z":-11},
+    {"location_id":"home_d","location_type":"HOME","display_name":"Home D","x":18,"z":-11},
+    {"location_id":"cafe_bar","location_type":"CAFE_BAR","display_name":"Cafe Bar","x":-18,"z":11},
+    {"location_id":"shop","location_type":"SHOP","display_name":"Shop","x":-6,"z":11},
+    {"location_id":"workshop","location_type":"WORKPLACE","display_name":"Workshop","x":6,"z":11},
+    {"location_id":"park","location_type":"PARK","display_name":"Park","x":18,"z":11}
+  ],
+  "npcs": [
+    {"agent_id":"npc_01","home_location_id":"home_a"},
+    {"agent_id":"npc_02","home_location_id":"home_a"},
+    {"agent_id":"npc_03","home_location_id":"home_b"},
+    {"agent_id":"npc_04","home_location_id":"home_b"},
+    {"agent_id":"npc_05","home_location_id":"home_b"},
+    {"agent_id":"npc_06","home_location_id":"home_c"},
+    {"agent_id":"npc_07","home_location_id":"home_c"},
+    {"agent_id":"npc_08","home_location_id":"home_d"},
+    {"agent_id":"npc_09","home_location_id":"home_d"},
+    {"agent_id":"npc_10","home_location_id":"home_d"}
+  ],
+  "object_groups": [
+    {"id_prefix":"home_a_bed_","first_index":1,"count":2,"object_type":"BED","location_id":"home_a","capability_tags":["SLEEP"],"slot_count":1,"animation_semantics":["SLEEP"]},
+    {"id_prefix":"home_a_fridge_","first_index":1,"count":1,"object_type":"FRIDGE","location_id":"home_a","capability_tags":["FOOD_SOURCE_HOME"],"slot_count":1,"animation_semantics":["IDLE","EAT"]},
+    {"id_prefix":"home_a_dining_seat_","first_index":1,"count":2,"object_type":"DINING_SEAT","location_id":"home_a","capability_tags":["SIT","EAT"],"slot_count":1,"animation_semantics":["SIT","EAT"]},
+    {"id_prefix":"home_a_shower_","first_index":1,"count":1,"object_type":"SHOWER","location_id":"home_a","capability_tags":["HYGIENE"],"slot_count":1,"animation_semantics":["SHOWER_HIDDEN"]},
+    {"id_prefix":"home_a_sofa_","first_index":1,"count":1,"object_type":"SOFA","location_id":"home_a","capability_tags":["SIT","RELAX","WATCH_TV"],"slot_count":2,"animation_semantics":["SIT"]},
+    {"id_prefix":"home_a_tv_","first_index":1,"count":1,"object_type":"TV","location_id":"home_a","capability_tags":["ENTERTAINMENT"],"slot_count":4,"animation_semantics":["SIT"]},
+
+    {"id_prefix":"home_b_bed_","first_index":1,"count":3,"object_type":"BED","location_id":"home_b","capability_tags":["SLEEP"],"slot_count":1,"animation_semantics":["SLEEP"]},
+    {"id_prefix":"home_b_fridge_","first_index":1,"count":1,"object_type":"FRIDGE","location_id":"home_b","capability_tags":["FOOD_SOURCE_HOME"],"slot_count":1,"animation_semantics":["IDLE","EAT"]},
+    {"id_prefix":"home_b_dining_seat_","first_index":1,"count":3,"object_type":"DINING_SEAT","location_id":"home_b","capability_tags":["SIT","EAT"],"slot_count":1,"animation_semantics":["SIT","EAT"]},
+    {"id_prefix":"home_b_shower_","first_index":1,"count":1,"object_type":"SHOWER","location_id":"home_b","capability_tags":["HYGIENE"],"slot_count":1,"animation_semantics":["SHOWER_HIDDEN"]},
+    {"id_prefix":"home_b_sofa_","first_index":1,"count":2,"object_type":"SOFA","location_id":"home_b","capability_tags":["SIT","RELAX","WATCH_TV"],"slot_count":2,"animation_semantics":["SIT"]},
+    {"id_prefix":"home_b_tv_","first_index":1,"count":1,"object_type":"TV","location_id":"home_b","capability_tags":["ENTERTAINMENT"],"slot_count":4,"animation_semantics":["SIT"]},
+
+    {"id_prefix":"home_c_bed_","first_index":1,"count":2,"object_type":"BED","location_id":"home_c","capability_tags":["SLEEP"],"slot_count":1,"animation_semantics":["SLEEP"]},
+    {"id_prefix":"home_c_fridge_","first_index":1,"count":1,"object_type":"FRIDGE","location_id":"home_c","capability_tags":["FOOD_SOURCE_HOME"],"slot_count":1,"animation_semantics":["IDLE","EAT"]},
+    {"id_prefix":"home_c_dining_seat_","first_index":1,"count":2,"object_type":"DINING_SEAT","location_id":"home_c","capability_tags":["SIT","EAT"],"slot_count":1,"animation_semantics":["SIT","EAT"]},
+    {"id_prefix":"home_c_shower_","first_index":1,"count":1,"object_type":"SHOWER","location_id":"home_c","capability_tags":["HYGIENE"],"slot_count":1,"animation_semantics":["SHOWER_HIDDEN"]},
+    {"id_prefix":"home_c_sofa_","first_index":1,"count":1,"object_type":"SOFA","location_id":"home_c","capability_tags":["SIT","RELAX","WATCH_TV"],"slot_count":2,"animation_semantics":["SIT"]},
+    {"id_prefix":"home_c_tv_","first_index":1,"count":1,"object_type":"TV","location_id":"home_c","capability_tags":["ENTERTAINMENT"],"slot_count":4,"animation_semantics":["SIT"]},
+
+    {"id_prefix":"home_d_bed_","first_index":1,"count":3,"object_type":"BED","location_id":"home_d","capability_tags":["SLEEP"],"slot_count":1,"animation_semantics":["SLEEP"]},
+    {"id_prefix":"home_d_fridge_","first_index":1,"count":1,"object_type":"FRIDGE","location_id":"home_d","capability_tags":["FOOD_SOURCE_HOME"],"slot_count":1,"animation_semantics":["IDLE","EAT"]},
+    {"id_prefix":"home_d_dining_seat_","first_index":1,"count":3,"object_type":"DINING_SEAT","location_id":"home_d","capability_tags":["SIT","EAT"],"slot_count":1,"animation_semantics":["SIT","EAT"]},
+    {"id_prefix":"home_d_shower_","first_index":1,"count":1,"object_type":"SHOWER","location_id":"home_d","capability_tags":["HYGIENE"],"slot_count":1,"animation_semantics":["SHOWER_HIDDEN"]},
+    {"id_prefix":"home_d_sofa_","first_index":1,"count":2,"object_type":"SOFA","location_id":"home_d","capability_tags":["SIT","RELAX","WATCH_TV"],"slot_count":2,"animation_semantics":["SIT"]},
+    {"id_prefix":"home_d_tv_","first_index":1,"count":1,"object_type":"TV","location_id":"home_d","capability_tags":["ENTERTAINMENT"],"slot_count":4,"animation_semantics":["SIT"]},
+
+    {"id_prefix":"cafe_bar_workstation_morning_","first_index":1,"count":2,"object_type":"WORKSTATION","location_id":"cafe_bar","capability_tags":["WORK","CAFE_MORNING"],"slot_count":1,"animation_semantics":["WORK_STANDING"]},
+    {"id_prefix":"cafe_bar_workstation_evening_","first_index":1,"count":2,"object_type":"WORKSTATION","location_id":"cafe_bar","capability_tags":["WORK","CAFE_EVENING"],"slot_count":1,"animation_semantics":["WORK_STANDING"]},
+    {"id_prefix":"cafe_bar_cafe_counter_","first_index":1,"count":1,"object_type":"CAFE_COUNTER","location_id":"cafe_bar","capability_tags":["BUY_MEAL"],"slot_count":1,"animation_semantics":["EAT"]},
+    {"id_prefix":"cafe_bar_bar_counter_","first_index":1,"count":1,"object_type":"BAR_COUNTER","location_id":"cafe_bar","capability_tags":["BUY_DRINK"],"slot_count":1,"animation_semantics":["DRINK"]},
+    {"id_prefix":"cafe_bar_dining_seat_","first_index":1,"count":4,"object_type":"DINING_SEAT","location_id":"cafe_bar","capability_tags":["SIT","EAT"],"slot_count":1,"animation_semantics":["SIT","EAT","DRINK"]},
+    {"id_prefix":"cafe_bar_public_seat_","first_index":1,"count":2,"object_type":"PUBLIC_SEAT","location_id":"cafe_bar","capability_tags":["SIT","REST"],"slot_count":1,"animation_semantics":["SIT","DRINK"]},
+    {"id_prefix":"cafe_bar_conversation_anchor_","first_index":1,"count":1,"object_type":"CONVERSATION_ANCHOR","location_id":"cafe_bar","capability_tags":["SOCIAL_POSITION"],"slot_count":2,"animation_semantics":["TALK_NEUTRAL","TALK_POSITIVE","TALK_NEGATIVE"]},
+
+    {"id_prefix":"shop_workstation_","first_index":1,"count":2,"object_type":"WORKSTATION","location_id":"shop","capability_tags":["WORK","SHOP"],"slot_count":1,"animation_semantics":["WORK_DESK"]},
+    {"id_prefix":"shop_shelf_","first_index":1,"count":1,"object_type":"SHOP_SHELF","location_id":"shop","capability_tags":["GROCERY_SOURCE"],"slot_count":2,"animation_semantics":["WALK","CARRY_GROCERY"]},
+    {"id_prefix":"shop_checkout_","first_index":1,"count":1,"object_type":"CHECKOUT_COUNTER","location_id":"shop","capability_tags":["PURCHASE"],"slot_count":1,"animation_semantics":["WALK","CARRY_GROCERY"]},
+    {"id_prefix":"shop_public_seat_","first_index":1,"count":2,"object_type":"PUBLIC_SEAT","location_id":"shop","capability_tags":["SIT","REST"],"slot_count":1,"animation_semantics":["SIT"]},
+    {"id_prefix":"shop_conversation_anchor_","first_index":1,"count":1,"object_type":"CONVERSATION_ANCHOR","location_id":"shop","capability_tags":["SOCIAL_POSITION"],"slot_count":2,"animation_semantics":["TALK_NEUTRAL","TALK_POSITIVE","TALK_NEGATIVE"]},
+
+    {"id_prefix":"workshop_workstation_","first_index":1,"count":4,"object_type":"WORKSTATION","location_id":"workshop","capability_tags":["WORK","WORKSHOP"],"slot_count":1,"animation_semantics":["WORK_WORKSHOP"]},
+    {"id_prefix":"workshop_public_seat_","first_index":1,"count":4,"object_type":"PUBLIC_SEAT","location_id":"workshop","capability_tags":["SIT","REST"],"slot_count":1,"animation_semantics":["SIT"]},
+    {"id_prefix":"workshop_conversation_anchor_","first_index":1,"count":1,"object_type":"CONVERSATION_ANCHOR","location_id":"workshop","capability_tags":["SOCIAL_POSITION"],"slot_count":2,"animation_semantics":["TALK_NEUTRAL","TALK_POSITIVE","TALK_NEGATIVE"]},
+
+    {"id_prefix":"park_route_","first_index":1,"count":1,"object_type":"PARK_ROUTE","location_id":"park","capability_tags":["WALK_ROUTE"],"slot_count":8,"animation_semantics":["WALK"]},
+    {"id_prefix":"park_public_seat_","first_index":1,"count":4,"object_type":"PUBLIC_SEAT","location_id":"park","capability_tags":["SIT","REST"],"slot_count":1,"animation_semantics":["SIT"]},
+    {"id_prefix":"park_leisure_spot_","first_index":1,"count":1,"object_type":"LEISURE_SPOT","location_id":"park","capability_tags":["RELAX"],"slot_count":2,"animation_semantics":["SIT"]},
+    {"id_prefix":"park_conversation_anchor_","first_index":1,"count":1,"object_type":"CONVERSATION_ANCHOR","location_id":"park","capability_tags":["SOCIAL_POSITION"],"slot_count":2,"animation_semantics":["TALK_NEUTRAL","TALK_POSITIVE","TALK_NEGATIVE"]}
+  ],
+  "required_animation_semantics": ["IDLE","WALK","SIT","SLEEP","EAT","DRINK","SHOWER_HIDDEN","WORK_DESK","WORK_STANDING","WORK_WORKSHOP","TALK_NEUTRAL","TALK_POSITIVE","TALK_NEGATIVE","CARRY_GROCERY"],
+  "required_prop_semantics": ["MEAL","GROCERY_BAG","DRINK","EVENT_ICON"],
+  "facing_behavior_ids": ["greet","chat","joke","compliment","share_event","invite_join","apologize","confront"]
+}

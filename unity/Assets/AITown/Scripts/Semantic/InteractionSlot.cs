@@ -21,6 +21,7 @@ namespace STWM.AITown.Semantic
         public Transform FacingTransform => facingTransform;
         public IReadOnlyList<AnimationSemantic> SupportedAnimationSemantics => supportedAnimationSemantics;
         public string LocalPresentationActionId => localPresentationActionId;
+        public string LocalPresentationClaimId => localPresentationActionId;
 
         public Vector3 Position => AnchorTransform.position;
 

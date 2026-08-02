@@ -4,5 +4,8 @@
 EditorBuildSettings:
   m_ObjectHideFlags: 0
   serializedVersion: 2
-  m_Scenes: []
+  m_Scenes:
+  - enabled: 1
+    path: Assets/AITown/Scenes/M3FunctionalGraybox.unity
+    guid: d3605d0c967844155a957dd55c181c09
   m_configObjects: {}

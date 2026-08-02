@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Linq;
 using System.Net.WebSockets;
 using System.Threading;
 using System.Threading.Tasks;
@@ -645,12 +646,47 @@ namespace STWM.AITown.Bridge
                 throw new JsonSerializationException("World snapshot is missing agents.");
             }
 
+            debugPanel?.SetAvailableAgents(agents.Properties().Select(item => item.Name));
+
             foreach (var view in TownSceneAssetRegistry.FindNpcViews())
             {
                 view.BindBridge(this);
                 if (agents[view.AgentId] is JObject agent)
                 {
                     view.ApplySnapshotAgent(agent);
+                }
+            }
+
+            if (debugPanel != null)
+            {
+                var households = world["households"] as JObject;
+                var relationships = world["relationships"] as JArray;
+                foreach (var property in agents.Properties())
+                {
+                    if (!(property.Value is JObject agent))
+                    {
+                        continue;
+                    }
+
+                    var householdId = agent.Value<string>("household_id");
+                    var household = households?[householdId] as JObject;
+                    var relationshipCount = relationships?.OfType<JObject>()
+                        .Count(item => string.Equals(item.Value<string>("source_agent_id"), property.Name, StringComparison.Ordinal)) ?? 0;
+                    debugPanel.SetNpcSurface(new TownNpcDebugSurface
+                    {
+                        AgentId = property.Name,
+                        AuthorityLocationId = agent.Value<string>("current_location_id") ?? "unknown",
+                        HouseholdId = householdId ?? "unknown",
+                        HouseholdResources = household == null
+                            ? "pending"
+                            : $"money={household["money"]}; food={household["food_units"]}",
+                        Needs = agent["needs"]?.ToString(Formatting.None) ?? "pending",
+                        Mood = agent["mood"]?.ToString(Formatting.None) ?? "pending",
+                        Relationships = relationshipCount.ToString(),
+                        KnownEvents = (agent["known_event_ids"] as JArray)?.Count.ToString() ?? "pending",
+                        BehaviorId = "none",
+                        ActionPhase = "none"
+                    });
                 }
             }
 

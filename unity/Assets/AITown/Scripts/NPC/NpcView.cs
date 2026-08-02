@@ -13,14 +13,19 @@ namespace STWM.AITown.NPC
         [SerializeField] private string agentId;
         [SerializeField] private NpcNavigationController navigationController;
         [SerializeField] private NpcAnimationDriver animationDriver;
+        [SerializeField] private NpcPropPresenter propPresenter;
+        [SerializeField] private SocialFacingController socialFacingController;
         [SerializeField] private GameObject statusIndicator;
 
         private TownBridgeClient bridge;
         private AnimationSemantic currentAnimationSemantic = AnimationSemantic.IDLE;
+        private string currentPropSemantic;
 
         public string AgentId => agentId;
         public NpcNavigationController NavigationController => navigationController;
         public NpcAnimationDriver AnimationDriver => animationDriver;
+        public NpcPropPresenter PropPresenter => propPresenter;
+        public SocialFacingController SocialFacingController => socialFacingController;
         public string CurrentActionId { get; private set; }
         public string CurrentBehaviorId { get; private set; }
         public string CurrentPhase { get; private set; } = "NONE";
@@ -37,6 +42,16 @@ namespace STWM.AITown.NPC
             if (animationDriver == null)
             {
                 animationDriver = GetComponent<NpcAnimationDriver>();
+            }
+
+            if (propPresenter == null)
+            {
+                propPresenter = GetComponent<NpcPropPresenter>();
+            }
+
+            if (socialFacingController == null)
+            {
+                socialFacingController = GetComponent<SocialFacingController>();
             }
 
             SubscribePresentationEvents();
@@ -61,12 +76,16 @@ namespace STWM.AITown.NPC
             string id,
             NpcNavigationController navigation,
             NpcAnimationDriver animations,
-            GameObject indicator = null)
+            GameObject indicator = null,
+            NpcPropPresenter props = null,
+            SocialFacingController facing = null)
         {
             agentId = id;
             navigationController = navigation;
             animationDriver = animations;
             statusIndicator = indicator;
+            propPresenter = props != null ? props : GetComponent<NpcPropPresenter>();
+            socialFacingController = facing != null ? facing : GetComponent<SocialFacingController>();
             SubscribePresentationEvents();
         }
 
@@ -119,6 +138,7 @@ namespace STWM.AITown.NPC
             CurrentActionId = action.ActionId;
             CurrentBehaviorId = action.BehaviorId;
             CurrentPhase = "CREATED";
+            currentPropSemantic = action.PropSemantic;
             var request = BuildNavigationRequest(action, currentAnimationSemantic);
             if (request != null && navigationController != null)
             {
@@ -140,13 +160,17 @@ namespace STWM.AITown.NPC
             if (phase == "PERFORMING")
             {
                 animationDriver?.Play(currentAnimationSemantic, actionId, true);
+                propPresenter?.Show(currentPropSemantic, actionId);
             }
             else if (phase == "COMPLETED" || phase == "FAILED" || phase == "CANCELLED" || phase == "INTERRUPTED")
             {
                 navigationController?.ReleasePresentationClaim(actionId);
                 animationDriver?.Stop(actionId);
+                propPresenter?.Hide(actionId);
+                socialFacingController?.Clear(actionId);
                 CurrentActionId = null;
                 CurrentBehaviorId = null;
+                currentPropSemantic = null;
             }
         }
 
@@ -159,9 +183,12 @@ namespace STWM.AITown.NPC
 
             navigationController?.CancelNavigation(MovementCancellationReason.NAVIGATION_STOPPED, false);
             animationDriver?.Stop(actionId);
+            propPresenter?.Hide(actionId);
+            socialFacingController?.Clear(actionId);
             CurrentPhase = "CANCELLED";
             CurrentActionId = null;
             CurrentBehaviorId = null;
+            currentPropSemantic = null;
         }
 
         private NpcNavigationRequest BuildNavigationRequest(ActionStartedPayload action, AnimationSemantic semantic)

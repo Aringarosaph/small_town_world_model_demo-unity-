@@ -5,6 +5,20 @@ using UnityEngine;
 
 namespace STWM.AITown.Debugging
 {
+    public sealed class TownNpcDebugSurface
+    {
+        public string AgentId { get; set; }
+        public string AuthorityLocationId { get; set; } = "pending";
+        public string HouseholdId { get; set; } = "pending";
+        public string HouseholdResources { get; set; } = "pending";
+        public string Needs { get; set; } = "pending";
+        public string Mood { get; set; } = "pending";
+        public string Relationships { get; set; } = "pending";
+        public string KnownEvents { get; set; } = "pending";
+        public string BehaviorId { get; set; } = "none";
+        public string ActionPhase { get; set; } = "none";
+    }
+
     [DisallowMultipleComponent]
     public sealed class TownDebugPanel : MonoBehaviour
     {
@@ -16,6 +30,8 @@ namespace STWM.AITown.Debugging
         private readonly Queue<string> recentInfo = new Queue<string>();
         private readonly List<AssetValidationIssueDto> localRegistryIssues = new List<AssetValidationIssueDto>();
         private readonly List<AssetValidationIssueDto> serverRegistryIssues = new List<AssetValidationIssueDto>();
+        private readonly List<string> availableAgentIds = new List<string>();
+        private readonly Dictionary<string, TownNpcDebugSurface> npcSurfaces = new Dictionary<string, TownNpcDebugSurface>();
 
         private string connectionState = "Disconnected";
         private long gameMinute;
@@ -30,6 +46,8 @@ namespace STWM.AITown.Debugging
 
         public IReadOnlyCollection<string> RecentErrors => recentErrors;
         public string ConnectionState => connectionState;
+        public string SelectedAgentId => selectedAgentId;
+        public IReadOnlyList<string> AvailableAgentIds => availableAgentIds;
 
         public void BindBridge(TownBridgeClient bridge)
         {
@@ -57,9 +75,63 @@ namespace STWM.AITown.Debugging
 
         public void SetNpcAction(string agentId, string behavior, string phase)
         {
+            EnsureAgent(agentId);
+            var surface = npcSurfaces[agentId];
+            surface.BehaviorId = string.IsNullOrEmpty(behavior) ? "none" : behavior;
+            surface.ActionPhase = string.IsNullOrEmpty(phase) ? "none" : phase;
+            if (string.Equals(selectedAgentId, agentId, System.StringComparison.Ordinal))
+            {
+                behaviorId = surface.BehaviorId;
+                actionPhase = surface.ActionPhase;
+            }
+        }
+
+        public void SetAvailableAgents(IEnumerable<string> agentIds)
+        {
+            availableAgentIds.Clear();
+            availableAgentIds.AddRange((agentIds ?? Enumerable.Empty<string>())
+                .Where(item => !string.IsNullOrWhiteSpace(item))
+                .Distinct(System.StringComparer.Ordinal)
+                .OrderBy(item => item, System.StringComparer.Ordinal));
+            foreach (var agentId in availableAgentIds)
+            {
+                EnsureAgent(agentId);
+            }
+
+            if (!availableAgentIds.Contains(selectedAgentId))
+            {
+                SelectAgent(availableAgentIds.FirstOrDefault());
+            }
+        }
+
+        public bool SelectAgent(string agentId)
+        {
+            if (string.IsNullOrEmpty(agentId) || !availableAgentIds.Contains(agentId))
+            {
+                return false;
+            }
+
             selectedAgentId = agentId;
-            behaviorId = string.IsNullOrEmpty(behavior) ? "none" : behavior;
-            actionPhase = string.IsNullOrEmpty(phase) ? "none" : phase;
+            var surface = npcSurfaces[agentId];
+            behaviorId = surface.BehaviorId;
+            actionPhase = surface.ActionPhase;
+            return true;
+        }
+
+        public void SetNpcSurface(TownNpcDebugSurface surface)
+        {
+            if (surface == null || string.IsNullOrWhiteSpace(surface.AgentId))
+            {
+                return;
+            }
+
+            EnsureAgent(surface.AgentId);
+            npcSurfaces[surface.AgentId] = surface;
+            if (string.Equals(selectedAgentId, surface.AgentId, System.StringComparison.Ordinal))
+            {
+                behaviorId = surface.BehaviorId;
+                actionPhase = surface.ActionPhase;
+            }
         }
 
         public void SetRegistryIssues(IEnumerable<AssetValidationIssueDto> issues)
@@ -101,7 +173,9 @@ namespace STWM.AITown.Debugging
             GUILayout.Label($"Clock: minute {gameMinute} | scale {timeScale:0.#}x | paused {paused}");
             DrawTimeControls();
             GUILayout.Label($"Snapshot: v{snapshotStateVersion} | model {modelVersion}");
+            DrawAgentSelector();
             GUILayout.Label($"NPC: {selectedAgentId} | behavior {behaviorId} | phase {actionPhase}");
+            DrawSelectedNpcSurface();
             GUILayout.Space(6f);
             DrawIssues("Local registry", localRegistryIssues);
             DrawIssues("Server registry", serverRegistryIssues);
@@ -139,6 +213,86 @@ namespace STWM.AITown.Debugging
 
             GUILayout.EndHorizontal();
             GUI.enabled = previousEnabled;
+        }
+
+        private void DrawAgentSelector()
+        {
+            if (availableAgentIds.Count == 0)
+            {
+                GUILayout.Label("NPC selector: PENDING registry/snapshot");
+                return;
+            }
+
+            GUILayout.BeginHorizontal();
+            if (GUILayout.Button("<", GUILayout.Width(28f)))
+            {
+                CycleAgent(-1);
+            }
+
+            GUILayout.Label($"Selected {selectedAgentId}", GUILayout.Width(130f));
+            if (GUILayout.Button(">", GUILayout.Width(28f)))
+            {
+                CycleAgent(1);
+            }
+
+            GUILayout.EndHorizontal();
+            GUILayout.BeginHorizontal();
+            foreach (var agentId in availableAgentIds)
+            {
+                if (GUILayout.Button(agentId.Replace("npc_", string.Empty), GUILayout.Width(32f)))
+                {
+                    SelectAgent(agentId);
+                }
+            }
+
+            GUILayout.EndHorizontal();
+        }
+
+        private void DrawSelectedNpcSurface()
+        {
+            if (!npcSurfaces.TryGetValue(selectedAgentId, out var surface))
+            {
+                GUILayout.Label("Authority surface: PENDING protocol 0.3 snapshot");
+                return;
+            }
+
+            GUILayout.Label($"Location {surface.AuthorityLocationId} | household {surface.HouseholdId}");
+            GUILayout.Label($"Household resources: {surface.HouseholdResources}");
+            GUILayout.Label($"Needs: {surface.Needs}");
+            GUILayout.Label($"Mood: {surface.Mood}");
+            GUILayout.Label($"Relationships: {surface.Relationships} | known events: {surface.KnownEvents}");
+            GUILayout.Label("Top-K / hard preview / prediction / utility / Resolver: PENDING protocol 0.3 DTO");
+        }
+
+        private void CycleAgent(int offset)
+        {
+            if (availableAgentIds.Count == 0)
+            {
+                return;
+            }
+
+            var current = availableAgentIds.IndexOf(selectedAgentId);
+            var next = (current + offset + availableAgentIds.Count) % availableAgentIds.Count;
+            SelectAgent(availableAgentIds[next]);
+        }
+
+        private void EnsureAgent(string agentId)
+        {
+            if (string.IsNullOrWhiteSpace(agentId))
+            {
+                return;
+            }
+
+            if (!availableAgentIds.Contains(agentId))
+            {
+                availableAgentIds.Add(agentId);
+                availableAgentIds.Sort(System.StringComparer.Ordinal);
+            }
+
+            if (!npcSurfaces.ContainsKey(agentId))
+            {
+                npcSurfaces.Add(agentId, new TownNpcDebugSurface { AgentId = agentId });
+            }
         }
 
         private void DrawTimeScaleButton(string label, float requestedScale)

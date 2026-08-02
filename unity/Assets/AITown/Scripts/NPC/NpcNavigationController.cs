@@ -19,6 +19,7 @@ namespace STWM.AITown.NPC
     {
         public string ActionId { get; set; }
         public string AgentId { get; set; }
+        public string PresentationClaimId { get; set; }
         public SemanticObject TargetObject { get; set; }
         public InteractionSlot TargetSlot { get; set; }
         public Transform DestinationAnchor { get; set; }
@@ -139,7 +140,7 @@ namespace STWM.AITown.NPC
                 return false;
             }
 
-            if (request.TargetSlot != null && !request.TargetSlot.TryClaimForPresentation(request.ActionId))
+            if (request.TargetSlot != null && !request.TargetSlot.TryClaimForPresentation(ClaimId(request)))
             {
                 Fail(MovementFailureReason.SLOT_BLOCKED);
                 return false;
@@ -185,7 +186,7 @@ namespace STWM.AITown.NPC
 
             var request = activeRequest;
             backend?.ResetPath();
-            request.TargetSlot?.ReleasePresentationClaim(request.ActionId);
+            request.TargetSlot?.ReleasePresentationClaim(ClaimId(request));
             activeRequest = null;
             State = NpcNavigationState.Cancelled;
             Cancelled?.Invoke(new NpcNavigationCancellation
@@ -201,7 +202,7 @@ namespace STWM.AITown.NPC
         {
             if (activeRequest != null && string.Equals(activeRequest.ActionId, actionId, StringComparison.Ordinal))
             {
-                activeRequest.TargetSlot?.ReleasePresentationClaim(actionId);
+                activeRequest.TargetSlot?.ReleasePresentationClaim(ClaimId(activeRequest));
                 activeRequest = null;
                 State = NpcNavigationState.Idle;
             }
@@ -256,10 +257,17 @@ namespace STWM.AITown.NPC
             }
 
             backend?.ResetPath();
-            request.TargetSlot?.ReleasePresentationClaim(request.ActionId);
+            request.TargetSlot?.ReleasePresentationClaim(ClaimId(request));
             activeRequest = null;
             State = NpcNavigationState.Failed;
             Failed?.Invoke(request, reason);
+        }
+
+        private static string ClaimId(NpcNavigationRequest request)
+        {
+            return string.IsNullOrEmpty(request?.PresentationClaimId)
+                ? request?.ActionId
+                : request.PresentationClaimId;
         }
     }
 }
