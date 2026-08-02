@@ -50,7 +50,7 @@ jobs:
       - name: QA regression tests
         run: >-
           pytest --strict-config --strict-markers
-          -m "not contract_pending and not m1 and not m2"
+          -m "not contract_pending and not m1 and not m2 and not m3"
           python/tests/qa integration_tests
 
       - name: M0 diagnostics (pending upstream inputs allowed)
@@ -90,7 +90,7 @@ jobs:
       - name: Run all Python tests
         run: >-
           pytest --strict-config --strict-markers
-          -m "not m1 and not m2"
+          -m "not m1 and not m2 and not m3"
           python/tests integration_tests
 
       - name: Upload M0 diagnostics
@@ -188,4 +188,47 @@ jobs:
         with:
           name: m2-diagnostics
           path: ${{ runner.temp }}/m2-diagnostics.json
+          if-no-files-found: warn
+
+  m3-qa-readiness:
+    name: M3 QA readiness (fast, integration-aware)
+    needs: m2-qa-readiness
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Install project and QA tools
+        run: python -m pip install -e ".[test]"
+
+      - name: Run additive M2 and M3 validator regressions
+        run: >-
+          pytest --strict-config --strict-markers
+          python/tests/qa/test_m2_diagnostics.py
+          python/tests/qa/test_m3_diagnostics.py
+
+      - name: Build integration-aware M3 readiness
+        run: >-
+          python tools/diagnostics/check_m3.py
+          --json-output "${RUNNER_TEMP}/m3-readiness.json"
+
+      - name: Run M3 fast acceptance adapter
+        run: >-
+          pytest --strict-config --strict-markers
+          -m "m3 and m3_fast" integration_tests
+
+      - name: Upload M3 readiness
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: m3-readiness
+          path: ${{ runner.temp }}/m3-readiness.json
           if-no-files-found: warn

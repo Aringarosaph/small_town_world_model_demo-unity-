@@ -3,15 +3,158 @@
 ## Responsibility and scope
 
 Long-lived QA/observability owner for **Small Town World Model（STWM）**.
-`AITOWN-QA` remains an internal compatibility name. M0 and M1 are accepted; this
-increment adds the M2 functional gray-box QA baseline only.
+`AITOWN-QA` remains an internal compatibility name. M0–M2 are accepted; the
+current increment adds the M3 complete heuristic-society QA baseline from entry
+`2a516159ab41f88c90ea2932bbc117b595c569c3`.
 
-QA did not implement WebSocket transport, Unity runtime/navigation, Python
-authority cancellation, or a second simulation ruleset. It did not modify
-frozen config, protocol/domain files, generated Schema, Unity product code, or
-`pyproject.toml`.
+QA did not implement candidates, economy/social effects, JointAction,
+checkpoint/replay producers, WebSocket transport, Unity presentation, or a
+second simulation ruleset. It did not modify frozen config, protocol/domain
+files, generated CONTRACTS Schema, Unity product code, or `pyproject.toml`.
 
-## Delivered
+## M3 QA delivery
+
+- `tools/diagnostics/check_m3.py`: pending-capable readiness CLI plus strict
+  external registry/evidence validator. `--require-m3` converts all pending to
+  failure.
+- exact JSON Schemas/templates for `stwm.qa.m3-readiness/v1` and
+  `stwm.qa.m3-acceptance-evidence/v1`.
+- executable release, targeted 22-behavior and full-registry/capacity profiles
+  under `integration_tests/fixtures/m3/`.
+- QA unit coverage for exact pending ownership, strict conversion, additive
+  M2/M3 version metadata, complete evidence, threshold boundaries, replay hash
+  mismatch and external artifact integrity.
+- integration-aware M3 adapter, additive fast/slow/society/registry/JointAction/
+  soak/performance markers, and the Python 3.12 fast readiness CI lane.
+- `docs/qa/M3_ACCEPTANCE.md`, M3 CI strategy, external runs/log policy and this
+  handoff.
+
+The QA gate contains frozen IDs, counts, thresholds and evidence equations only.
+It imports/consumes upstream facts and never executes a replacement society
+ruleset or fabricates Python/Unity PASS evidence.
+
+## M3 exact integration interfaces
+
+### CONTRACTS
+
+1. `protocol/version.json` sets repository current `protocol_version=0.3.0`,
+   exact `active_m3_acceptance_versions=["0.3.0"]`, retained
+   `active_m2_acceptance_versions=["0.2.0"]`, and bootstrap preference beginning
+   `["0.3.0", "0.2.0"]`.
+2. Retain all M2 `0.2.0` examples, schemas, direction unions and ADR-0010
+   semantics. QA's M2 gate no longer requires current=0.2, but still rejects a
+   missing M2 acceptance profile, movement cancellation artifact, direction or
+   correlation rule. M2 fixtures/evidence continue to negotiate `0.2.0`.
+3. Publish version-aware 0.3 DTOs/schemas/examples for structured
+   `action_started` participants, presentation-complete `world_snapshot`,
+   field-mask/explicit-null `agent_state_delta`, `household_state_delta`, and
+   read-only `debug_decision_trace`.
+4. Publish `config/v0/semantic_instances.yaml` with schema
+   `stwm.contracts.m3-semantic-instance-manifest/v1`, profile `M3_FULL`, catalog
+   provenance `0.1.0`, exact ordered 8 locations and 10 NPCs, every required
+   object/capability/slot, plus animation, prop and facing semantic mappings.
+   This is the sole instance manifest consumed by SIM and UNITY.
+
+### SIM
+
+Provide the SIM-owned `python/town_core/simulation/m3_qa_adapter.py` and real
+external artifacts with these schema identities:
+
+```text
+stwm.simulation.m3-authority-evidence/v1
+stwm.simulation.m3-behavior-coverage/v1
+stwm.simulation.m3-soak-report/v1
+stwm.simulation.m3-replay-report/v1
+stwm.simulation.m3-pathology-report/v1
+stwm.simulation.m3-performance-report/v1
+stwm.simulation.m3-authority-checkpoint/v1
+```
+
+The acceptance exporter maps producer facts into the exact matrices in
+`M3_ACCEPTANCE_EVIDENCE.template.json`: 22 behavior rows, 10 liveness rows, 4
+household conservation rows, directed relationship/knowledge/JointAction
+summaries, determinism/checkpoint facts, exact 5×7-day plus 3×30-day soak rows,
+pathology and reference performance. Every soak row carries final-state,
+ledger, and authority-log hashes plus equal replay hashes. Do not make QA import
+product internals to recompute a PASS.
+
+### UNITY
+
+Provide:
+
+```text
+unity/Assets/AITown/Editor/M3AcceptanceEvidenceExporter.cs
+unity/Assets/AITown/Editor/M3FullTownFixtureBuilder.cs
+```
+
+The builder consumes the shared manifest and exports the real protocol 0.3.0
+`M3_FULL` asset registry. The exporter produces these sanitized artifacts:
+
+```text
+stwm.unity.m3-registry-report/v1
+stwm.unity.m3-semantic-coverage/v1
+stwm.unity.m3-debug-trace/v1 (JSONL)
+zero-skipped EditMode XML
+zero-skipped PlayMode XML
+batchmode log
+```
+
+The Unity matrix has the exact fields in the acceptance schema: 10/8/15
+surface, all animation/prop/facing/NavMesh mappings, snapshot replacement,
+explicit-null clearing, action rebind, stale rejection, zero duplicate slot
+claims, JointAction lifecycle/reconnect, read-only complete debug trace, live
+0.3.0 smoke, and zero skipped tests. Unity must not assert Python authority
+facts.
+
+### ORCHESTRATOR/CI
+
+1. Centralize the additive marker names from both QA `conftest.py` files into
+   `pyproject.toml` once CONTRACTS is no longer modifying shared configuration.
+2. Keep the ordinary M3 lane fast. It targets 10 minutes, hard-stops at 15 and
+   requests 2 vCPU/4 GiB. Do not add the complete soak to PR CI.
+3. Order the slow release shutter after upstream integration: at most four
+   2-vCPU/4-GiB Python shards with 60-minute hard limits. On the producer
+   MacBook Air run exactly one local Python/Unity process at a time.
+4. A licensed remote macOS ARM64 Unity lane is optional. Real zero-skipped
+   artifacts remain required regardless of where batchmode runs.
+5. Store the evidence bundle outside the checkout. Upload only redacted
+   artifacts with matching relative path, SHA-256, bytes and schema. Never
+   commit `runs/`, Unity caches/results, credentials or machine-local output.
+6. Final acceptance runs M0/M1/M2 regressions, the M2 compatibility gate and
+   `check_m3.py --require-m3 --registry ... --evidence ...`; it permits no
+   pending, skip or not-run result.
+
+## M3 current integration-aware state
+
+At the frozen entry, QA-owned governance, repository guards, catalog surface,
+release profiles and exact schema/template checks pass. Seven deliberate
+pending findings remain:
+
+```text
+M3_PROTOCOL_0_3_PENDING                         CONTRACTS
+M3_SHARED_SEMANTIC_MANIFEST_PENDING            CONTRACTS
+M3_SIM_QA_ADAPTER_PENDING                      SIM
+M3_UNITY_EVIDENCE_EXPORTER_PENDING             UNITY
+M3_UNITY_FULL_TOWN_FIXTURE_PENDING             UNITY
+M3_FULL_REGISTRY_EVIDENCE_PENDING              UNITY
+M3_ACCEPTANCE_EVIDENCE_PENDING                 QA/integration
+```
+
+Their default status supports parallel implementation. Under `--require-m3`
+all seven are failures. No complete 7-day/30-day slow soak was run on this QA
+branch.
+
+Focused M3 Ruff/format and strict Mypy pass. The combined M2/M3 validator suite
+currently has 43 passes and one intentional upstream-absence skip. Default
+`check_m3` is 11 PASS/7 PENDING/0 FAIL; strict mode is 11 PASS/0 PENDING/7
+FAIL. The frozen entry's broader `mypy --strict tools/diagnostics
+python/tests/qa integration_tests` also traverses SIM-owned
+`python/town_core/simulation/engine.py` and reports two existing explicit-export
+errors for `NeedValues` and `MoodValues`; QA did not modify that product file.
+ORCH/SIM should resolve or explicitly baseline those errors before relying on
+the shared all-directory Mypy lane.
+
+## M2 historical delivery
 
 - `tools/diagnostics/check_m2.py`: integration-aware M2 diagnostic and strict
   external evidence validator.
@@ -196,7 +339,10 @@ ruff check .
 ruff format --check .
 mypy python/town_core
 mypy --strict --explicit-package-bases \
-  tools/diagnostics python/tests/qa integration_tests
+  tools/diagnostics/check_m2.py tools/diagnostics/check_m3.py \
+  python/tests/qa/test_m2_diagnostics.py python/tests/qa/test_m3_diagnostics.py \
+  python/tests/qa/conftest.py integration_tests/conftest.py \
+  integration_tests/test_m3_acceptance.py
 pytest --strict-config --strict-markers -m "not m2" \
   python/tests integration_tests
 pytest --strict-config --strict-markers \
@@ -211,4 +357,22 @@ python tools/diagnostics/check_m2.py \
   --registry /absolute/external/asset-registry.json \
   --evidence /absolute/external/m2-evidence.json \
   --json-output /absolute/external/m2-diagnostics.json
+```
+
+M3 QA focused verification and final integration commands:
+
+```bash
+ruff check tools/diagnostics python/tests/qa integration_tests
+ruff format --check tools/diagnostics python/tests/qa integration_tests
+mypy --strict --explicit-package-bases \
+  tools/diagnostics python/tests/qa integration_tests
+pytest --strict-config --strict-markers \
+  python/tests/qa/test_m2_diagnostics.py python/tests/qa/test_m3_diagnostics.py
+pytest --strict-config --strict-markers -m "m3 and m3_fast" integration_tests
+python tools/diagnostics/check_m3.py \
+  --json-output /absolute/external/m3-readiness.json
+python tools/diagnostics/check_m3.py --require-m3 \
+  --registry /absolute/external/m3/full-registry.json \
+  --evidence /absolute/external/m3/m3-acceptance-evidence.json \
+  --json-output /absolute/external/m3/m3-readiness.json
 ```

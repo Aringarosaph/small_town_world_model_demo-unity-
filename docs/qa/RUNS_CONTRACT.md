@@ -79,8 +79,9 @@ controls. QA artifacts should prefer IDs, hashes, status, latency, and bounded
 error summaries over raw payloads.
 
 M0 acceptance validates this documented contract and Git exclusion only. M1
-requires the minimum layout, Headless run, and authority replay. Golden-chain
-and soak output remain later milestone capabilities.
+requires the minimum layout, Headless run, and authority replay. M3 adds the
+fixed heuristic-society soak/checkpoint evidence below; golden-chain release
+output remains a later milestone capability.
 
 ## M2 bridge evidence
 
@@ -103,3 +104,41 @@ artifacts relative to its own directory. Unity `Library/`, `Logs/`,
 `TestResults/`, caches, license data, and machine-local settings are neither
 authority runs nor acceptable evidence artifacts. The retained XML/JSON/log
 subset must be redacted before upload.
+
+## M3 authority and release evidence
+
+M3 SIM continues to write each authority run below a repository-external
+`runs/<run_id>/` root and adds `stwm.simulation.m3-authority-checkpoint/v1` at
+least every 360 game minutes and at finalization. A checkpoint contains the
+public world state plus work settlement keys, reservations, knowledge and
+conversation ledgers, JointAction coordination/presentation bindings,
+deterministic counters, cursors and hashes. Resume/replay creates a new run and
+never rewrites its source.
+
+The release bundle is a separate external tree:
+
+```text
+<external-qa-root>/m3/<evidence-id>/
+  m3-acceptance-evidence.json
+  authority-evidence.json
+  behavior-matrix-report.json
+  full-registry.json
+  registry-report.json
+  soak-7-day-report.json
+  soak-30-day-report.json
+  replay-report.json
+  pathology-report.json
+  performance-report.json
+  unity-semantic-report.json
+  debug-trace.jsonl
+  editmode-results.xml
+  playmode-results.xml
+  batchmode.log
+  repository-report.json
+```
+
+`stwm.qa.m3-acceptance-evidence/v1` references every file relative to its own
+directory and records SHA-256, byte count, redaction and producer schema. The
+fixed five 7-day plus three 30-day entries point to their aggregate soak report
+and retain individual final-state/authority-log/replay hashes. None of this
+tree, its Unity caches, or its underlying `runs/` directories may be committed.

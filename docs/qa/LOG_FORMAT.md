@@ -70,6 +70,26 @@ also records identical-duplicate idempotency and conflicting same-ID rejection.
 Unity-originated reports always record zero *direct* authority mutation; this
 does not prohibit Python from committing the valid cancellation transaction.
 
+For M3, authority JSONL additionally preserves participant-role and binding
+IDs, household settlement keys, knowledge acquisition type/source,
+conversation and JointAction IDs, reservation-set identity, checkpoint cursor,
+and deterministic hashes. Records remain append-only and typed; threshold
+events are edge-triggered so repeated observation of one condition does not
+manufacture multiple semantic events.
+
+`debug_decision_trace` records one complete read-only decision: trigger, source
+state version, Top-K candidate rows, hard preview, heuristic prediction,
+decomposed utility terms, total score, selected candidate, proposal/Resolver
+result and conflict code. The sanitized Unity `debug-trace.jsonl` carries schema
+`stwm.unity.m3-debug-trace/v1`. It may not become a Unity-to-Python authority
+input and must not include unrestricted state, secrets or machine-local paths.
+
+M3 soak/performance summaries record the producer commit, fixed seed, game-day
+count, driver chunk, checkpoint interval, source/replay run IDs, canonical
+state and authority-log hashes, OS, exact Python 3.12 patch, RSS collection
+method and measured latency/RSS/wall-time values. QA accepts these producer
+facts only through hashed external artifacts.
+
 ## Safety and quality rules
 
 - Never log API keys, authorization headers, complete environment dumps, or

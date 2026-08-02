@@ -1,4 +1,24 @@
-# M0, M1 and M2 diagnostics
+# M0, M1, M2 and M3 diagnostics
+
+`check_m3.py` is the M3 complete heuristic-society readiness and release gate.
+It validates the exact 10/4/8/22/15/90 surface, QA profiles, additive 0.3/0.2
+protocol metadata, shared full-town manifest, external `M3_FULL` registry and
+`stwm.qa.m3-acceptance-evidence/v1`. Missing CONTRACTS/SIM/UNITY surfaces are
+owner-attributed `PENDING` in the default fast mode; partial integration is a
+failure and `--require-m3` makes all pending fatal.
+
+```bash
+python tools/diagnostics/check_m3.py \
+  --json-output /absolute/external/m3-readiness.json
+python tools/diagnostics/check_m3.py --require-m3 \
+  --registry /absolute/external/full-registry.json \
+  --evidence /absolute/external/m3-acceptance-evidence.json
+```
+
+The validator consumes producer facts and contains no candidates, economy,
+social, JointAction, replay or Unity product implementation. Ordinary CI runs
+only its fast readiness surface; fixed 7/30-day soaks remain an
+Orchestrator-ordered release action.
 
 `check_m2.py` is the M2 functional gray-box gate. It checks the accepted M1
 ancestor, protocol `0.2.0` target fixtures, direction/cancellation/reconnect
@@ -20,7 +40,9 @@ python tools/diagnostics/check_m2.py \
 ```
 
 With CONTRACTS 0.2.0 integrated, protocol, direction Schema and cancellation
-checks are strict and have no pending state. Before UNITY integration the
+checks are strict and have no pending state. ADR-0011 permits repository current
+to become 0.3.0 only while `active_m2_acceptance_versions=["0.2.0"]` and every
+0.2 artifact/direction check remains intact. Before UNITY integration the
 default command reports its named pending owners. The final gate adds
 `--require-m2 --evidence <external-json>`; pending is then fatal. Complete-V0
 content absent from the scoped M2 registry is emitted as `WARNING`, while

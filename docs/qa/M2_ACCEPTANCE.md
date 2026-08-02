@@ -13,7 +13,13 @@ business state.
   decided for ADR-0010;
 - Unity Editor `6000.4.2f1` on macOS ARM64;
 - active slice: `npc_01`, `home_a`, `cafe_bar`, and only the accepted M1
-  behavior allowlist.
+behavior allowlist.
+
+After the additive ADR-0011 re-freeze, repository current protocol may be
+`0.3.0`. M2 acceptance still negotiates `0.2.0` and requires
+`active_m2_acceptance_versions=["0.2.0"]` plus the unchanged 0.2 schemas,
+examples, directions and cancellation semantics. The M2 gate therefore does
+not equate repository current with its retained acceptance profile.
 
 The final gate must run after the CONTRACTS 0.2.0 artifacts, Python bridge,
 Unity bridge, and Unity evidence exporter are integrated. It may contain no
