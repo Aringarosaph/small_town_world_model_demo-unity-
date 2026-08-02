@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import ctypes
+import hashlib
 import json
 import os
 import platform
@@ -20,12 +21,12 @@ from town_core.domain.config_models import CatalogBundle
 from town_core.domain.m3_catalog_models import M3Catalogs
 from town_core.simulation.initialization import state_hash
 from town_core.society.checkpoint import (
+    IsolatedCheckpointWriteResult,
     advance_authority_log_hash_from_canonical_bytes,
-    canonical_json,
-    checkpoint_hash,
+    canonical_json_utf8_chunks,
     initial_authority_log_hash,
     ledger_hash,
-    write_checkpoint,
+    write_checkpoint_isolated,
 )
 from town_core.society.engine import SocietyEngine
 from town_core.society.initialization import SocietyObjectFixture, build_initial_society_checkpoint
@@ -35,7 +36,9 @@ from town_core.society.models import M3_RUN_SCHEMA, AuthorityCheckpoint, Society
 CHECKPOINT_INTERVAL_MINUTES = 360
 DARWIN_CURRENT_RSS_METHOD = "libproc.proc_pidinfo(PROC_PIDTASKINFO).pti_resident_size"
 LINUX_CURRENT_RSS_METHOD = "/proc/self/statm resident pages * SC_PAGE_SIZE"
-PEAK_RSS_METHOD = "resource.getrusage(RUSAGE_SELF).ru_maxrss"
+PARENT_PEAK_RSS_METHOD = "resource.getrusage(RUSAGE_SELF).ru_maxrss"
+CHECKPOINT_WRITER_PEAK_RSS_METHOD = "synchronous checkpoint-writer child resource.getrusage(RUSAGE_SELF).ru_maxrss"
+PEAK_RSS_METHOD = f"max(parent {PARENT_PEAK_RSS_METHOD}, {CHECKPOINT_WRITER_PEAK_RSS_METHOD})"
 RSS_SAMPLE_POINT = "after_authority_commit_before_checkpoint_persistence"
 AUTHORITY_KIND_FILENAMES = {
     "decision": "decisions.jsonl",
@@ -57,21 +60,24 @@ def _write_json(path: Path, value: object) -> None:
     )
 
 
-def _append_serialized_authority_records(run_path: Path, records: list[tuple[str, bytes]]) -> None:
-    """Append the exact same canonical line bytes to authority and kind logs."""
+def _append_streamed_authority_records(
+    run_path: Path,
+    records: list[tuple[str, dict[str, object]]],
+    hasher: StreamingAuthorityHasher,
+) -> None:
+    """Stream the same canonical chunks to authority and kind logs."""
 
     if not records:
         return
     with ExitStack() as stack:
         authority_stream = stack.enter_context((run_path / "authority.jsonl").open("ab"))
         kind_streams: dict[str, BinaryIO] = {}
-        for kind, line in records:
+        for kind, record in records:
             stream = kind_streams.get(kind)
             if stream is None:
                 stream = stack.enter_context((run_path / AUTHORITY_KIND_FILENAMES[kind]).open("ab"))
                 kind_streams[kind] = stream
-            authority_stream.write(line)
-            stream.write(line)
+            hasher.append_streamed(record, (authority_stream, stream))
 
 
 class StreamingAuthorityHasher:
@@ -84,8 +90,29 @@ class StreamingAuthorityHasher:
         self.count = initial_count
 
     def append(self, record: dict[str, object]) -> None:
-        canonical = canonical_json(record).encode("utf-8")
-        self.append_canonical(record, canonical)
+        self.append_streamed(record, ())
+
+    def append_streamed(
+        self,
+        record: dict[str, object],
+        streams: tuple[BinaryIO, ...],
+    ) -> None:
+        """Advance and optionally persist one record without a whole JSON buffer."""
+
+        if record.get("sequence") != self.count + 1:
+            raise ValueError("M3 authority record sequence does not follow the checkpoint cursor")
+        canonical_length = sum(len(chunk) for chunk in canonical_json_utf8_chunks(record))
+        digest = hashlib.sha256()
+        digest.update(bytes.fromhex(self._digest))
+        digest.update(canonical_length.to_bytes(8, "big"))
+        for chunk in canonical_json_utf8_chunks(record):
+            digest.update(chunk)
+            for stream in streams:
+                stream.write(chunk)
+        for stream in streams:
+            stream.write(b"\n")
+        self._digest = digest.hexdigest()
+        self.count += 1
 
     def append_canonical(self, record: dict[str, object], canonical: bytes) -> None:
         """Advance from canonical bytes already produced for persistent output."""
@@ -138,6 +165,7 @@ class SocietyRunWriter:
         self.event_counts: Counter[str] = Counter()
         self.action_ids: set[str] = set()
         self.decision_count = 0
+        self.checkpoint_writer_peak_rss_bytes = 0
         self._metadata = {
             "schema": M3_RUN_SCHEMA,
             "project_name": "Small Town World Model（STWM）",
@@ -166,13 +194,38 @@ class SocietyRunWriter:
         )
         checkpoints = run_path / "checkpoints"
         checkpoints.mkdir()
-        write_checkpoint(run_path / "initial_checkpoint.json", initial)
-        write_checkpoint(checkpoints / "checkpoint_00000000.json", initial)
+        initial_result = self._write_checkpoint(
+            run_path / "initial_checkpoint.json",
+            initial,
+            include_checkpoint_hash=True,
+        )
+        if initial_result.checkpoint_hash is None:
+            raise RuntimeError("initial M3 checkpoint writer omitted its requested hash")
+        self.initial_checkpoint_hash = initial_result.checkpoint_hash
+        self._write_checkpoint(checkpoints / "checkpoint_00000000.json", initial)
         for filename in ("authority.jsonl", *AUTHORITY_KIND_FILENAMES.values()):
             (run_path / filename).touch()
 
+    def _write_checkpoint(
+        self,
+        path: Path,
+        checkpoint: AuthorityCheckpoint,
+        *,
+        include_checkpoint_hash: bool = False,
+    ) -> IsolatedCheckpointWriteResult:
+        result = write_checkpoint_isolated(
+            path,
+            checkpoint,
+            include_checkpoint_hash=include_checkpoint_hash,
+        )
+        self.checkpoint_writer_peak_rss_bytes = max(
+            self.checkpoint_writer_peak_rss_bytes,
+            result.peak_rss_bytes,
+        )
+        return result
+
     def append(self, result: SocietyAdvanceResult) -> None:
-        serialized_records: list[tuple[str, bytes]] = []
+        streamed_records: list[tuple[str, dict[str, object]]] = []
         for record in result.authority_records:
             kind = str(record["kind"])
             if kind not in AUTHORITY_KIND_FILENAMES:
@@ -180,16 +233,21 @@ class SocietyRunWriter:
             payload = record["payload"]
             if not isinstance(payload, dict):
                 raise TypeError("M3 authority record payload must be an object")
-            self.sequence += 1
+            sequence = self.sequence + len(streamed_records) + 1
             envelope: dict[str, object] = {
                 "schema": "stwm.simulation.m3-authority-record/v1",
-                "sequence": self.sequence,
+                "sequence": sequence,
                 "kind": kind,
                 "payload": payload,
             }
-            canonical = canonical_json(envelope).encode("utf-8")
-            self.hasher.append_canonical(envelope, canonical)
-            serialized_records.append((kind, canonical + b"\n"))
+            streamed_records.append((kind, envelope))
+        _append_streamed_authority_records(self.run_path, streamed_records, self.hasher)
+        self.sequence += len(streamed_records)
+        for record in result.authority_records:
+            kind = str(record["kind"])
+            payload = record["payload"]
+            if not isinstance(payload, dict):
+                raise TypeError("M3 authority record payload must be an object")
             if kind == "decision":
                 self.decision_count += 1
                 self.behavior_counts[str(payload["selected_behavior_id"])] += 1
@@ -197,19 +255,27 @@ class SocietyRunWriter:
                 self.action_ids.add(str(payload["action_id"]))
             elif kind == "event":
                 self.event_counts[str(payload["event_type"])] += 1
-        _append_serialized_authority_records(self.run_path, serialized_records)
         if self.hasher.count != result.authority_record_count or self.hasher.hexdigest != result.authority_log_hash:
             raise RuntimeError("M3 writer authority cursor diverged from the production engine")
 
     def write_periodic_checkpoint(self, checkpoint: AuthorityCheckpoint) -> None:
-        write_checkpoint(
+        self._write_checkpoint(
             self.run_path / "checkpoints" / f"checkpoint_{checkpoint.world.game_minute:08d}.json",
             checkpoint,
         )
 
-    def finish(self, summary: dict[str, object], checkpoint: AuthorityCheckpoint) -> None:
-        write_checkpoint(self.run_path / "final_checkpoint.json", checkpoint)
+    def write_final_checkpoints(self, checkpoint: AuthorityCheckpoint) -> str:
+        result = self._write_checkpoint(
+            self.run_path / "final_checkpoint.json",
+            checkpoint,
+            include_checkpoint_hash=True,
+        )
         self.write_periodic_checkpoint(checkpoint)
+        if result.checkpoint_hash is None:
+            raise RuntimeError("final M3 checkpoint writer omitted its requested hash")
+        return result.checkpoint_hash
+
+    def finish(self, summary: dict[str, object]) -> None:
         _write_json(self.run_path / "summary.json", summary)
         self._metadata.update(
             {
@@ -301,6 +367,7 @@ def run_society(
         final = engine._checkpoint_for_persistence()
         assert_society_invariants(final, catalog, m3_catalogs)
         wall_seconds = time.perf_counter() - started
+        final_checkpoint_hash = writer.write_final_checkpoints(final)
         behavior_counts = dict(sorted(writer.behavior_counts.items()))
         event_counts = dict(sorted(writer.event_counts.items()))
         daily_events: Counter[int] = Counter(event.game_minute // 1440 for event in final.events)
@@ -317,8 +384,8 @@ def run_society(
             "enabled_agent_ids": sorted(agent.agent_id for agent in final.world.agents.values() if agent.enabled),
             "initial_state_hash": state_hash(initial.world),
             "final_state_hash": state_hash(final.world),
-            "initial_checkpoint_hash": checkpoint_hash(initial),
-            "final_checkpoint_hash": checkpoint_hash(final),
+            "initial_checkpoint_hash": writer.initial_checkpoint_hash,
+            "final_checkpoint_hash": final_checkpoint_hash,
             "ledger_hash": ledger_hash(final),
             "transaction_chain_hash": final.transaction_chain_hash,
             "m3_catalog_hash": final.m3_catalog_hash,
@@ -347,10 +414,15 @@ def run_society(
                 "terminal_reservation_leaks": 0,
                 "relationship_boundary_fraction": _relationship_boundary_fraction(final),
             },
-            "performance": _performance_document(engine, wall_seconds, rss_daily_samples),
+            "performance": _performance_document(
+                engine,
+                wall_seconds,
+                rss_daily_samples,
+                writer.checkpoint_writer_peak_rss_bytes,
+            ),
             "invariants": {"passed": True, "violations": []},
         }
-        writer.finish(summary, final)
+        writer.finish(summary)
         return summary
     except Exception as exc:
         writer.fail(exc)
@@ -386,6 +458,10 @@ def _peak_rss_bytes() -> int:
     raw_rss = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
     system = platform.system()
     return int(raw_rss if system == "Darwin" else raw_rss * 1024)
+
+
+def _combined_peak_rss_bytes(checkpoint_writer_peak_rss_bytes: int) -> int:
+    return max(_peak_rss_bytes(), checkpoint_writer_peak_rss_bytes)
 
 
 class _DarwinProcTaskInfo(ctypes.Structure):
@@ -460,7 +536,11 @@ def _rss_collection_method() -> str:
         current = LINUX_CURRENT_RSS_METHOD
     else:
         raise RuntimeError(f"current process RSS sampling is unsupported on {system}")
-    return f"peak={PEAK_RSS_METHOD}; daily_current={current}; daily_sample_point={RSS_SAMPLE_POINT}"
+    return (
+        f"peak={PEAK_RSS_METHOD}; daily_current={current}; "
+        f"daily_sample_point={RSS_SAMPLE_POINT}; checkpoint_persistence=synchronous os.fork, "
+        "atomic sibling replace, parent waitpid before authority resumes"
+    )
 
 
 def _rss_sample(game_minute: int) -> dict[str, int]:
@@ -490,12 +570,13 @@ def _performance_document(
     engine: SocietyEngine,
     wall_seconds: float,
     rss_daily_samples: list[dict[str, int]],
+    checkpoint_writer_peak_rss_bytes: int,
 ) -> dict[str, object]:
     return {
         "wall_seconds": round(wall_seconds, 6),
         "tick_p99_ms": _percentile(engine.tick_durations_ms, 0.99),
         "decision_batch_p95_ms": _percentile(engine.decision_batch_durations_ms, 0.95),
-        "peak_rss_bytes": _peak_rss_bytes(),
+        "peak_rss_bytes": _combined_peak_rss_bytes(checkpoint_writer_peak_rss_bytes),
         "rss_collection_method": _rss_collection_method(),
         "rss_daily_samples": rss_daily_samples,
         "post_warmup_rss_slope_bytes_per_game_day": _linear_slope(rss_daily_samples),

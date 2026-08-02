@@ -150,13 +150,17 @@ def assert_society_invariants(
         if index > 1 and event.game_minute < checkpoint.events[index - 2].game_minute:
             raise SocietyInvariantViolation("event game-minute order is not monotonic")
 
-    expected_known: dict[str, list[str]] = {agent_id: [] for agent_id in state.agents}
+    known_cursors = dict.fromkeys(state.agents, 0)
     for ledger_key, knowledge_record in checkpoint.knowledge_records.items():
         if ledger_key != f"{knowledge_record.agent_id}|{knowledge_record.event_id}":
             raise SocietyInvariantViolation("knowledge record key mismatch")
-        expected_known[knowledge_record.agent_id].append(knowledge_record.event_id)
+        known_event_ids = state.agents[knowledge_record.agent_id].known_event_ids
+        cursor = known_cursors[knowledge_record.agent_id]
+        if cursor >= len(known_event_ids) or known_event_ids[cursor] != knowledge_record.event_id:
+            raise SocietyInvariantViolation(f"public knowledge permission mismatch: {knowledge_record.agent_id}")
+        known_cursors[knowledge_record.agent_id] = cursor + 1
     for agent_id, agent in state.agents.items():
-        if sorted(agent.known_event_ids) != sorted(expected_known[agent_id]):
+        if known_cursors[agent_id] != len(agent.known_event_ids):
             raise SocietyInvariantViolation(f"public knowledge permission mismatch: {agent_id}")
 
     active_conversations = sorted(
@@ -188,5 +192,8 @@ def assert_society_transition(previous: AuthorityCheckpoint, committed: Authorit
         raise SocietyInvariantViolation("catalog identity changed during society transaction")
     if committed.m3_catalog_hash != previous.m3_catalog_hash:
         raise SocietyInvariantViolation("additive M3 catalog identity changed during society transaction")
-    if committed.events[: len(previous.events)] != previous.events:
-        raise SocietyInvariantViolation("event ledger history was mutated")
+    if len(committed.events) < len(previous.events):
+        raise SocietyInvariantViolation("event ledger history was truncated")
+    for index, previous_event in enumerate(previous.events):
+        if committed.events[index] != previous_event:
+            raise SocietyInvariantViolation("event ledger history was mutated")

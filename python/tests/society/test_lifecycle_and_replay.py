@@ -10,7 +10,11 @@ from town_core.domain.m3_catalog_models import M3Catalogs
 from town_core.society.checkpoint import advance_authority_log_hash, checkpoint_hash, knowledge_key
 from town_core.society.engine import SocietyEngine, _TickContext
 from town_core.society.initialization import build_initial_society_checkpoint
-from town_core.society.invariants import assert_society_invariants
+from town_core.society.invariants import (
+    SocietyInvariantViolation,
+    assert_society_invariants,
+    assert_society_transition,
+)
 from town_core.society.models import AuthorityCheckpoint
 from town_core.society.transactions import apply_transaction_record
 
@@ -306,6 +310,57 @@ def test_driver_chunk_size_does_not_change_short_society_authority(
         hashes.append(checkpoint_hash(engine.export_checkpoint()))
 
     assert hashes[0] == hashes[1] == hashes[2]
+
+
+def test_transition_invariant_checks_event_prefix_without_materializing_a_slice(
+    catalog: CatalogBundle,
+    m3_catalogs: M3Catalogs,
+) -> None:
+    initial = build_initial_society_checkpoint(catalog, m3_catalogs, seed=97531)
+    engine = SocietyEngine(catalog, m3_catalogs, initial)
+    for minute in range(1, 121):
+        engine.advance_to(minute)
+        if engine.checkpoint.events:
+            break
+    assert engine.checkpoint.events
+    previous = engine.checkpoint
+    engine.advance_to(engine.state.game_minute + 1)
+    committed = engine.checkpoint
+
+    assert_society_transition(previous, committed)
+    events = list(committed.events)
+    first = events[0]
+    events[0] = first.model_copy(update={"payload": {**first.payload, "tampered": True}})
+    tampered = committed.model_copy(update={"events": events})
+
+    with pytest.raises(SocietyInvariantViolation, match="event ledger history was mutated"):
+        assert_society_transition(previous, tampered)
+
+
+def test_knowledge_invariant_checks_canonical_append_order_without_sort_copies(
+    catalog: CatalogBundle,
+    m3_catalogs: M3Catalogs,
+) -> None:
+    initial = build_initial_society_checkpoint(catalog, m3_catalogs, seed=97531)
+    engine = SocietyEngine(catalog, m3_catalogs, initial)
+    agent_id: str | None = None
+    for target in range(120, 1441, 120):
+        engine.advance_to(target)
+        agent_id = next(
+            (candidate_id for candidate_id, agent in engine.state.agents.items() if len(agent.known_event_ids) >= 2),
+            None,
+        )
+        if agent_id is not None:
+            break
+    assert agent_id is not None
+    checkpoint = engine.checkpoint
+    agents = dict(checkpoint.world.agents)
+    agent = agents[agent_id]
+    agents[agent_id] = agent.model_copy(update={"known_event_ids": list(reversed(agent.known_event_ids))})
+    tampered = checkpoint.model_copy(update={"world": checkpoint.world.model_copy(update={"agents": agents})})
+
+    with pytest.raises(SocietyInvariantViolation, match=f"public knowledge permission mismatch: {agent_id}"):
+        assert_society_invariants(tampered, catalog, m3_catalogs)
 
 
 def test_joint_action_cancel_releases_every_participant_and_reservation(

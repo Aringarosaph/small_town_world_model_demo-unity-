@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import hashlib
 from collections.abc import Mapping, Sequence
 from typing import Any
 
@@ -17,7 +16,7 @@ from town_core.domain.state_models import (
     WorldEvent,
     WorldState,
 )
-from town_core.society.checkpoint import canonical_json
+from town_core.society.checkpoint import canonical_json_sha256
 from town_core.society.models import (
     M3_TRANSACTION_SCHEMA,
     ActionRuntimeRecord,
@@ -114,16 +113,17 @@ def build_transaction_record(
         "patch": patch,
         "changes": list(changes),
     }
-    next_chain = hashlib.sha256(
-        (previous.transaction_chain_hash + canonical_json(authority_body)).encode("utf-8")
-    ).hexdigest()
+    next_chain = canonical_json_sha256(
+        authority_body,
+        prefix=previous.transaction_chain_hash.encode("utf-8"),
+    )
     committed = committed_without_chain.model_copy(update={"transaction_chain_hash": next_chain})
     record = {
         **authority_body,
         "previous_transaction_chain_hash": previous.transaction_chain_hash,
         "committed_transaction_chain_hash": next_chain,
     }
-    record["record_hash"] = hashlib.sha256(canonical_json(record).encode("utf-8")).hexdigest()
+    record["record_hash"] = canonical_json_sha256(record)
     return record, committed
 
 
@@ -135,7 +135,7 @@ def apply_transaction_record(checkpoint: AuthorityCheckpoint, record: Mapping[st
     if record["previous_transaction_chain_hash"] != checkpoint.transaction_chain_hash:
         raise ValueError("M3 replay transaction-chain predecessor mismatch")
     unhashed = {key: value for key, value in record.items() if key != "record_hash"}
-    digest = hashlib.sha256(canonical_json(unhashed).encode("utf-8")).hexdigest()
+    digest = canonical_json_sha256(unhashed)
     if digest != record["record_hash"]:
         raise ValueError("M3 replay transaction record hash mismatch")
     authority_body = {
@@ -150,9 +150,10 @@ def apply_transaction_record(checkpoint: AuthorityCheckpoint, record: Mapping[st
             "changes",
         )
     }
-    chain = hashlib.sha256(
-        (checkpoint.transaction_chain_hash + canonical_json(authority_body)).encode("utf-8")
-    ).hexdigest()
+    chain = canonical_json_sha256(
+        authority_body,
+        prefix=checkpoint.transaction_chain_hash.encode("utf-8"),
+    )
     if chain != record["committed_transaction_chain_hash"]:
         raise ValueError("M3 replay committed transaction-chain hash mismatch")
 

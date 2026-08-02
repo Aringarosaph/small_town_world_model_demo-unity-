@@ -392,6 +392,71 @@ Air estimate of `25-30 minutes`. The same disk sample projects roughly
 `5.5 GiB`; reserve `7 GiB` externally. These are scheduling estimates, not a
 claim that the unrun full matrix passed.
 
+### M3 seed-specific allocator isolation and canonical streaming
+
+The ORCH three-seed run established that truthful current RSS still failed for
+seed `97531`: `1,550,684.547275 B/day` with wall `178.252942s`, peak RSS
+`110,379,008` bytes, and a 3,141,106-byte final checkpoint. Its authority was
+smaller than the passing seeds, so this was allocator retention rather than
+authority-size growth. Isolating only the full periodic checkpoint
+`model_dump(mode="json")` reduced the exact uninterrupted run to
+`1,224,819.726808 B/day`; that partial result was retained as a diagnostic and
+was not represented as a pass.
+
+Production checkpoint persistence now forks only from a single-threaded
+authority process at the existing six-hour boundary. The child performs the
+unchanged complete Pydantic dump, indented/sorted UTF-8 JSON write, and atomic
+sibling replace. The parent synchronously reads a bounded result and waits for
+that exact PID before authority can resume. A Python exception, `BaseException`,
+signal termination, malformed child result, missing target, or non-zero exit is
+propagated; the sibling temporary is removed while an already committed target
+is preserved. Tests cover ordinary failure, `KeyboardInterrupt`, `SIGKILL`,
+the single-thread precondition, byte identity, hash identity, and temporary
+cleanup. `peak_rss_bytes` is honestly the maximum of parent
+`ru_maxrss` and every writer-child `ru_maxrss`; daily slope remains current RSS
+of the authority parent at the frozen pre-checkpoint sample point.
+
+The remaining allocation profile was dominated by complete canonical strings
+and UTF-8 byte buffers for growing transaction envelopes. Agent patches contain
+the complete append-only `known_event_ids`, and each large transaction was
+canonicalized independently for the transaction chain, record hash, engine
+authority hash, and writer output. The canonical path now uses
+`json.JSONEncoder(ensure_ascii=False, separators=(",", ":"), sort_keys=True)`
+`iterencode`: a first pass counts the exact UTF-8 length required by the
+authority hash domain, and a second pass updates SHA-256 while streaming the
+same chunks to both authority and kind logs. Transaction-chain and record hashes
+use the same chunk iterator. A 5,000-event Unicode transaction fixture proves
+that joined chunks, both JSONL destinations, lengths, and hashes equal the
+previous canonical bytes exactly. The two per-tick society invariant passes
+remain; event-prefix and knowledge-permission checks now walk the same complete
+ledgers without allocating growing slices or sorted copies.
+
+The final fresh seed-`97531`, chunk-`60`, uninterrupted 30-day production run
+completed all 43,200 ticks in `511.985338s`, below the frozen 900-second gate.
+Peak RSS was `72,728,576` bytes and post-warmup current-RSS slope was
+`502,644.353281 B/day`, leaving 52.1% below the 1 MiB/day limit. Tick p99 was
+`19.496042ms` and decision-batch p95 was `1.183834ms`. The final state,
+checkpoint, ledger, transaction-chain, and authority hashes are respectively:
+
+- `4f4092ca6472821481322a0db60db45a0fb57bce6654878110aa22ad83f2143a`;
+- `a66bf60eb970f21dfe6c32e41c389e914bf5187c858dd709aefeea3b98ae21c4`;
+- `8da14f5337de1d48b9476eccb697c96977dd2b97bec5080f85b7d9d5d65214c2`;
+- `06fa8b43e578e3c53420f957d3b5704d7cbcfd80414e414a4660b98406480914`;
+- `7a88184ca5d6ded2dac38cd7105cf2dd6f870aac0bfebc7ff73402661985eab9`.
+
+All 121 periodic checkpoint files, initial/final checkpoint files, and all six
+JSONL files are byte-identical to the preserved pre-change seed-`97531` run.
+The 2,231,540,821-byte authority JSONL SHA-256 is
+`d52f1c885f5b0d07abd91bbcade6ab5f8795326b0646e04b1648336e9909b51c`;
+the 2,042,060,710-byte transaction JSONL SHA-256 is
+`6490cd017b77739fd9ce2066c5d29feb87f339e754ccedaa1e5f5ec4a276d129`.
+Production replay applied 43,200 transactions, checked all 121 checkpoints with
+zero mismatch, matched final state/checkpoint/ledger/authority hashes, passed
+invariants, and reported zero source mutation. The external run and replay are
+under `/tmp/stwm-m3-stream-canonical-seed97531-30d-20260803` and
+`/tmp/stwm-m3-stream-canonical-seed97531-30d-replay-20260803`; neither is a
+repository artifact.
+
 ## Current responsibility
 
 AITOWN-SIM owns the Python authority and local runtime-adapter side of the M2
