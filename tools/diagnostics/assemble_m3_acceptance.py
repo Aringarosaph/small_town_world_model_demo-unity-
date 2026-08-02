@@ -6,11 +6,17 @@ import argparse
 import hashlib
 import json
 import shutil
+import sys
 import tempfile
 from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import cast
+
+REPOSITORY_IMPORT_ROOT = Path(__file__).resolve().parents[2]
+for import_root in (REPOSITORY_IMPORT_ROOT, REPOSITORY_IMPORT_ROOT / "python"):
+    if str(import_root) not in sys.path:
+        sys.path.insert(0, str(import_root))
 
 from tools.diagnostics import check_m3 as m3
 from tools.diagnostics.run_m3_regressions import (

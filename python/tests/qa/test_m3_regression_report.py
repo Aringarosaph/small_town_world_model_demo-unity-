@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import json
+import os
 import subprocess
+import sys
 from pathlib import Path
 from typing import cast
 
@@ -196,3 +198,21 @@ def test_tampered_manifest_invalidates_pass_finding(tmp_path: Path) -> None:
 
     with pytest.raises(regressions.RegressionError, match="digest/bytes"):
         regressions.validate_regression_finding_artifact(report, finding, _root())
+
+
+@pytest.mark.parametrize(
+    "script",
+    ("tools/diagnostics/run_m3_regressions.py", "tools/diagnostics/assemble_m3_acceptance.py"),
+)
+def test_direct_cli_entrypoint_resolves_repository_imports(script: str) -> None:
+    completed = subprocess.run(
+        (sys.executable, script, "--help"),
+        cwd=_root(),
+        check=False,
+        capture_output=True,
+        text=True,
+        env={"PATH": os.environ["PATH"], "PYTHONPATH": "python"},
+    )
+
+    assert completed.returncode == 0, completed.stderr
+    assert "usage:" in completed.stdout

@@ -18,6 +18,11 @@ from dataclasses import dataclass
 from pathlib import Path, PurePosixPath
 from typing import cast
 
+REPOSITORY_IMPORT_ROOT = Path(__file__).resolve().parents[2]
+for import_root in (REPOSITORY_IMPORT_ROOT, REPOSITORY_IMPORT_ROOT / "python"):
+    if str(import_root) not in sys.path:
+        sys.path.insert(0, str(import_root))
+
 from tools.diagnostics import check_m1, check_m2, check_m3
 
 SCHEMA = "stwm.qa.m3-regression-run/v1"
