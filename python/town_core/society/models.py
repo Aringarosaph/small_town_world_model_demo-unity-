@@ -90,9 +90,11 @@ class ReservationRecord(ContractModel):
     @model_validator(mode="after")
     def validate_kind_fields(self) -> ReservationRecord:
         populated = {
-            "OBJECT_SLOT": self.object_id is not None and self.slot_index is not None,
+            "OBJECT_SLOT": (
+                self.object_id is not None and self.slot_index is not None and self.participant_agent_id is not None
+            ),
             "HOUSEHOLD_RESOURCE": self.household_id is not None and (self.money_units > 0 or self.food_units > 0),
-            "LOCATION": self.location_id is not None,
+            "LOCATION": self.location_id is not None and self.participant_agent_id is not None,
             "PARTICIPANT": self.participant_agent_id is not None,
         }
         if not populated[self.kind]:
@@ -143,6 +145,7 @@ class ActionRuntimeRecord(ContractModel):
     reservation_ids: list[str]
     origin_location_ids: dict[AgentId, LocationId]
     travel_arrival_minutes: dict[AgentId, NonNegativeInt]
+    arrived_agent_ids: list[AgentId] = Field(default_factory=list)
     perform_start_minute: NonNegativeInt
     work_session_id: str | None = None
     joint: bool = False

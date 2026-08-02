@@ -64,6 +64,10 @@ def assert_society_invariants(
             raise SocietyInvariantViolation(f"action owns missing reservation: {action_id}")
         if sorted(runtime.participant_ids) != sorted(state.active_actions[action_id].agent_ids):
             raise SocietyInvariantViolation(f"runtime participant mismatch: {action_id}")
+        if len(runtime.arrived_agent_ids) != len(set(runtime.arrived_agent_ids)) or not set(
+            runtime.arrived_agent_ids
+        ).issubset(runtime.participant_ids):
+            raise SocietyInvariantViolation(f"runtime arrival barrier is invalid: {action_id}")
 
     participant_owner: dict[str, str] = {}
     location_reservations: dict[str, int] = {}
@@ -82,6 +86,11 @@ def assert_society_invariants(
         elif reservation.kind == "LOCATION":
             location_id = str(reservation.location_id)
             location_reservations[location_id] = location_reservations.get(location_id, 0) + 1
+        if (
+            reservation.participant_agent_id is not None
+            and reservation.participant_agent_id not in state.active_actions[reservation.owner_action_id].agent_ids
+        ):
+            raise SocietyInvariantViolation(f"reservation participant is outside its action: {reservation_id}")
 
     if participant_owner != action_owner:
         raise SocietyInvariantViolation("participant reservations do not match primary action ownership")

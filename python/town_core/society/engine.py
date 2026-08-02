@@ -18,6 +18,8 @@ from town_core.domain.enums import (
     KnowledgeAcquisitionType,
     LocationType,
     MoodAxis,
+    MovementCancellationReason,
+    MovementFailureReason,
     NeedName,
     ObjectType,
     ProposalResult,
@@ -34,7 +36,7 @@ from town_core.domain.state_models import (
     WorldEvent,
     WorldState,
 )
-from town_core.simulation.clock import accept_advanced_game_minute
+from town_core.simulation.clock import RuntimeMode, accept_advanced_game_minute
 from town_core.society.checkpoint import advance_authority_log_hash, knowledge_key
 from town_core.society.invariants import assert_society_invariants, assert_society_transition
 from town_core.society.models import (
@@ -142,6 +144,8 @@ class SocietyEngine:
         checkpoint: AuthorityCheckpoint,
         *,
         behavior_allowlist: frozenset[BehaviorId] | None = None,
+        runtime_mode: RuntimeMode = RuntimeMode.HEADLESS_FAST,
+        movement_timeout_minutes: int = 15,
     ) -> None:
         if behavior_allowlist is not None and BehaviorId.IDLE not in behavior_allowlist:
             raise ValueError("a scoped society behavior profile must retain idle fallback")
@@ -150,6 +154,10 @@ class SocietyEngine:
         self.checkpoint = checkpoint
         self.rulebook = SocietyRulebook(catalog)
         self.behavior_allowlist = behavior_allowlist
+        self.runtime_mode = runtime_mode
+        if movement_timeout_minutes <= 0:
+            raise ValueError("M3 movement timeout must be positive")
+        self.movement_timeout_minutes = movement_timeout_minutes
         self.templates = BackgroundTemplateProvider(m3_catalogs.background_dialogue)
         self._event_config = {item.event_type: item for item in catalog.events.event_types}
         self._npc_config = {item.agent_id: item for item in catalog.population.npcs}
@@ -212,6 +220,96 @@ class SocietyEngine:
         context = _TickContext(self.checkpoint, self.state.game_minute)
         self._terminate_action(context, action_id, ActionPhase.FAILED, reason)
         return self._commit(context, advances_time=False)
+
+    def report_movement_arrived(
+        self,
+        *,
+        action_id: str,
+        agent_id: str,
+        expected_state_version: int,
+        object_id: str | None,
+        slot_index: int | None,
+    ) -> SocietyAdvanceResult:
+        """Commit one Unity arrival; a shared action advances after every traveler arrives."""
+
+        self._validate_live_movement(action_id, agent_id, expected_state_version, allow_stale=False)
+        context = _TickContext(self.checkpoint, self.state.game_minute)
+        runtime = context.action_runtimes[action_id]
+        if agent_id in runtime.arrived_agent_ids:
+            raise ValueError("M3 movement arrival was already committed for this participant")
+        bindings = [
+            item
+            for item in context.reservations.values()
+            if item.owner_action_id == action_id
+            and item.kind == "OBJECT_SLOT"
+            and item.participant_agent_id == agent_id
+        ]
+        supplied = (object_id, slot_index)
+        valid_bindings = {
+            (str(item.object_id), item.slot_index)
+            for item in bindings
+            if item.object_id is not None and item.slot_index is not None
+        }
+        if valid_bindings and supplied not in valid_bindings:
+            raise ValueError("M3 arrival does not match an authoritative participant slot binding")
+        if not valid_bindings and supplied != (None, None):
+            raise ValueError("M3 slot-less participant arrival cannot claim an object binding")
+        self._arrive_participant(context, runtime, agent_id)
+        updated = context.action_runtimes[action_id]
+        if set(updated.arrived_agent_ids) == set(updated.participant_ids):
+            self._finish_arrival_barrier(context, updated)
+        return self._commit(context, advances_time=False)
+
+    def report_movement_failed(
+        self,
+        *,
+        action_id: str,
+        agent_id: str,
+        expected_state_version: int,
+        reason: MovementFailureReason,
+    ) -> SocietyAdvanceResult:
+        self._validate_live_movement(action_id, agent_id, expected_state_version, allow_stale=False)
+        context = _TickContext(self.checkpoint, self.state.game_minute)
+        self._terminate_action(context, action_id, ActionPhase.FAILED, reason.value)
+        return self._commit(context, advances_time=False)
+
+    def report_movement_cancelled(
+        self,
+        *,
+        action_id: str,
+        agent_id: str,
+        expected_state_version: int,
+        reason: MovementCancellationReason,
+    ) -> SocietyAdvanceResult:
+        self._validate_live_movement(action_id, agent_id, expected_state_version, allow_stale=True)
+        context = _TickContext(self.checkpoint, self.state.game_minute)
+        self._terminate_action(context, action_id, ActionPhase.CANCELLED, reason.value)
+        return self._commit(context, advances_time=False)
+
+    def _validate_live_movement(
+        self,
+        action_id: str,
+        agent_id: str,
+        expected_state_version: int,
+        *,
+        allow_stale: bool,
+    ) -> None:
+        if self.runtime_mode is not RuntimeMode.UNITY_LIVE:
+            raise ValueError("M3 movement reports require UNITY_LIVE mode")
+        if expected_state_version > self.state.state_version:
+            raise ValueError("future M3 authority state version")
+        if not allow_stale and expected_state_version != self.state.state_version:
+            raise ValueError("stale M3 authority state version")
+        action = self.state.active_actions.get(action_id)
+        runtime = self.checkpoint.action_runtimes.get(action_id)
+        if action is None or runtime is None:
+            raise ValueError("unknown or terminal M3 action")
+        if action.phase is not ActionPhase.TRAVELING:
+            raise ValueError("M3 movement report requires a TRAVELING action")
+        if agent_id not in runtime.participant_ids:
+            raise ValueError("M3 movement report agent is not an action participant")
+        if self.state.agents[agent_id].current_action_id != action_id:
+            raise ValueError("M3 movement report does not match the agent current action")
 
     def _advance_one_minute(self, minute: int) -> SocietyAdvanceResult:
         tick_started = perf_counter()
@@ -343,11 +441,17 @@ class SocietyEngine:
             if action is None:
                 continue
             runtime = context.action_runtimes[action_id]
-            if action.phase is ActionPhase.TRAVELING and context.minute >= max(
-                runtime.travel_arrival_minutes.values(), default=context.minute
-            ):
-                self._arrive(context, runtime)
-                action = context.active_actions[action_id]
+            if action.phase is ActionPhase.TRAVELING:
+                expected_arrival = max(runtime.travel_arrival_minutes.values(), default=context.minute)
+                if self.runtime_mode is RuntimeMode.HEADLESS_FAST and context.minute >= expected_arrival:
+                    self._arrive(context, runtime)
+                    action = context.active_actions[action_id]
+                elif (
+                    self.runtime_mode is RuntimeMode.UNITY_LIVE
+                    and context.minute > expected_arrival + self.movement_timeout_minutes
+                ):
+                    self._terminate_action(context, action_id, ActionPhase.FAILED, MovementFailureReason.TIMEOUT.value)
+                    continue
             if action.phase is ActionPhase.ALIGNING and context.minute >= runtime.perform_start_minute:
                 self._start_performing(context, runtime)
                 action = context.active_actions[action_id]
@@ -359,19 +463,45 @@ class SocietyEngine:
                 self._resolve_action(context, runtime)
 
     def _arrive(self, context: _TickContext, runtime: ActionRuntimeRecord) -> None:
+        for agent_id in runtime.participant_ids:
+            if agent_id not in context.action_runtimes[runtime.action_id].arrived_agent_ids:
+                self._arrive_participant(context, context.action_runtimes[runtime.action_id], agent_id)
+        self._finish_arrival_barrier(context, context.action_runtimes[runtime.action_id])
+
+    def _arrive_participant(
+        self,
+        context: _TickContext,
+        runtime: ActionRuntimeRecord,
+        agent_id: str,
+    ) -> None:
         action = context.active_actions[runtime.action_id]
         destination = action.destination_location_id
         if destination is None:
             raise ValueError("traveling action has no destination")
-        for agent_id in runtime.participant_ids:
-            agent = context.agents[agent_id]
-            if agent.current_location_id != "TRAVELING":
-                continue
+        agent = context.agents[agent_id]
+        if agent.current_location_id == "TRAVELING":
             context.agents[agent_id] = agent.model_copy(update={"current_location_id": destination})
             location = context.locations[destination]
             context.locations[destination] = location.model_copy(
                 update={"current_agent_ids": sorted({*location.current_agent_ids, agent_id})}
             )
+        arrived = sorted({*runtime.arrived_agent_ids, agent_id})
+        reservation_ids = list(runtime.reservation_ids)
+        for reservation_id in list(reservation_ids):
+            reservation = context.reservations[reservation_id]
+            if reservation.kind == "LOCATION" and reservation.participant_agent_id == agent_id:
+                context.reservations.pop(reservation_id)
+                reservation_ids.remove(reservation_id)
+        context.action_runtimes[runtime.action_id] = runtime.model_copy(
+            update={"arrived_agent_ids": arrived, "reservation_ids": reservation_ids}
+        )
+        if runtime.action_id in context.joint_actions:
+            context.joint_actions[runtime.action_id] = context.joint_actions[runtime.action_id].model_copy(
+                update={"arrived_agent_ids": arrived}
+            )
+        context.changes.append(f"participant_arrived:{runtime.action_id}:{agent_id}")
+
+    def _finish_arrival_barrier(self, context: _TickContext, runtime: ActionRuntimeRecord) -> None:
         location_reservations = [
             reservation_id
             for reservation_id in runtime.reservation_ids
@@ -380,8 +510,11 @@ class SocietyEngine:
         for reservation_id in location_reservations:
             context.reservations.pop(reservation_id)
         remaining = [item for item in runtime.reservation_ids if item not in location_reservations]
-        context.action_runtimes[runtime.action_id] = runtime.model_copy(update={"reservation_ids": remaining})
+        updated = runtime.model_copy(update={"reservation_ids": remaining})
+        context.action_runtimes[runtime.action_id] = updated
         self._set_phase(context, runtime.action_id, ActionPhase.ALIGNING)
+        if context.minute >= updated.perform_start_minute:
+            self._start_performing(context, updated)
         context.changes.append(f"action_arrived:{runtime.action_id}")
 
     def _start_performing(self, context: _TickContext, runtime: ActionRuntimeRecord) -> None:
@@ -499,15 +632,13 @@ class SocietyEngine:
                 continue
             attempts: list[dict[str, object]] = []
             accepted: tuple[ScoredSocietyCandidate, str] | None = None
-            candidate_attempts = [*prepared_decision.candidates[:2]]
+            candidate_attempts = [prepared_decision.candidates[0]]
             idle = next(
                 item for item in prepared_decision.candidates if item.candidate.candidate.behavior_id is BehaviorId.IDLE
             )
             if idle not in candidate_attempts:
                 candidate_attempts.append(idle)
             for attempt_index, candidate_score in enumerate(candidate_attempts):
-                if attempt_index > 1 and candidate_score.candidate.candidate.behavior_id is not BehaviorId.IDLE:
-                    continue
                 proposal_id = f"proposal_{context.bump('proposal'):08d}"
                 proposal = self._proposal(source_state, candidate_score, proposal_id)
                 result, action_id = self._resolve_and_create(context, source_state, proposal, candidate_score)
@@ -521,8 +652,6 @@ class SocietyEngine:
                 if result is ProposalResult.ACCEPTED and action_id is not None:
                     accepted = (candidate_score, action_id)
                     break
-                if attempt_index == 1 and candidate_score.candidate.candidate.behavior_id is not BehaviorId.IDLE:
-                    continue
             if accepted is None:
                 raise ValueError(f"M3 central Resolver rejected idle fallback: {actor_id}")
             selected, action_id = accepted
@@ -723,7 +852,15 @@ class SocietyEngine:
                     expires_at=expires,
                 )
             )
+        claims_by_object: dict[str, list[int]] = {}
         for object_id, slot in slot_claims:
+            claims_by_object.setdefault(object_id, []).append(slot)
+        for object_id, slot in slot_claims:
+            object_claims = claims_by_object[object_id]
+            participant_index = object_claims.index(slot)
+            binding_agent_id = (
+                participants[participant_index] if len(object_claims) == len(participants) else proposal.actor_id
+            )
             reservation_ids.append(
                 self._add_reservation(
                     context,
@@ -731,6 +868,7 @@ class SocietyEngine:
                     kind="OBJECT_SLOT",
                     object_id=object_id,
                     slot_index=slot,
+                    participant_agent_id=binding_agent_id,
                     expires_at=expires,
                 )
             )
@@ -759,6 +897,7 @@ class SocietyEngine:
                         owner_action_id=action_id,
                         kind="LOCATION",
                         location_id=destination,
+                        participant_agent_id=agent_id,
                         expires_at=expires,
                     )
                 )
@@ -773,6 +912,9 @@ class SocietyEngine:
             reservation_ids=reservation_ids,
             origin_location_ids=origins,
             travel_arrival_minutes=arrivals,
+            arrived_agent_ids=sorted(
+                agent_id for agent_id in participants if destination is None or origins[agent_id] == destination
+            ),
             perform_start_minute=perform_start,
             work_session_id=work_session_id,
             joint=force_joint,
@@ -839,9 +981,10 @@ class SocietyEngine:
         self._set_phase(context, runtime.action_id, ActionPhase.RESOLVING)
         accepted = self._social_acceptance(context, runtime)
         if action.behavior_id is BehaviorId.INVITE_JOIN and accepted:
+            invite_location_id = str(context.agents[runtime.actor_id].current_location_id)
             self._terminate_action(context, action.action_id, ActionPhase.COMPLETED, None, release_only=True)
             accepted = self._create_invited_joint(context, runtime)
-            self._complete_social_effects(context, runtime, accepted)
+            self._complete_social_effects(context, runtime, accepted, location_id=invite_location_id)
             context.changes.append(f"action_terminal:{runtime.action_id}:COMPLETED")
             return
 
@@ -939,6 +1082,8 @@ class SocietyEngine:
         context: _TickContext,
         runtime: ActionRuntimeRecord,
         accepted: bool,
+        *,
+        location_id: str | None = None,
     ) -> None:
         candidate = runtime.candidate.candidate
         target_id = candidate.target_agent_id
@@ -971,7 +1116,7 @@ class SocietyEngine:
             self._stage_event(
                 context,
                 event_type,
-                location_id=str(context.agents[runtime.actor_id].current_location_id),
+                location_id=location_id or str(context.agents[runtime.actor_id].current_location_id),
                 actor_ids=[runtime.actor_id],
                 affected_agent_ids=[target_id],
                 source_action_id=runtime.action_id,
@@ -1208,7 +1353,16 @@ class SocietyEngine:
             agent = context.agents[agent_id]
             if terminal_phase in {ActionPhase.CANCELLED, ActionPhase.FAILED, ActionPhase.INTERRUPTED}:
                 origin = runtime.origin_location_ids[agent_id]
-                if agent.current_location_id == "TRAVELING":
+                if agent.current_location_id != "TRAVELING" and agent.current_location_id != origin:
+                    current_location = context.locations[agent.current_location_id]
+                    context.locations[agent.current_location_id] = current_location.model_copy(
+                        update={
+                            "current_agent_ids": [
+                                item for item in current_location.current_agent_ids if item != agent_id
+                            ]
+                        }
+                    )
+                if agent.current_location_id != origin:
                     location = context.locations[origin]
                     context.locations[origin] = location.model_copy(
                         update={"current_agent_ids": sorted({*location.current_agent_ids, agent_id})}
