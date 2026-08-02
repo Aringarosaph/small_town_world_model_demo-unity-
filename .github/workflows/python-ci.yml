@@ -50,7 +50,7 @@ jobs:
       - name: QA regression tests
         run: >-
           pytest --strict-config --strict-markers
-          -m "not contract_pending and not m1"
+          -m "not contract_pending and not m1 and not m2"
           python/tests/qa integration_tests
 
       - name: M0 diagnostics (pending upstream inputs allowed)
@@ -90,7 +90,7 @@ jobs:
       - name: Run all Python tests
         run: >-
           pytest --strict-config --strict-markers
-          -m "not m1"
+          -m "not m1 and not m2"
           python/tests integration_tests
 
       - name: Upload M0 diagnostics
@@ -146,4 +146,44 @@ jobs:
           path: |
             ${{ runner.temp }}/m1-diagnostics.json
             ${{ runner.temp }}/stwm-m1-qa/m1_qa_evidence.json
+          if-no-files-found: warn
+
+  m2-qa-readiness:
+    name: M2 QA readiness (integration-aware)
+    needs: m1-qa-readiness
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Install project and QA tools
+        run: python -m pip install -e ".[test]"
+
+      - name: Run M2 validator regression tests
+        run: >-
+          pytest --strict-config --strict-markers
+          python/tests/qa/test_m2_diagnostics.py
+
+      - name: Build integration-aware M2 diagnostics
+        run: >-
+          python tools/diagnostics/check_m2.py
+          --json-output "${RUNNER_TEMP}/m2-diagnostics.json"
+
+      - name: Run M2 gray-box acceptance adapter
+        run: >-
+          pytest --strict-config --strict-markers
+          -m m2 integration_tests
+
+      - name: Upload M2 diagnostics
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: m2-diagnostics
+          path: ${{ runner.temp }}/m2-diagnostics.json
           if-no-files-found: warn

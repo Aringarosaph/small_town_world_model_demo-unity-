@@ -1,0 +1,51 @@
+{
+  "authority_invariants": {
+    "animation_completion_is_not_authority": true,
+    "arrival_updates_high_level_location_once": true,
+    "failed_or_cancelled_navigation_does_not_commit_arrival": true,
+    "late_messages_from_old_connection_are_rejected": true
+  },
+  "cases": [
+    {
+      "direction": "unity_to_python",
+      "expected_authority_outcome": "ARRIVED_ONCE",
+      "name": "arrived",
+      "required_message_type": "movement_arrived"
+    },
+    {
+      "allowed_reasons": [
+        "NO_PATH",
+        "DESTINATION_DISABLED",
+        "SLOT_BLOCKED",
+        "AGENT_DISABLED",
+        "TIMEOUT",
+        "UNKNOWN"
+      ],
+      "direction": "unity_to_python",
+      "expected_authority_outcome": "NO_ARRIVAL_COMMIT",
+      "name": "failed",
+      "required_message_type": "movement_failed"
+    },
+    {
+      "conflicting_same_message_id_rejected": true,
+      "correlation_id_equals_action_id": true,
+      "direction": "unity_to_python",
+      "duplicate_same_message_id_is_idempotent": true,
+      "expected_authority_outcome": "PYTHON_CANCEL_TRANSACTION_ONCE",
+      "name": "cancelled",
+      "required_message_type": "movement_cancelled",
+      "unity_direct_authority_mutation_count": 0
+    }
+  ],
+  "reconnect": {
+    "full_handshake_repeated": true,
+    "late_obsolete_generation_messages_have_zero_authority_mutation": true,
+    "new_message_ids": true,
+    "obsolete_connection_generation_rejected": true,
+    "post_reconnect_snapshot_not_older_than_last_acknowledged_version": true,
+    "registry_revalidated": true,
+    "resume_only_after_client_ready": true
+  },
+  "protocol_version": "0.2.0",
+  "schema": "stwm.qa.m2-navigation-replay/v1"
+}

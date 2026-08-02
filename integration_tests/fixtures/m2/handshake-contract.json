@@ -1,0 +1,24 @@
+{
+  "failure_branch": {
+    "forbidden_after_rejected_registry": ["world_snapshot", "client_ready"],
+    "registry_result_requires_error_issue": true,
+    "simulation_must_not_start": true
+  },
+  "happy_path": [
+    {"direction": "unity_to_python", "message_type": "client_hello"},
+    {"direction": "python_to_unity", "message_type": "server_hello"},
+    {"direction": "unity_to_python", "message_type": "asset_registry"},
+    {"direction": "python_to_unity", "message_type": "asset_registry_result"},
+    {"direction": "python_to_unity", "message_type": "world_snapshot"},
+    {"direction": "unity_to_python", "message_type": "client_ready"}
+  ],
+  "invariants": {
+    "duplicate_message_ids_are_idempotent": true,
+    "protocol_mismatch_is_rejected": true,
+    "simulation_starts_only_after_client_ready": true,
+    "state_version_not_receive_order_is_authoritative": true,
+    "unity_cache_is_not_authority": true
+  },
+  "protocol_version": "0.2.0",
+  "schema": "stwm.qa.m2-handshake-contract/v1"
+}

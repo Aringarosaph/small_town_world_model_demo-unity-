@@ -1,0 +1,171 @@
+{
+  "correlation_id": "msg_000201",
+  "message_id": "msg_000202",
+  "message_type": "asset_registry",
+  "payload": {
+    "locations": [
+      {"location_id": "home_a", "location_type": "HOME"},
+      {"location_id": "home_b", "location_type": "HOME"},
+      {"location_id": "home_c", "location_type": "HOME"},
+      {"location_id": "home_d", "location_type": "HOME"},
+      {"location_id": "cafe_bar", "location_type": "CAFE_BAR"},
+      {"location_id": "shop", "location_type": "SHOP"},
+      {"location_id": "workshop", "location_type": "WORKPLACE"},
+      {"location_id": "park", "location_type": "PARK"}
+    ],
+    "mapped_animation_semantics": [
+      "IDLE",
+      "SLEEP",
+      "EAT",
+      "SHOWER_HIDDEN",
+      "SIT",
+      "WORK_DESK",
+      "WORK_STANDING",
+      "WORK_WORKSHOP",
+      "DRINK",
+      "WALK",
+      "TALK_NEUTRAL",
+      "TALK_POSITIVE",
+      "TALK_NEGATIVE",
+      "CARRY_GROCERY"
+    ],
+    "npc_views": [
+      {"agent_id": "npc_01"},
+      {"agent_id": "npc_02"},
+      {"agent_id": "npc_03"},
+      {"agent_id": "npc_04"},
+      {"agent_id": "npc_05"},
+      {"agent_id": "npc_06"},
+      {"agent_id": "npc_07"},
+      {"agent_id": "npc_08"},
+      {"agent_id": "npc_09"},
+      {"agent_id": "npc_10"}
+    ],
+    "objects": [
+      {
+        "capability_tags": ["SLEEP"],
+        "enabled": true,
+        "interaction_slots": [{"slot_index": 0, "supported_animation_semantics": ["SLEEP"]}],
+        "location_id": "home_a",
+        "object_id": "home_a_bed_01",
+        "object_type": "BED"
+      },
+      {
+        "capability_tags": ["FOOD_SOURCE_HOME"],
+        "enabled": true,
+        "interaction_slots": [{"slot_index": 0, "supported_animation_semantics": ["EAT"]}],
+        "location_id": "home_a",
+        "object_id": "home_a_fridge_01",
+        "object_type": "FRIDGE"
+      },
+      {
+        "capability_tags": ["SIT", "EAT"],
+        "enabled": true,
+        "interaction_slots": [{"slot_index": 0, "supported_animation_semantics": ["EAT"]}],
+        "location_id": "home_a",
+        "object_id": "home_a_seat_01",
+        "object_type": "DINING_SEAT"
+      },
+      {
+        "capability_tags": ["HYGIENE"],
+        "enabled": true,
+        "interaction_slots": [{"slot_index": 0, "supported_animation_semantics": ["SHOWER_HIDDEN"]}],
+        "location_id": "home_a",
+        "object_id": "home_a_shower_01",
+        "object_type": "SHOWER"
+      },
+      {
+        "capability_tags": ["SIT", "RELAX", "WATCH_TV"],
+        "enabled": true,
+        "interaction_slots": [{"slot_index": 0, "supported_animation_semantics": ["SIT"]}],
+        "location_id": "home_a",
+        "object_id": "home_a_sofa_01",
+        "object_type": "SOFA"
+      },
+      {
+        "capability_tags": ["ENTERTAINMENT"],
+        "enabled": true,
+        "interaction_slots": [{"slot_index": 0, "supported_animation_semantics": ["SIT"]}],
+        "location_id": "home_a",
+        "object_id": "home_a_tv_01",
+        "object_type": "TV"
+      },
+      {
+        "capability_tags": ["WORK", "CAFE_MORNING"],
+        "enabled": true,
+        "interaction_slots": [{"slot_index": 0, "supported_animation_semantics": ["WORK_STANDING"]}],
+        "location_id": "cafe_bar",
+        "object_id": "cafe_bar_station_01",
+        "object_type": "WORKSTATION"
+      },
+      {
+        "capability_tags": ["GROCERY_SOURCE"],
+        "enabled": true,
+        "interaction_slots": [{"slot_index": 0, "supported_animation_semantics": ["CARRY_GROCERY"]}],
+        "location_id": "shop",
+        "object_id": "shop_shelf_01",
+        "object_type": "SHOP_SHELF"
+      },
+      {
+        "capability_tags": ["PURCHASE"],
+        "enabled": true,
+        "interaction_slots": [{"slot_index": 0, "supported_animation_semantics": ["IDLE"]}],
+        "location_id": "shop",
+        "object_id": "shop_checkout_01",
+        "object_type": "CHECKOUT_COUNTER"
+      },
+      {
+        "capability_tags": ["BUY_MEAL"],
+        "enabled": true,
+        "interaction_slots": [{"slot_index": 0, "supported_animation_semantics": ["EAT"]}],
+        "location_id": "cafe_bar",
+        "object_id": "cafe_counter_01",
+        "object_type": "CAFE_COUNTER"
+      },
+      {
+        "capability_tags": ["BUY_DRINK"],
+        "enabled": true,
+        "interaction_slots": [{"slot_index": 0, "supported_animation_semantics": ["DRINK"]}],
+        "location_id": "cafe_bar",
+        "object_id": "bar_counter_01",
+        "object_type": "BAR_COUNTER"
+      },
+      {
+        "capability_tags": ["SIT", "REST"],
+        "enabled": true,
+        "interaction_slots": [{"slot_index": 0, "supported_animation_semantics": ["SIT"]}],
+        "location_id": "park",
+        "object_id": "park_seat_01",
+        "object_type": "PUBLIC_SEAT"
+      },
+      {
+        "capability_tags": ["WALK_ROUTE"],
+        "enabled": true,
+        "interaction_slots": [{"slot_index": 0, "supported_animation_semantics": ["WALK"]}],
+        "location_id": "park",
+        "object_id": "park_route_01",
+        "object_type": "PARK_ROUTE"
+      },
+      {
+        "capability_tags": ["RELAX"],
+        "enabled": true,
+        "interaction_slots": [{"slot_index": 0, "supported_animation_semantics": ["IDLE"]}],
+        "location_id": "park",
+        "object_id": "park_leisure_01",
+        "object_type": "LEISURE_SPOT"
+      },
+      {
+        "capability_tags": ["SOCIAL_POSITION"],
+        "enabled": true,
+        "interaction_slots": [{"slot_index": 0, "supported_animation_semantics": ["TALK_NEUTRAL"]}],
+        "location_id": "park",
+        "object_id": "park_conversation_01",
+        "object_type": "CONVERSATION_ANCHOR"
+      }
+    ]
+  },
+  "protocol_version": "0.2.0",
+  "sent_at_utc": "2026-08-02T08:05:01Z",
+  "state_version": 4320,
+  "world_id": "demo_world"
+}

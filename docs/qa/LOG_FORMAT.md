@@ -52,6 +52,20 @@ never sampled. `summary.json` is ordinary UTF-8 JSON rather than JSONL and
 contains counts, invariant observations, and canonical state/ordered-log hashes
 defined by `docs/qa/M1_SIM_QA_INTERFACE.md`.
 
+For M2, a redacted bridge transcript is JSONL and adds these bounded fields in
+`context`: `protocol_version`, `message_id`, `message_type`, `direction`,
+`connection_generation`, `authority_mutation_count`, and a canonical payload
+hash. `correlation_id` is the action ID for all movement reports. Do not retain
+the unrestricted payload merely to prove hashing or deduplication.
+
+Reconnect evidence records the old last-acknowledged authority version, new
+snapshot version, new `client_ready`, and explicit rejection codes for late
+obsolete-generation and stale-version inputs. Cancellation evidence records
+whether an identical duplicate was idempotent, a conflicting same-ID message
+was rejected, and exactly one Python authority cancellation transaction was
+committed. Unity-originated reports always record zero direct authority
+mutation.
+
 ## Safety and quality rules
 
 - Never log API keys, authorization headers, complete environment dumps, or

@@ -81,3 +81,25 @@ error summaries over raw payloads.
 M0 acceptance validates this documented contract and Git exclusion only. M1
 requires the minimum layout, Headless run, and authority replay. Golden-chain
 and soak output remain later milestone capabilities.
+
+## M2 bridge evidence
+
+M2 Unity evidence is not written below an authority `runs/<run_id>/` directory
+and is never committed. Use an external sibling tree such as:
+
+```text
+<external-qa-root>/m2/<evidence-id>/
+  m2-evidence.json
+  asset-registry.json
+  registry-report.json
+  handshake-transcript.jsonl
+  editmode-results.xml
+  playmode-results.xml
+  batchmode.log
+```
+
+The evidence document uses `stwm.qa.m2-acceptance-evidence/v1` and references
+artifacts relative to its own directory. Unity `Library/`, `Logs/`,
+`TestResults/`, caches, license data, and machine-local settings are neither
+authority runs nor acceptable evidence artifacts. The retained XML/JSON/log
+subset must be redacted before upload.

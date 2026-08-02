@@ -1,4 +1,23 @@
-# M0 and M1 diagnostics
+# M0, M1 and M2 diagnostics
+
+`check_m2.py` is the M2 functional gray-box gate. It checks the accepted M1
+ancestor, protocol `0.2.0` target fixtures, direction/cancellation/reconnect
+rules, the ADR-0009 scoped asset profile, Unity generated-file policy and
+external acceptance evidence. It imports catalog/DTO definitions and contains
+no transport, navigation, cancellation or simulation implementation.
+
+```bash
+python tools/diagnostics/check_m2.py \
+  --registry integration_tests/fixtures/m2/m2-slice-valid.json \
+  --json-output /tmp/stwm-m2-diagnostics.json
+```
+
+With CONTRACTS 0.2.0 integrated, protocol, direction Schema and cancellation
+checks are strict and have no pending state. Before UNITY integration the
+default command reports its named pending owners. The final gate adds
+`--require-m2 --evidence <external-json>`; pending is then fatal. Complete-V0
+content absent from the scoped M2 registry is emitted as `WARNING`, while
+missing slice content is `FAIL`.
 
 `check_m1.py` is the pending-capable black-box M1 adapter. It executes the
 SIM-owned `town_core.simulation.qa_adapter` after integration and validates the

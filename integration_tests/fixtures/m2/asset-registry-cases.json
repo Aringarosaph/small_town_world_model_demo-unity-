@@ -1,0 +1,38 @@
+{
+  "cases": [
+    {
+      "expected_accepted": true,
+      "expected_error_codes": [],
+      "expected_warning_codes": [
+        "FULL_V0_LOCATION_MISSING",
+        "FULL_V0_NPC_VIEW_MISSING",
+        "FULL_V0_OBJECT_TYPE_MISSING"
+      ],
+      "fixture": "m2-slice-valid.json",
+      "name": "m2_slice_valid",
+      "operation": "none"
+    },
+    {
+      "expected_error_codes": ["DUPLICATE_OBJECT_ID"],
+      "expected_accepted": false,
+      "fixture": "m2-slice-valid.json",
+      "name": "duplicate_object_id",
+      "operation": "duplicate_first_object"
+    },
+    {
+      "expected_error_codes": ["MISSING_WORKSTATION"],
+      "expected_accepted": false,
+      "fixture": "m2-slice-valid.json",
+      "name": "missing_workstation",
+      "operation": "remove_workstations"
+    },
+    {
+      "expected_error_codes": ["MISSING_ANIMATION_SEMANTIC"],
+      "expected_accepted": false,
+      "fixture": "m2-slice-valid.json",
+      "name": "missing_walk_mapping",
+      "operation": "remove_walk_mapping"
+    }
+  ],
+  "schema": "stwm.qa.m2-asset-registry-cases/v1"
+}

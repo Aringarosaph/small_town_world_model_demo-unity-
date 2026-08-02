@@ -1,141 +1,135 @@
 # AITOWN-QA handoff
 
-## Current responsibility
+## Responsibility and scope
 
-Long-lived QA/observability owner for **Small Town World Model（STWM）**. The
-`AITOWN-QA` name remains an internal task compatibility identifier.
+Long-lived QA/observability owner for **Small Town World Model（STWM）**.
+`AITOWN-QA` remains an internal compatibility name. M0 and M1 are accepted; this
+increment adds the M2 functional gray-box QA baseline only.
 
-M0 is accepted and frozen. This increment adds only the M1 black-box QA/CI,
-evidence, marker, run/log, and acceptance baseline for the one-NPC Headless
-authority slice. It does not implement simulation product logic or modify
-frozen config, protocol, domain DTOs, hashes, or `pyproject.toml`.
+QA did not implement WebSocket transport, Unity runtime/navigation, Python
+authority cancellation, or a second simulation ruleset. It did not modify
+frozen config, protocol/domain files, generated Schema, Unity product code, or
+`pyproject.toml`.
 
-## M1 QA delivered
+## Delivered
 
-- Added a pending-capable SIM adapter gate in `tools/diagnostics/check_m1.py`.
-  Complete SIM absence is reported as `PENDING`; partial integration, command
-  failure, malformed evidence, or invariant failure is fatal.
-- Added validator regression tests and a marked repository integration test.
-- Added the `m1`, `sim_pending`, `headless`, `determinism`, `replay`, and
-  `invariant` marker conventions without editing shared project configuration.
-- Added a Python 3.12 `m1-qa-readiness` CI lane after the strict M0 lane.
-- Specified the SIM-owned additive evidence port and documented M1 acceptance,
-  run layout, transaction logs, canonical ordered-log hashing, and replay
-  non-mutation.
-- Reused the frozen catalog loader for `fixed_shift_wage` and the M0 sensitive/
-  generated-file guard. QA contains no wage, decay, resolver, event, or replay
-  rule implementation.
+- `tools/diagnostics/check_m2.py`: integration-aware M2 diagnostic and strict
+  external evidence validator.
+- `m2-slice-valid.json`: exact ADR-0009 profile with `accepted=true`, two
+  locations, `npc_01`, and BED/FRIDGE/DINING_SEAT/CAFE_MORNING WORKSTATION.
+- invalid registry mutations plus a separate complete-V0 future reference.
+- handshake and navigation/reconnect fixtures targeting protocol `0.2.0` and
+  independent Unity-to-Python `movement_cancelled`.
+- QA unit tests, a pending-capable M2 repository adapter, M2 marker conventions,
+  and a Python 3.12 `m2-qa-readiness` CI lane.
+- `stwm.qa.m2-acceptance-evidence/v1`, external artifact policy, bridge log
+  fields, Unity EditMode/PlayMode/batchmode strategy, and acceptance docs.
+- sensitive-file and Unity Library/Logs/TestResults/cache guards.
 
-## Coverage
+The scoped asset validator imports frozen catalog/DTO types. Missing M2 slice
+content is `ERROR`; missing complete-V0 content is explicit `WARNING`. The full
+V0 reference remains diagnostic-only until M3.
 
-The evidence verifier covers:
+## Strict protocol and authority requirements
 
-- exactly 4,320 clock ticks with no skips/duplicates;
-- exact five needs, range extrema, isolated negative-decay observations, and
-  mood/resource invariants;
-- only `idle`, `sleep`, `eat_at_home`, and `work_shift`, all exercised;
-- action lifecycle, primary-action/slot exclusivity, state versions, stable IDs,
-  append-only events, and complete decision traces;
-- completed/late/missed work probes plus catalog-valued exactly-once wages;
-- same-seed repeat equality, chunk sizes 1/7/60 equality, and canonical ordered
-  authority-log equality;
-- snapshot plus ordered-transaction replay, final-hash equality, a separate
-  replay run, and unchanged source-run tree hash;
-- rejection without mutation for stale version, negative money/food,
-  out-of-range needs, overlapping primary action, and event mutation;
-- no tracked runs, generated datasets, model artifacts, caches, or credentials.
+ORCH decided ADR-0010 semantics while this work was active:
 
-M1+ product behavior, Unity runtime/transport, all-10-NPC execution, social
-updates, language/model calls, training data, and long-term architecture remain
-out of scope.
+- protocol version is `0.2.0`;
+- `movement_cancelled` is a distinct Unity-to-Python message;
+- neither `action_cancelled` nor `movement_failed/CANCELLED` is an alias;
+- movement report `correlation_id` equals `action_id`;
+- identical same-`message_id` retransmission is idempotent;
+- conflicting canonical content under the same ID is rejected;
+- wrong direction, stale state, obsolete connection generation, and late old
+  transport messages produce zero authority mutation;
+- Python performs exactly one authoritative cancellation transaction; Unity's
+  report has zero direct authority mutation.
 
-## Exact SIM interface required
+Reconnect allocates new IDs, repeats full hello and registry, receives a fresh
+snapshot no older than the old connection's last acknowledged authority
+version, and resumes only after the new `client_ready`. Unity cache is
+non-authoritative.
 
-SIM must add this module outside the M0-frozen surface:
+## Exact integration interfaces
 
-```text
-python/town_core/simulation/qa_adapter.py
-```
+### CONTRACTS
 
-It must accept:
-
-```bash
-python -m town_core.simulation.qa_adapter \
-  --config <absolute-config-v0> \
-  --output-root <absolute-temporary-directory> \
-  --evidence <absolute-output-root>/m1_qa_evidence.json \
-  --agent npc_01 --days 3 --seed 12345 \
-  --chunk-minutes 1,7,60
-```
-
-The module drives the production authority runtime and the required
-`run-headless`/`replay` CLI; it emits
-`stwm.qa.m1-evidence/v1`. The complete field/probe contract is in
-`docs/qa/M1_SIM_QA_INTERFACE.md`. `STWM_M1_QA_ADAPTER_CMD` may temporarily
-replace only the executable/module prefix.
-
-SIM must keep all referenced run/replay directories below the requested output
-root and outside the worktree. Its adapter must not reproduce a second ruleset.
-
-## Orchestrator integration steps
-
-1. Integrate AITOWN-SIM first, then this QA commit, without replaying the old M0
-   QA branch history.
-2. Confirm SIM provides all four runtime package directories plus
-   `simulation/qa_adapter.py`; once any appears, missing pieces are a hard gate.
-3. Add the six M1 marker declarations from the QA `conftest.py` files to
-   `pyproject.toml` as an integration-only centralization change. QA deliberately
-   did not touch that shared file.
-4. Run the ordinary M0 lanes and verify the M0 freeze manifest remains clean.
-5. Run the final strict command below with a fresh temporary output root. Zero
-   pending findings are permitted.
-6. Retain only the redacted diagnostic/evidence JSON as CI artifacts. Do not
-   commit `runs/` or upload raw runtime payloads without separate review.
-
-Final strict command:
+The accepted source commit `392f941` is integrated on this branch as `59a3d28`;
+its formatting follow-up `247711a` is integrated as `1231dfa`.
+It contains protocol `0.2.0`, the
+`movement_cancelled` enum/DTO/message union, generated JSON Schema and examples,
+direction permission tests, and compatibility tests. After integration:
 
 ```bash
-python tools/diagnostics/check_m1.py \
-  --output-root /tmp/stwm-m1-qa \
-  --json-output /tmp/stwm-m1-diagnostics.json \
-  --require-sim
+python tools/diagnostics/check_m2.py --require-m2
 ```
 
-## Current expected result before SIM integration
+reports neither `M2_PROTOCOL_0_2_PENDING` nor
+`M2_MOVEMENT_CANCELLED_CONTRACT_PENDING`. The later CONTRACTS re-freeze manifest
+is integration evidence and does not block this DTO/QA commit. Do not weaken
+these checks to retain 0.1 compatibility as an accepted M2 result.
 
-On this QA-only branch, validator unit tests and all M0 gates pass. The M1
-repository adapter skips with `M1_SIM_NOT_INTEGRATED`, and the default diagnostic
-returns zero with one explicit `PENDING`. `--require-sim` intentionally fails.
+### SIM/Python bridge
 
-Verified with Python 3.12.11:
+Expose production-bridge test observations for message acceptance/rejection,
+before/after state hash and version, committed transaction count, dedupe versus
+same-ID conflict, and connection generation. The adapter must drive existing
+authority transitions and must not reproduce domain rules. Cancellation must
+prove exactly one Python transaction and zero mutation for duplicate,
+conflicting, stale, wrong-generation and late messages.
 
-- Ruff lint and format: passed;
-- Mypy: 26 source files passed;
-- Pytest: 36 passed, one SIM-pending integration test skipped;
-- strict M0 diagnostics: 58 passed, zero pending/failures;
-- default M1 diagnostics: one pass, one pending, zero failures;
-- strict M1 diagnostics: exit 1 on the sole missing-SIM condition, as intended.
+### UNITY
 
-This pending state is actionable, not permanent: after SIM integration the
-checker cannot downgrade adapter/evidence/runtime failures to pending.
+Provide deterministic mock/recorded injection for handshake, asset registry,
+arrived/failed/cancelled, disconnect and reconnect; export the actual registry,
+redacted transcript, EditMode/PlayMode XML and batchmode log. Export
+`stwm.qa.m2-acceptance-evidence/v1` to a repository-external result directory.
+The agreed Editor/batchmode export entry point must return nonzero on any failed
+gate.
 
-## Files changed
+### ORCHESTRATOR/CI
 
-- `.github/workflows/python-ci.yml`
-- `integration_tests/conftest.py`
-- `integration_tests/test_m1_acceptance.py`
-- `python/tests/qa/conftest.py`
-- `python/tests/qa/test_m1_diagnostics.py`
-- `tools/diagnostics/check_m1.py`
-- `tools/diagnostics/README.md`
-- `docs/qa/M1_ACCEPTANCE.md`
-- `docs/qa/M1_SIM_QA_INTERFACE.md`
-- `docs/qa/TESTING.md`
-- `docs/qa/RUNS_CONTRACT.md`
-- `docs/qa/LOG_FORMAT.md`
-- `docs/handoffs/AITOWN-QA.md`
+1. Preserve CONTRACTS `392f941`, then integrate the SIM bridge and UNITY before
+   final acceptance.
+2. Centralize `m2`, `unity_pending`, `protocol`, `unity`, `graybox`, and
+   `batchmode` markers in `pyproject.toml`; QA avoided the shared file while
+   CONTRACTS was active.
+3. Add the licensed macOS ARM64 Unity workflow described in
+   `docs/qa/M2_UNITY_CI.md` after the Unity project/test assemblies exist.
+4. Keep `Library/`, logs, XML/JSON results and evidence outside the checkout;
+   upload only sanitized artifacts.
+5. Run M0/M1 regression and the final strict command. Final M2 acceptance
+   permits no pending result.
 
-## Validation commands
+## Current integration-aware result
+
+This branch contains the accepted M1 baseline and ORCH M2 baseline. QA fixtures,
+asset validation, repository guards and evidence-template validation pass.
+CONTRACTS protocol 0.2.0, typed cancellation, correlation validators, generic
+and direction-specific Schema, examples, and QA fixtures pass with no protocol
+pending. The default diagnostic now reports only two readable Unity-owned
+pending items: runtime/test integration and external acceptance evidence.
+
+`--require-m2` intentionally converts those two to failures. That is a temporary
+parallel-development state, not final M2 semantics. Per ORCH, the full M1
+three-day gate must be run later in the single-instance integration sequence,
+not concurrently on the MacBook Air.
+
+Final independent QA verification after CONTRACTS formatting integration:
+
+- Ruff format: 101 repository files passed;
+- QA-scoped Ruff and strict Mypy: passed;
+- protocol 0.2 artifact tests plus M2 QA: 37 passed, one Unity-absence skip;
+- default M2 diagnostic with scoped registry: 17 pass, 26 ADR-0009 warnings,
+  two Unity-owned pending, zero failures;
+- strict M2 diagnostic: 17 pass, 26 warnings, zero pending, and exactly the two
+  expected Unity runtime/evidence failures.
+
+The complete M1 three-day gate was deliberately not rerun, per ORCH's
+single-instance resource ordering. CONTRACTS re-freeze evidence remains an
+ORCH integration step and does not block this QA commit.
+
+## Final commands
 
 ```bash
 ruff check .
@@ -143,12 +137,18 @@ ruff format --check .
 mypy python/town_core
 mypy --strict --explicit-package-bases \
   tools/diagnostics python/tests/qa integration_tests
-pytest --strict-config --strict-markers -m "not m1" \
+pytest --strict-config --strict-markers -m "not m2" \
   python/tests integration_tests
 pytest --strict-config --strict-markers \
-  python/tests/qa/test_m1_diagnostics.py integration_tests/test_m1_acceptance.py
+  python/tests/qa/test_m2_diagnostics.py
+STWM_M2_QA_EVIDENCE=/absolute/external/m2-evidence.json \
+pytest --strict-config --strict-markers -m m2 integration_tests
 python tools/diagnostics/check_m0.py
 python tools/diagnostics/check_m1.py \
-  --output-root /tmp/stwm-m1-qa \
-  --json-output /tmp/stwm-m1-diagnostics.json
+  --output-root /absolute/external/m1-qa --require-sim
+python tools/diagnostics/check_m2.py \
+  --require-m2 \
+  --registry /absolute/external/asset-registry.json \
+  --evidence /absolute/external/m2-evidence.json \
+  --json-output /absolute/external/m2-diagnostics.json
 ```

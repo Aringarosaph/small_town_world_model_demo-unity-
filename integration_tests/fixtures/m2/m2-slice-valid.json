@@ -1,0 +1,69 @@
+{
+  "correlation_id": "msg_000101",
+  "message_id": "msg_000102",
+  "message_type": "asset_registry",
+  "payload": {
+    "locations": [
+      {"location_id": "home_a", "location_type": "HOME"},
+      {"location_id": "cafe_bar", "location_type": "CAFE_BAR"}
+    ],
+    "mapped_animation_semantics": [
+      "IDLE",
+      "WALK",
+      "SLEEP",
+      "EAT",
+      "WORK_DESK",
+      "WORK_STANDING",
+      "WORK_WORKSHOP"
+    ],
+    "npc_views": [
+      {"agent_id": "npc_01"}
+    ],
+    "objects": [
+      {
+        "capability_tags": ["SLEEP"],
+        "enabled": true,
+        "interaction_slots": [
+          {"slot_index": 0, "supported_animation_semantics": ["SLEEP"]}
+        ],
+        "location_id": "home_a",
+        "object_id": "home_a_bed_01",
+        "object_type": "BED"
+      },
+      {
+        "capability_tags": ["FOOD_SOURCE_HOME"],
+        "enabled": true,
+        "interaction_slots": [
+          {"slot_index": 0, "supported_animation_semantics": ["EAT"]}
+        ],
+        "location_id": "home_a",
+        "object_id": "home_a_fridge_01",
+        "object_type": "FRIDGE"
+      },
+      {
+        "capability_tags": ["SIT", "EAT"],
+        "enabled": true,
+        "interaction_slots": [
+          {"slot_index": 0, "supported_animation_semantics": ["EAT"]}
+        ],
+        "location_id": "home_a",
+        "object_id": "home_a_seat_01",
+        "object_type": "DINING_SEAT"
+      },
+      {
+        "capability_tags": ["WORK", "CAFE_MORNING"],
+        "enabled": true,
+        "interaction_slots": [
+          {"slot_index": 0, "supported_animation_semantics": ["WORK_STANDING"]}
+        ],
+        "location_id": "cafe_bar",
+        "object_id": "cafe_bar_station_01",
+        "object_type": "WORKSTATION"
+      }
+    ]
+  },
+  "protocol_version": "0.2.0",
+  "sent_at_utc": "2026-08-02T08:00:01Z",
+  "state_version": 4320,
+  "world_id": "demo_world"
+}
