@@ -4,6 +4,7 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Security.Cryptography;
+using System.Text;
 using System.Text.RegularExpressions;
 using System.Xml;
 using Newtonsoft.Json;
@@ -139,8 +140,11 @@ namespace STWM.AITown.Editor
             var sanitizedLogPath = Path.Combine(unityDirectory, "unity-batchmode.log");
             WriteJson(registryReportPath, CreateRegistryReport(scan, manifest, routeReport));
             WriteJson(semanticReportPath, CreateSemanticCoverage(scan, manifest, routeReport));
-            CopySanitizedText(editModePath, sanitizedEditPath);
-            CopySanitizedText(playModePath, sanitizedPlayPath);
+            editSummary = CopySanitizedXmlTestResults(editModePath, sanitizedEditPath, Array.Empty<string>());
+            playSummary = CopySanitizedXmlTestResults(
+                playModePath,
+                sanitizedPlayPath,
+                new[] { LiveCase, JointCase, ClearCase });
             CopySanitizedText(batchLogPath, sanitizedLogPath);
 
             var artifacts = new JObject
@@ -434,23 +438,88 @@ namespace STWM.AITown.Editor
             };
         }
 
+        public static M3PartialTestSummary CopySanitizedXmlTestResults(
+            string source,
+            string destination,
+            IEnumerable<string> requiredCases)
+        {
+            var required = (requiredCases ?? Array.Empty<string>()).ToArray();
+            var sourceSummary = ValidateTestResults(source, required);
+            var document = new XmlDocument { PreserveWhitespace = true };
+            document.Load(source);
+            SanitizeXmlNode(document);
+            var settings = new XmlWriterSettings
+            {
+                Encoding = new UTF8Encoding(false),
+                Indent = false,
+                NewLineHandling = NewLineHandling.None
+            };
+            using (var writer = XmlWriter.Create(destination, settings))
+            {
+                document.Save(writer);
+            }
+
+            var sanitizedText = File.ReadAllText(destination);
+            EnsureSanitizedText(sanitizedText, destination);
+            var sanitizedSummary = ValidateTestResults(destination, required);
+            if (sourceSummary.Total != sanitizedSummary.Total
+                || sourceSummary.Passed != sanitizedSummary.Passed
+                || sourceSummary.Failed != sanitizedSummary.Failed
+                || sourceSummary.Skipped != sanitizedSummary.Skipped
+                || sourceSummary.Inconclusive != sanitizedSummary.Inconclusive
+                || !sourceSummary.RequiredCases.SequenceEqual(sanitizedSummary.RequiredCases))
+            {
+                throw new InvalidDataException("Sanitized Unity XML changed test results or required-case evidence.");
+            }
+            return sanitizedSummary;
+        }
+
+        private static void SanitizeXmlNode(XmlNode node)
+        {
+            if (node.Attributes != null)
+            {
+                foreach (XmlAttribute attribute in node.Attributes)
+                {
+                    attribute.Value = SanitizeEvidenceText(attribute.Value);
+                }
+            }
+            if (node.NodeType == XmlNodeType.Text || node.NodeType == XmlNodeType.CDATA)
+            {
+                node.Value = SanitizeEvidenceText(node.Value ?? string.Empty);
+            }
+            foreach (XmlNode child in node.ChildNodes)
+            {
+                SanitizeXmlNode(child);
+            }
+        }
+
         private static void CopySanitizedText(string source, string destination)
         {
-            var text = File.ReadAllText(source);
+            var text = SanitizeEvidenceText(File.ReadAllText(source));
+            EnsureSanitizedText(text, source);
+            File.WriteAllText(destination, text);
+        }
+
+        private static string SanitizeEvidenceText(string text)
+        {
             var repositoryRoot = RepositoryRoot();
-            text = text.Replace(repositoryRoot, "<REPOSITORY_ROOT>");
+            text = text.Replace(repositoryRoot, "REPOSITORY_ROOT");
             var userHome = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
             if (!string.IsNullOrEmpty(userHome))
             {
-                text = text.Replace(userHome, "<USER_HOME>");
+                text = text.Replace(userHome, "USER_HOME");
             }
-            text = UnixUserRootPattern.Replace(text, "<USER_HOME>");
-            text = WindowsUserRootPattern.Replace(text, "<USER_HOME>");
+            text = UnixUserRootPattern.Replace(text, "USER_HOME");
+            text = WindowsUserRootPattern.Replace(text, "USER_HOME");
+            return text;
+        }
+
+        private static void EnsureSanitizedText(string text, string source)
+        {
             if (text.Contains("/Users/") || text.Contains("/home/runner/") || SecretPattern.IsMatch(text))
             {
                 throw new InvalidDataException($"Sanitization did not remove machine-local or sensitive text from {source}.");
             }
-            File.WriteAllText(destination, text);
         }
 
         private static void WriteJson(string path, JToken document)

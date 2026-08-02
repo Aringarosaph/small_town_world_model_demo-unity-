@@ -162,7 +162,10 @@ truthful Unity partial bundle with:
 The exporter requires external non-dangling SIM/registry/trace inputs, exact
 producer identity/version/bridge observations, `passed=true`, the frozen seed
 lists, zero-failure/zero-skip XML, and all named live/JointAction/clear cases.
-It sanitizes Unity XML/logs, hashes every retained artifact, and writes
+It parses Unity XML before and after sanitization, rewrites attribute/text
+machine paths through the XML DOM with markup-safe `REPOSITORY_ROOT` and
+`USER_HOME` placeholders, reruns zero-skip/required-case validation on the
+written file, hashes every retained artifact, and writes
 `stwm.unity.m3-partial-acceptance-evidence/v1`. Because the current SIM input
 explicitly says `full_slow_soak_executed=false`, status is necessarily
 `PENDING` and `acceptance_eligible=false`. It never emits the PASS-only

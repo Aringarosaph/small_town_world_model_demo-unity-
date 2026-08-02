@@ -3,6 +3,7 @@ using System.IO;
 using Newtonsoft.Json.Linq;
 using NUnit.Framework;
 using STWM.AITown.Editor;
+using System.Xml;
 
 namespace STWM.AITown.Tests.EditMode
 {
@@ -82,6 +83,45 @@ namespace STWM.AITown.Tests.EditMode
 
             Assert.Throws<InvalidDataException>(() =>
                 M3AcceptanceEvidenceExporter.ValidateTestResults(path, Array.Empty<string>()));
+        }
+
+        [Test]
+        public void MachineLocalXmlAttributePathUsesMarkupSafePlaceholderAndRevalidates()
+        {
+            var source = WriteXml(1, 1, 0, 0, 0, "live_case");
+            var sourceText = File.ReadAllText(source)
+                .Replace("STWM.Tests.live_case", "/Users/producer/project/live_case.dll");
+            File.WriteAllText(source, sourceText);
+            var destination = Path.Combine(tempDirectory, "sanitized.xml");
+
+            var summary = M3AcceptanceEvidenceExporter.CopySanitizedXmlTestResults(
+                source,
+                destination,
+                Array.Empty<string>());
+
+            var sanitized = File.ReadAllText(destination);
+            Assert.That(summary.Passed, Is.EqualTo(1));
+            Assert.That(sanitized, Does.Contain("USER_HOME/project/live_case.dll"));
+            Assert.That(sanitized, Does.Not.Contain("/Users/"));
+            Assert.That(sanitized, Does.Not.Contain("<USER_HOME>"));
+            Assert.DoesNotThrow(() => new XmlDocument().Load(destination));
+        }
+
+        [Test]
+        public void LiteralAngleBracketPlaceholderInsideAttributeIsRejectedAsMalformedXml()
+        {
+            var source = WriteXml(1, 1, 0, 0, 0, "live_case");
+            var malformed = File.ReadAllText(source)
+                .Replace("STWM.Tests.live_case", "<REPOSITORY_ROOT>/live_case.dll");
+            File.WriteAllText(source, malformed);
+            var destination = Path.Combine(tempDirectory, "must-not-exist.xml");
+
+            Assert.Throws<XmlException>(() =>
+                M3AcceptanceEvidenceExporter.CopySanitizedXmlTestResults(
+                    source,
+                    destination,
+                    Array.Empty<string>()));
+            Assert.That(File.Exists(destination), Is.False);
         }
 
         private string WriteXml(

@@ -2,6 +2,21 @@
 
 ## M3 active live/evidence increment
 
+### QA partial-artifact audit correction
+
+QA correctly rejected the first partial bundle even though its descriptors
+matched bytes and SHA-256: raw text replacement inserted literal
+`<REPOSITORY_ROOT>` inside XML attribute values, making the sanitized EditMode
+and PlayMode files malformed. The additive Unity fix now sanitizes XML through
+`XmlDocument` attributes/text with markup-safe `REPOSITORY_ROOT`/`USER_HOME`
+values, writes through `XmlWriter`, then reparses and reruns zero-skip plus
+required-case validation before creating any artifact descriptor. A malformed
+literal-angle-bracket attribute is a blocking `XmlException` test case.
+
+The corrected final bundle is generated at
+`/tmp/stwm-m3-unity-delivery-xmlfix.zKSD7B`; it supersedes the original
+`/tmp/stwm-m3-unity-delivery.9ylDR4` bundle for QA assembly.
+
 ### Production 0.3 interoperability and evidence (current)
 
 - Local test-only SIM inputs were cherry-picked without changing Unity
