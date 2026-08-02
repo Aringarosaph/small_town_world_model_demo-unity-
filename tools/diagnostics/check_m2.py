@@ -79,6 +79,7 @@ class AssetIssue:
 PROJECT_NAME: Final = "Small Town World Model（STWM）"
 ACCEPTED_M1_COMMIT: Final = "d014e709f50d7d59a6181ddb796ae00f11c264b8"
 PROTOCOL_VERSION: Final = "0.2.0"
+M3_PROTOCOL_VERSION: Final = "0.3.0"
 CATALOG_PROTOCOL_VERSION: Final = "0.1.0"
 UNITY_EDITOR_VERSION: Final = "6000.4.2f1"
 REPORT_SCHEMA: Final = "stwm.qa.m2-diagnostics/v1"
@@ -520,9 +521,12 @@ def _validate_protocol_version_policy(version: Mapping[str, object]) -> tuple[bo
     try:
         compatibility = _mapping(version.get("compatibility"), "protocol.version.compatibility")
         frozen = _mapping(version.get("frozen_decisions"), "protocol.version.frozen_decisions")
+        bootstrap_versions = compatibility.get("bootstrap_decodable_versions")
         ok = (
             compatibility.get("active_m2_acceptance_versions") == [PROTOCOL_VERSION]
-            and compatibility.get("bootstrap_decodable_versions") == [PROTOCOL_VERSION, "0.1.0"]
+            and isinstance(bootstrap_versions, list)
+            and PROTOCOL_VERSION in bootstrap_versions
+            and "0.1.0" in bootstrap_versions
             and compatibility.get("legacy_decode_only_versions") == ["0.1.0"]
             and compatibility.get("movement_cancelled_versions") == [PROTOCOL_VERSION]
             and frozen.get("action_cancelled_direction") == "PYTHON_TO_UNITY_AUTHORITATIVE_DECISION"
@@ -533,7 +537,7 @@ def _validate_protocol_version_policy(version: Mapping[str, object]) -> tuple[bo
         )
     except DiagnosticError as exc:
         return False, str(exc)
-    return ok, "protocol/version.json does not retain the accepted ADR-0010 direction/version policy"
+    return ok, "protocol/version.json does not retain the accepted ADR-0010 M2 profile and direction policy"
 
 
 def check_protocol_contract(root: Path, require_m2: bool) -> list[Finding]:
@@ -572,14 +576,12 @@ def check_protocol_contract(root: Path, require_m2: bool) -> list[Finding]:
         _finding(
             check="m2.protocol",
             code="M2_CATALOG_BRIDGE_VERSION_SEPARATION",
-            ok=catalog_protocol == CATALOG_PROTOCOL_VERSION and current_protocol == PROTOCOL_VERSION,
+            ok=catalog_protocol == CATALOG_PROTOCOL_VERSION,
             success=(
-                f"catalog provenance remains {CATALOG_PROTOCOL_VERSION} while the negotiated M2 bridge is "
-                f"{PROTOCOL_VERSION}"
+                f"catalog provenance remains {CATALOG_PROTOCOL_VERSION} while M2 evidence negotiates "
+                f"its retained {PROTOCOL_VERSION} compatibility profile"
             ),
-            failure=(
-                f"catalog_protocol_version={catalog_protocol!r}, negotiated_protocol_version={current_protocol!r}"
-            ),
+            failure=f"catalog_protocol_version={catalog_protocol!r}",
             owner=Owner.CONTRACTS,
             remediation="Do not rewrite the M0 catalog provenance; bridge negotiation comes from protocol/version.json.",
         )
@@ -589,21 +591,26 @@ def check_protocol_contract(root: Path, require_m2: bool) -> list[Finding]:
             check="m2.protocol",
             code="M2_PROTOCOL_VERSION_DIRECTION_POLICY",
             ok=version_policy_ok,
-            success="protocol metadata freezes M2-only 0.2.0, direction authority, correlation, and full resync",
+            success="protocol metadata retains the M2 0.2.0 profile, direction authority, correlation, and full resync",
             failure=version_policy_error,
             owner=Owner.CONTRACTS,
             path="protocol/version.json",
             remediation="Restore the generated ADR-0010 protocol metadata; QA may not redefine direction policy.",
         )
     )
-    if current_protocol == PROTOCOL_VERSION:
+    if current_protocol in {PROTOCOL_VERSION, M3_PROTOCOL_VERSION}:
         findings.append(
-            Finding(
+            _finding(
                 check="m2.protocol",
-                status=Status.PASS,
                 code="M2_PROTOCOL_0_2_CONTRACT",
-                message=f"protocol {PROTOCOL_VERSION} is integrated",
+                ok=version_policy_ok,
+                success=(
+                    f"protocol {PROTOCOL_VERSION} artifacts remain the active M2 acceptance profile "
+                    f"while repository current is {current_protocol}"
+                ),
+                failure="repository current is supported, but the active M2 0.2.0 acceptance profile is missing",
                 owner=Owner.CONTRACTS,
+                remediation="Restore active_m2_acceptance_versions=['0.2.0'] and the retained ADR-0010 artifacts.",
             )
         )
     elif current_protocol == "0.1.0":
@@ -650,7 +657,12 @@ def check_protocol_contract(root: Path, require_m2: bool) -> list[Finding]:
             path=(FIXTURE_ROOT / "navigation-replay-contract.json").as_posix(),
         )
     )
-    if current_protocol == PROTOCOL_VERSION and cancellation_present and cancellation_artifacts_ok:
+    if (
+        current_protocol in {PROTOCOL_VERSION, M3_PROTOCOL_VERSION}
+        and version_policy_ok
+        and cancellation_present
+        and cancellation_artifacts_ok
+    ):
         findings.append(
             Finding(
                 check="m2.navigation",

@@ -1,0 +1,30 @@
+{
+  "schema": "stwm.qa.m3-full-registry-profile/v1",
+  "profile": "M3_FULL",
+  "missing_full_v0_severity": "ERROR",
+  "surface": {"locations": 8, "npc_views": 10, "object_types": 15},
+  "homes": {
+    "bed_slots_per_resident": 1,
+    "dining_slots_per_resident": 1,
+    "fridges_per_home": 1,
+    "showers_per_home": 1,
+    "tvs_per_home": 1,
+    "sofa_slots_per_resident": 1
+  },
+  "workstations": {"CAFE_MORNING": 2, "CAFE_EVENING": 2, "SHOP": 2, "WORKSHOP": 4},
+  "shop": {"shelf_slots": 2, "checkout_slots": 1},
+  "cafe_bar": {
+    "cafe_counter_slots": 1,
+    "bar_counter_slots": 1,
+    "dining_seat_slots": 4,
+    "public_rest_seat_slots": 2
+  },
+  "break_seats": {"shop": 2, "workshop": 4},
+  "park": {
+    "route_slots": 8,
+    "public_seat_slots": 4,
+    "leisure_slots": 2,
+    "conversation_anchor_slots": 2
+  },
+  "public_locations": {"conversation_anchor_slots_each": 2}
+}

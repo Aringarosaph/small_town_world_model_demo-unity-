@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+from collections.abc import Mapping
 from pathlib import Path
 from typing import cast
 
@@ -16,11 +17,13 @@ from town_core.domain.protocol_models import (
     UnityToPythonMessage,
 )
 
+import tools.diagnostics.check_m2 as m2_diagnostics
 from tools.diagnostics.check_m0 import find_repository_root
 from tools.diagnostics.check_m2 import (
     EVIDENCE_TEMPLATE,
     FIXTURE_ROOT,
     Status,
+    _validate_protocol_version_policy,
     analyze_asset_registry,
     check_asset_registry_fixtures,
     check_evidence_template,
@@ -165,6 +168,37 @@ def test_integrated_protocol_and_target_fixtures_have_no_contract_pending() -> N
     assert {finding.code for finding in findings if finding.status is Status.PASS} >= required_codes
     assert not [finding for finding in findings if finding.status is Status.FAIL]
     assert not [finding for finding in findings if finding.status is Status.PENDING]
+
+
+def test_m2_protocol_policy_survives_additive_m3_current_version(monkeypatch: pytest.MonkeyPatch) -> None:
+    root = find_repository_root(Path(__file__))
+    document = _read_json(root / "protocol/version.json")
+    compatibility = cast(dict[str, object], document["compatibility"])
+    document["protocol_version"] = "0.3.0"
+    compatibility["active_m3_acceptance_versions"] = ["0.3.0"]
+    compatibility["bootstrap_decodable_versions"] = ["0.3.0", "0.2.0", "0.1.0"]
+
+    ok, error = _validate_protocol_version_policy(document)
+
+    assert ok, error
+
+    real_read_json = m2_diagnostics._read_json
+
+    def read_with_m3_current(path: Path) -> Mapping[str, object]:
+        return document if path == root / "protocol/version.json" else real_read_json(path)
+
+    monkeypatch.setattr(m2_diagnostics, "_read_json", read_with_m3_current)
+    findings = check_protocol_contract(root, require_m2=False)
+    assert not [finding for finding in findings if finding.status is not Status.PASS]
+    assert {finding.code for finding in findings} >= {
+        "M2_PROTOCOL_0_2_CONTRACT",
+        "M2_MOVEMENT_CANCELLED_CONTRACT_PRESENT",
+        "M2_PROTOCOL_VERSION_DIRECTION_POLICY",
+    }
+
+    compatibility["active_m2_acceptance_versions"] = []
+    ok, _ = _validate_protocol_version_policy(document)
+    assert not ok
 
 
 @pytest.mark.protocol

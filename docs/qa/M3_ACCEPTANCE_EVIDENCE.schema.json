@@ -1,0 +1,298 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "stwm.qa.m3-acceptance-evidence/v1",
+  "title": "STWM M3 strict release acceptance evidence",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "project_name",
+    "profile",
+    "source_commit",
+    "accepted_m2_commit",
+    "catalog_protocol_version",
+    "negotiated_protocol_version",
+    "unity_editor_version",
+    "release_profile",
+    "gates",
+    "matrices",
+    "artifacts"
+  ],
+  "properties": {
+    "schema": {"const": "stwm.qa.m3-acceptance-evidence/v1"},
+    "project_name": {"const": "Small Town World Model（STWM）"},
+    "profile": {"const": "release"},
+    "source_commit": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+    "accepted_m2_commit": {"const": "7b2618de09bd87eb49716ac40f1d0ba697f00351"},
+    "catalog_protocol_version": {"const": "0.1.0"},
+    "negotiated_protocol_version": {"const": "0.3.0"},
+    "unity_editor_version": {"const": "6000.4.2f1"},
+    "release_profile": {"$ref": "#/$defs/releaseProfile"},
+    "gates": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "protocol_0_3",
+        "compatibility_profiles",
+        "catalog_surface",
+        "shared_semantic_manifest",
+        "full_registry",
+        "behavior_matrix",
+        "agent_liveness",
+        "economy_conservation",
+        "relationship_direction",
+        "knowledge_permissions",
+        "joint_action_atomicity",
+        "checkpoint_resume",
+        "determinism",
+        "authoritative_replay",
+        "soak_7_day",
+        "soak_30_day",
+        "pathology",
+        "performance",
+        "unity_semantics",
+        "debug_explainability",
+        "m0_m2_regressions",
+        "repository_guard"
+      ],
+      "properties": {
+        "protocol_0_3": {"$ref": "#/$defs/passGate"},
+        "compatibility_profiles": {"$ref": "#/$defs/passGate"},
+        "catalog_surface": {"$ref": "#/$defs/passGate"},
+        "shared_semantic_manifest": {"$ref": "#/$defs/passGate"},
+        "full_registry": {"$ref": "#/$defs/passGate"},
+        "behavior_matrix": {"$ref": "#/$defs/passGate"},
+        "agent_liveness": {"$ref": "#/$defs/passGate"},
+        "economy_conservation": {"$ref": "#/$defs/passGate"},
+        "relationship_direction": {"$ref": "#/$defs/passGate"},
+        "knowledge_permissions": {"$ref": "#/$defs/passGate"},
+        "joint_action_atomicity": {"$ref": "#/$defs/passGate"},
+        "checkpoint_resume": {"$ref": "#/$defs/passGate"},
+        "determinism": {"$ref": "#/$defs/passGate"},
+        "authoritative_replay": {"$ref": "#/$defs/passGate"},
+        "soak_7_day": {"$ref": "#/$defs/passGate"},
+        "soak_30_day": {"$ref": "#/$defs/passGate"},
+        "pathology": {"$ref": "#/$defs/passGate"},
+        "performance": {"$ref": "#/$defs/passGate"},
+        "unity_semantics": {"$ref": "#/$defs/passGate"},
+        "debug_explainability": {"$ref": "#/$defs/passGate"},
+        "m0_m2_regressions": {"$ref": "#/$defs/passGate"},
+        "repository_guard": {"$ref": "#/$defs/passGate"}
+      }
+    },
+    "matrices": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "catalog_surface",
+        "behavior_coverage",
+        "agent_liveness",
+        "household_economy",
+        "relationship_summary",
+        "knowledge_permissions",
+        "joint_action",
+        "determinism",
+        "soak_runs",
+        "pathology",
+        "performance",
+        "unity"
+      ],
+      "properties": {
+        "catalog_surface": {"$ref": "#/$defs/catalogSurface"},
+        "behavior_coverage": {"type": "array", "minItems": 22, "maxItems": 22, "items": {"$ref": "#/$defs/behaviorCoverage"}},
+        "agent_liveness": {"type": "array", "minItems": 10, "maxItems": 10, "items": {"$ref": "#/$defs/agentLiveness"}},
+        "household_economy": {"type": "array", "minItems": 4, "maxItems": 4, "items": {"$ref": "#/$defs/householdEconomy"}},
+        "relationship_summary": {"$ref": "#/$defs/relationshipSummary"},
+        "knowledge_permissions": {"$ref": "#/$defs/knowledgePermissions"},
+        "joint_action": {"$ref": "#/$defs/jointAction"},
+        "determinism": {"$ref": "#/$defs/determinism"},
+        "soak_runs": {"type": "array", "minItems": 8, "maxItems": 8, "items": {"$ref": "#/$defs/soakRun"}},
+        "pathology": {"$ref": "#/$defs/pathology"},
+        "performance": {"$ref": "#/$defs/performance"},
+        "unity": {"$ref": "#/$defs/unity"}
+      }
+    },
+    "artifacts": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "authority_evidence",
+        "behavior_matrix_report",
+        "full_registry",
+        "registry_report",
+        "soak_7_day_report",
+        "soak_30_day_report",
+        "replay_report",
+        "pathology_report",
+        "performance_report",
+        "unity_semantic_report",
+        "debug_trace",
+        "editmode_results",
+        "playmode_results",
+        "batchmode_log",
+        "repository_report"
+      ],
+      "properties": {
+        "authority_evidence": {"$ref": "#/$defs/artifact"},
+        "behavior_matrix_report": {"$ref": "#/$defs/artifact"},
+        "full_registry": {"$ref": "#/$defs/artifact"},
+        "registry_report": {"$ref": "#/$defs/artifact"},
+        "soak_7_day_report": {"$ref": "#/$defs/artifact"},
+        "soak_30_day_report": {"$ref": "#/$defs/artifact"},
+        "replay_report": {"$ref": "#/$defs/artifact"},
+        "pathology_report": {"$ref": "#/$defs/artifact"},
+        "performance_report": {"$ref": "#/$defs/artifact"},
+        "unity_semantic_report": {"$ref": "#/$defs/artifact"},
+        "debug_trace": {"$ref": "#/$defs/artifact"},
+        "editmode_results": {"$ref": "#/$defs/artifact"},
+        "playmode_results": {"$ref": "#/$defs/artifact"},
+        "batchmode_log": {"$ref": "#/$defs/artifact"},
+        "repository_report": {"$ref": "#/$defs/artifact"}
+      }
+    }
+  },
+  "$defs": {
+    "passGate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "details"],
+      "properties": {"status": {"const": "PASS"}, "details": {"type": "string", "minLength": 1}}
+    },
+    "artifact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "sha256", "bytes", "redacted", "schema"],
+      "properties": {
+        "path": {"type": "string", "minLength": 1},
+        "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+        "bytes": {"type": "integer", "minimum": 1},
+        "redacted": {"const": true},
+        "schema": {"type": ["string", "null"]}
+      }
+    },
+    "releaseProfile": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schema", "seeds_7_day", "seeds_30_day", "driver_chunks_minutes", "checkpoint_interval_minutes", "fast_gate", "slow_gate", "pathology", "performance"],
+      "properties": {
+        "schema": {"const": "stwm.qa.m3-release-profile/v1"},
+        "seeds_7_day": {"const": [12345, 24680, 97531, 314159, 271828]},
+        "seeds_30_day": {"const": [12345, 24680, 97531]},
+        "driver_chunks_minutes": {"const": [1, 7, 60]},
+        "checkpoint_interval_minutes": {"const": 360},
+        "fast_gate": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["target_minutes", "hard_limit_minutes", "vcpus", "memory_gib"],
+          "properties": {"target_minutes": {"const": 10}, "hard_limit_minutes": {"const": 15}, "vcpus": {"const": 2}, "memory_gib": {"const": 4}}
+        },
+        "slow_gate": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["max_python_shards", "vcpus_per_shard", "memory_gib_per_shard", "hard_limit_minutes", "local_single_instance"],
+          "properties": {"max_python_shards": {"const": 4}, "vcpus_per_shard": {"const": 2}, "memory_gib_per_shard": {"const": 4}, "hard_limit_minutes": {"const": 60}, "local_single_instance": {"const": true}}
+        },
+        "pathology": {"$ref": "#/$defs/releasePathology"},
+        "performance": {"$ref": "#/$defs/releasePerformance"}
+      }
+    },
+    "releasePathology": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["max_candidates_per_agent", "max_decision_batch", "max_idle_with_legal_non_idle_minutes", "max_recoverable_zero_need_minutes", "money_low_streak_limit_days", "relationship_boundary_epsilon", "relationship_boundary_fraction_limit", "relationship_boundary_streak_days", "max_events_per_game_day"],
+      "properties": {
+        "max_candidates_per_agent": {"const": 12},
+        "max_decision_batch": {"const": 120},
+        "max_idle_with_legal_non_idle_minutes": {"const": 1440},
+        "max_recoverable_zero_need_minutes": {"const": 360},
+        "money_low_streak_limit_days": {"const": 7},
+        "relationship_boundary_epsilon": {"const": 0.01},
+        "relationship_boundary_fraction_limit": {"const": 0.8},
+        "relationship_boundary_streak_days": {"const": 7},
+        "max_events_per_game_day": {"const": 1000}
+      }
+    },
+    "releasePerformance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["reference_machine", "python_major_minor", "max_30_day_wall_seconds", "max_peak_rss_bytes", "max_rss_slope_bytes_per_game_day", "max_decision_batch_p95_ms", "max_tick_p99_ms"],
+      "properties": {
+        "reference_machine": {"const": "producer Apple-silicon MacBook Air"},
+        "python_major_minor": {"const": "3.12"},
+        "max_30_day_wall_seconds": {"const": 900},
+        "max_peak_rss_bytes": {"const": 1073741824},
+        "max_rss_slope_bytes_per_game_day": {"const": 1048576},
+        "max_decision_batch_p95_ms": {"const": 50},
+        "max_tick_p99_ms": {"const": 100}
+      }
+    },
+    "catalogSurface": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["npcs", "households", "locations", "behaviors", "object_types", "relationship_edges", "needs", "personality_axes", "mood_axes", "relationship_axes"],
+      "properties": {"npcs": {"const": 10}, "households": {"const": 4}, "locations": {"const": 8}, "behaviors": {"const": 22}, "object_types": {"const": 15}, "relationship_edges": {"const": 90}, "needs": {"const": 5}, "personality_axes": {"const": 4}, "mood_axes": {"const": 2}, "relationship_axes": {"const": 4}}
+    },
+    "behaviorCoverage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["behavior_id", "fixture_id", "legal_candidate", "illegal_candidate", "hard_cost_preview", "resolver_accept", "resolver_reject", "reservation_and_lifecycle", "allowed_effects", "authoritative_replay", "unity_presentation", "release_soak_occurrence_count"],
+      "properties": {
+        "behavior_id": {"type": "string"}, "fixture_id": {"type": "string"},
+        "legal_candidate": {"const": true}, "illegal_candidate": {"const": true}, "hard_cost_preview": {"const": true},
+        "resolver_accept": {"const": true}, "resolver_reject": {"const": true}, "reservation_and_lifecycle": {"const": true},
+        "allowed_effects": {"const": true}, "authoritative_replay": {"const": true}, "unity_presentation": {"const": true},
+        "release_soak_occurrence_count": {"type": "integer", "minimum": 1}
+      }
+    },
+    "agentLiveness": {
+      "type": "object", "additionalProperties": false,
+      "required": ["agent_id", "enabled", "scheduled", "decision_count", "settled_action_count", "max_idle_with_legal_non_idle_minutes", "work_bound_violation_count"],
+      "properties": {"agent_id": {"type": "string"}, "enabled": {"const": true}, "scheduled": {"const": true}, "decision_count": {"type": "integer", "minimum": 1}, "settled_action_count": {"type": "integer", "minimum": 1}, "max_idle_with_legal_non_idle_minutes": {"type": "integer", "maximum": 1440}, "work_bound_violation_count": {"const": 0}}
+    },
+    "householdEconomy": {
+      "type": "object", "additionalProperties": false,
+      "required": ["household_id", "initial_money", "final_money", "unique_wages", "grocery_charges", "cafe_charges", "bar_charges", "initial_food", "final_food", "grocery_purchases", "completed_home_meals", "failed_or_cancelled_charge_count", "duplicate_settlement_count", "minimum_money", "minimum_food", "resource_recovery_within_workweek"],
+      "properties": {"household_id": {"type": "string"}, "initial_money": {"type": "integer", "minimum": 0}, "final_money": {"type": "integer", "minimum": 0}, "unique_wages": {"type": "integer", "minimum": 0}, "grocery_charges": {"type": "integer", "minimum": 0}, "cafe_charges": {"type": "integer", "minimum": 0}, "bar_charges": {"type": "integer", "minimum": 0}, "initial_food": {"type": "integer", "minimum": 0}, "final_food": {"type": "integer", "minimum": 0}, "grocery_purchases": {"type": "integer", "minimum": 0}, "completed_home_meals": {"type": "integer", "minimum": 0}, "failed_or_cancelled_charge_count": {"const": 0}, "duplicate_settlement_count": {"const": 0}, "minimum_money": {"type": "integer", "minimum": 0}, "minimum_food": {"type": "integer", "minimum": 0}, "resource_recovery_within_workweek": {"const": true}}
+    },
+    "relationshipSummary": {
+      "type": "object", "additionalProperties": false,
+      "required": ["edge_count", "out_of_range_count", "wrong_direction_count", "untraced_delta_count", "boundary_epsilon", "boundary_fraction_limit", "boundary_streak_days", "boundary_violation_count"],
+      "properties": {"edge_count": {"const": 90}, "out_of_range_count": {"const": 0}, "wrong_direction_count": {"const": 0}, "untraced_delta_count": {"const": 0}, "boundary_epsilon": {"const": 0.01}, "boundary_fraction_limit": {"const": 0.8}, "boundary_streak_days": {"const": 7}, "boundary_violation_count": {"const": 0}}
+    },
+    "knowledgePermissions": {
+      "type": "object", "additionalProperties": false,
+      "required": ["direct_participant_covered", "witnessed_covered", "told_covered", "unknown_share_rejected", "speaker_known_event_only", "player_told_record_count", "epistemic_graph_count"],
+      "properties": {"direct_participant_covered": {"const": true}, "witnessed_covered": {"const": true}, "told_covered": {"const": true}, "unknown_share_rejected": {"const": true}, "speaker_known_event_only": {"const": true}, "player_told_record_count": {"const": 0}, "epistemic_graph_count": {"const": 0}}
+    },
+    "jointAction": {
+      "type": "object", "additionalProperties": false,
+      "required": ["invited_activity_ids", "central_resolver", "acceptance_covered", "rejection_covered", "participant_exclusivity", "atomic_reservations", "cancel_release", "failure_release", "timeout_release", "split_action_count", "replay_match"],
+      "properties": {"invited_activity_ids": {"const": ["watch_tv", "eat_at_cafe", "drink_at_bar", "walk_in_park", "sit_in_park"]}, "central_resolver": {"const": true}, "acceptance_covered": {"const": true}, "rejection_covered": {"const": true}, "participant_exclusivity": {"const": true}, "atomic_reservations": {"const": true}, "cancel_release": {"const": true}, "failure_release": {"const": true}, "timeout_release": {"const": true}, "split_action_count": {"const": 0}, "replay_match": {"const": true}}
+    },
+    "determinism": {
+      "type": "object", "additionalProperties": false,
+      "required": ["canonical_seed", "driver_chunks_minutes", "checkpoint_interval_minutes", "repeat_final_state_hash_match", "repeat_ledger_hash_match", "repeat_authority_log_hash_match", "chunk_final_state_hash_match", "chunk_ledger_hash_match", "chunk_authority_log_hash_match", "checkpoint_resume_final_state_hash_match", "checkpoint_resume_ledger_hash_match", "checkpoint_resume_authority_log_hash_match", "authoritative_replay_final_state_hash_match", "authoritative_replay_ledger_hash_match", "authoritative_replay_authority_log_hash_match", "checkpoint_resume_mismatch_count", "replay_mismatch_count", "source_run_mutation_count"],
+      "properties": {"canonical_seed": {"const": 12345}, "driver_chunks_minutes": {"const": [1, 7, 60]}, "checkpoint_interval_minutes": {"const": 360}, "repeat_final_state_hash_match": {"const": true}, "repeat_ledger_hash_match": {"const": true}, "repeat_authority_log_hash_match": {"const": true}, "chunk_final_state_hash_match": {"const": true}, "chunk_ledger_hash_match": {"const": true}, "chunk_authority_log_hash_match": {"const": true}, "checkpoint_resume_final_state_hash_match": {"const": true}, "checkpoint_resume_ledger_hash_match": {"const": true}, "checkpoint_resume_authority_log_hash_match": {"const": true}, "authoritative_replay_final_state_hash_match": {"const": true}, "authoritative_replay_ledger_hash_match": {"const": true}, "authoritative_replay_authority_log_hash_match": {"const": true}, "checkpoint_resume_mismatch_count": {"const": 0}, "replay_mismatch_count": {"const": 0}, "source_run_mutation_count": {"const": 0}}
+    },
+    "soakRun": {
+      "type": "object", "additionalProperties": false,
+      "required": ["days", "seed", "status", "final_state_hash", "ledger_hash", "authority_log_hash", "replay_final_state_hash", "replay_ledger_hash", "replay_authority_log_hash", "invariant_violation_count", "artifact"],
+      "properties": {"days": {"enum": [7, 30]}, "seed": {"type": "integer"}, "status": {"const": "PASS"}, "final_state_hash": {"type": "string", "pattern": "^[0-9a-f]{64}$"}, "ledger_hash": {"type": "string", "pattern": "^[0-9a-f]{64}$"}, "authority_log_hash": {"type": "string", "pattern": "^[0-9a-f]{64}$"}, "replay_final_state_hash": {"type": "string", "pattern": "^[0-9a-f]{64}$"}, "replay_ledger_hash": {"type": "string", "pattern": "^[0-9a-f]{64}$"}, "replay_authority_log_hash": {"type": "string", "pattern": "^[0-9a-f]{64}$"}, "invariant_violation_count": {"const": 0}, "artifact": {"enum": ["soak_7_day_report", "soak_30_day_report"]}}
+    },
+    "pathology": {
+      "type": "object", "additionalProperties": false,
+      "required": ["max_candidates_per_agent", "max_decision_batch", "reservation_leak_count", "slot_conflict_count", "permanent_idle_agent_count", "work_bound_violation_count", "max_recoverable_zero_need_minutes", "unrecovered_household_count", "max_all_households_money_low_streak_days", "relationship_boundary_violation_count", "max_events_per_game_day", "event_growth_linear", "untyped_event_count", "duplicate_semantic_event_count"],
+      "properties": {"max_candidates_per_agent": {"type": "integer", "maximum": 12}, "max_decision_batch": {"type": "integer", "maximum": 120}, "reservation_leak_count": {"const": 0}, "slot_conflict_count": {"const": 0}, "permanent_idle_agent_count": {"const": 0}, "work_bound_violation_count": {"const": 0}, "max_recoverable_zero_need_minutes": {"type": "integer", "maximum": 360}, "unrecovered_household_count": {"const": 0}, "max_all_households_money_low_streak_days": {"type": "number", "exclusiveMaximum": 7}, "relationship_boundary_violation_count": {"const": 0}, "max_events_per_game_day": {"type": "integer", "maximum": 1000}, "event_growth_linear": {"const": true}, "untyped_event_count": {"const": 0}, "duplicate_semantic_event_count": {"const": 0}}
+    },
+    "performance": {
+      "type": "object", "additionalProperties": false,
+      "required": ["reference_machine", "os", "python_version", "rss_collection_method", "wall_time_seconds_30_day", "peak_rss_bytes", "post_warmup_rss_slope_bytes_per_game_day", "decision_batch_p95_ms", "tick_p99_ms"],
+      "properties": {"reference_machine": {"const": "producer Apple-silicon MacBook Air"}, "os": {"type": "string", "minLength": 1}, "python_version": {"type": "string", "pattern": "^3\\.12(?:\\.[0-9]+)?$"}, "rss_collection_method": {"type": "string", "minLength": 1}, "wall_time_seconds_30_day": {"type": "number", "exclusiveMaximum": 900}, "peak_rss_bytes": {"type": "integer", "exclusiveMaximum": 1073741824}, "post_warmup_rss_slope_bytes_per_game_day": {"type": "number", "maximum": 1048576}, "decision_batch_p95_ms": {"type": "number", "exclusiveMaximum": 50}, "tick_p99_ms": {"type": "number", "exclusiveMaximum": 100}}
+    },
+    "unity": {
+      "type": "object", "additionalProperties": false,
+      "required": ["npc_views", "locations", "object_types", "all_animation_semantics_mapped", "all_props_mapped", "all_facing_behaviors_supported", "all_required_slots_navmesh_reachable", "complete_snapshot_replacement", "explicit_null_clearing", "active_action_rebind", "stale_version_rejection", "duplicate_slot_claim_count", "joint_start_phase_cancel_fail_reconnect", "debug_ui_read_only", "debug_ui_complete_trace", "live_smoke_protocol_version", "editmode_skipped", "playmode_skipped"],
+      "properties": {"npc_views": {"const": 10}, "locations": {"const": 8}, "object_types": {"const": 15}, "all_animation_semantics_mapped": {"const": true}, "all_props_mapped": {"const": true}, "all_facing_behaviors_supported": {"const": true}, "all_required_slots_navmesh_reachable": {"const": true}, "complete_snapshot_replacement": {"const": true}, "explicit_null_clearing": {"const": true}, "active_action_rebind": {"const": true}, "stale_version_rejection": {"const": true}, "duplicate_slot_claim_count": {"const": 0}, "joint_start_phase_cancel_fail_reconnect": {"const": true}, "debug_ui_read_only": {"const": true}, "debug_ui_complete_trace": {"const": true}, "live_smoke_protocol_version": {"const": "0.3.0"}, "editmode_skipped": {"const": 0}, "playmode_skipped": {"const": 0}}
+    }
+  }
+}

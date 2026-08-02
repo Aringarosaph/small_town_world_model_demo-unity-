@@ -1,0 +1,56 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "stwm.qa.m3-readiness/v1",
+  "title": "STWM M3 integration-aware readiness report",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "project_name",
+    "profile",
+    "source_commit",
+    "accepted_m2_commit",
+    "m3_entry_commit",
+    "catalog_protocol_version",
+    "negotiated_protocol_version",
+    "findings",
+    "summary"
+  ],
+  "properties": {
+    "schema": {"const": "stwm.qa.m3-readiness/v1"},
+    "project_name": {"const": "Small Town World Model（STWM）"},
+    "profile": {"const": "fast"},
+    "source_commit": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+    "accepted_m2_commit": {"const": "7b2618de09bd87eb49716ac40f1d0ba697f00351"},
+    "m3_entry_commit": {"const": "2a516159ab41f88c90ea2932bbc117b595c569c3"},
+    "catalog_protocol_version": {"const": "0.1.0"},
+    "negotiated_protocol_version": {"const": "0.3.0"},
+    "findings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["check", "status", "code", "message", "owner", "path", "remediation"],
+        "properties": {
+          "check": {"type": "string", "minLength": 1},
+          "status": {"enum": ["PASS", "PENDING", "FAIL"]},
+          "code": {"type": "string", "pattern": "^M3_[A-Z0-9_]+$"},
+          "message": {"type": "string", "minLength": 1},
+          "owner": {"enum": ["QA", "CONTRACTS", "SIM", "UNITY", "ORCHESTRATOR"]},
+          "path": {"type": ["string", "null"]},
+          "remediation": {"type": ["string", "null"]}
+        }
+      }
+    },
+    "summary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["pass", "pending", "fail"],
+      "properties": {
+        "pass": {"type": "integer", "minimum": 0},
+        "pending": {"type": "integer", "minimum": 0},
+        "fail": {"type": "integer", "minimum": 0}
+      }
+    }
+  }
+}

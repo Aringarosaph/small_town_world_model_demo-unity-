@@ -1,0 +1,12 @@
+{
+  "schema": "stwm.qa.m3-readiness/v1",
+  "project_name": "Small Town World Model（STWM）",
+  "profile": "fast",
+  "source_commit": null,
+  "accepted_m2_commit": "7b2618de09bd87eb49716ac40f1d0ba697f00351",
+  "m3_entry_commit": "2a516159ab41f88c90ea2932bbc117b595c569c3",
+  "catalog_protocol_version": "0.1.0",
+  "negotiated_protocol_version": "0.3.0",
+  "findings": [],
+  "summary": {"pass": 0, "pending": 0, "fail": 0}
+}
