@@ -4,6 +4,7 @@ import json
 import platform
 from collections.abc import Mapping
 from pathlib import Path
+from types import SimpleNamespace
 from typing import Any, cast
 
 import pytest
@@ -201,6 +202,36 @@ def test_release_cli_is_machine_readable_for_plan_and_invalid_source(
     rejected = json.loads(capsys.readouterr().out)
     assert rejected["completed"] is False
     assert rejected["error_type"] == "ValueError"
+
+
+def test_production_child_failure_preserves_machine_readable_error_detail(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(
+        producer.subprocess,
+        "run",
+        lambda *args, **kwargs: SimpleNamespace(
+            returncode=1,
+            stdout=json.dumps(
+                {
+                    "completed": False,
+                    "error_type": "ValueError",
+                    "error": "M3 central Resolver rejected idle fallback: npc_07",
+                }
+            ),
+        ),
+    )
+
+    with pytest.raises(
+        RuntimeError,
+        match="production run-society failed: ValueError: M3 central Resolver rejected idle fallback: npc_07",
+    ):
+        producer._invoke_production_run(
+            producer.REPOSITORY_ROOT / "config" / "v0",
+            tmp_path / "run",
+            producer._job_plan()[0],
+        )
 
 
 def test_release_producer_resumes_without_repeating_completed_jobs(

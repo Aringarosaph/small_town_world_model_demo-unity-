@@ -285,7 +285,10 @@ def _invoke_production_run(config_path: Path, run_path: Path, job: Mapping[str, 
     if not isinstance(document, dict):
         raise TypeError("production run-society output must be an object")
     if completed.returncode != 0:
-        raise RuntimeError(f"production run-society failed: {document.get('error_type', 'unknown')}")
+        error_type = str(document.get("error_type", "unknown"))
+        detail = str(document.get("error", "")).strip()
+        suffix = f": {detail}" if detail else ""
+        raise RuntimeError(f"production run-society failed: {error_type}{suffix}")
     return document
 
 

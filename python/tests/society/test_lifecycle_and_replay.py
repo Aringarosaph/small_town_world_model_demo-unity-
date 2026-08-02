@@ -3,14 +3,226 @@ from __future__ import annotations
 from collections import Counter
 from typing import Any, cast
 
+import pytest
 from town_core.domain.config_models import CatalogBundle, NeedValues
-from town_core.domain.enums import BehaviorId, EventType, KnowledgeAcquisitionType
+from town_core.domain.enums import BehaviorId, EventType, KnowledgeAcquisitionType, ProposalResult
 from town_core.domain.m3_catalog_models import M3Catalogs
 from town_core.society.checkpoint import advance_authority_log_hash, checkpoint_hash, knowledge_key
-from town_core.society.engine import SocietyEngine
+from town_core.society.engine import SocietyEngine, _TickContext
 from town_core.society.initialization import build_initial_society_checkpoint
 from town_core.society.invariants import assert_society_invariants
+from town_core.society.models import AuthorityCheckpoint
 from town_core.society.transactions import apply_transaction_record
+
+
+def _decision_fixture(
+    catalog: CatalogBundle,
+    m3_catalogs: M3Catalogs,
+    *,
+    minute: int,
+    locations_by_agent: dict[str, str],
+    due_agent_ids: set[str] | frozenset[str],
+    hungry_agent_ids: set[str] | frozenset[str] = frozenset(),
+    empty_food_agent_id: str | None = None,
+) -> AuthorityCheckpoint:
+    checkpoint = build_initial_society_checkpoint(catalog, m3_catalogs, seed=12345)
+    agents = dict(checkpoint.world.agents)
+    locations = dict(checkpoint.world.locations)
+    moved = set(locations_by_agent)
+    for location_id, location in locations.items():
+        locations[location_id] = location.model_copy(
+            update={"current_agent_ids": [item for item in location.current_agent_ids if item not in moved]}
+        )
+    for agent_id, location_id in locations_by_agent.items():
+        location = locations[location_id]
+        locations[location_id] = location.model_copy(
+            update={"current_agent_ids": sorted([*location.current_agent_ids, agent_id])}
+        )
+    for agent_id, agent in agents.items():
+        needs = agent.needs
+        if agent_id in hungry_agent_ids:
+            needs = NeedValues(hunger=0.0, energy=1.0, hygiene=1.0, fun=1.0, social=1.0)
+        agents[agent_id] = agent.model_copy(
+            update={
+                "current_location_id": locations_by_agent.get(agent_id, agent.current_location_id),
+                "decision_due_at": minute if agent_id in due_agent_ids else minute + 10_000,
+                "needs": needs,
+            }
+        )
+    households = dict(checkpoint.world.households)
+    if empty_food_agent_id is not None:
+        household_id = agents[empty_food_agent_id].household_id
+        households[household_id] = households[household_id].model_copy(update={"food_units": 0})
+    world = checkpoint.world.model_copy(
+        update={
+            "game_minute": minute - 1,
+            "state_version": minute - 1,
+            "agents": agents,
+            "households": households,
+            "locations": locations,
+        }
+    )
+    recent = {**checkpoint.recent_behaviors, **dict.fromkeys(due_agent_ids, BehaviorId.IDLE)}
+    return checkpoint.model_copy(update={"world": world, "recent_behaviors": recent})
+
+
+def test_closed_shop_idle_fallback_survives_same_batch_object_conflict(
+    catalog: CatalogBundle,
+    m3_catalogs: M3Catalogs,
+) -> None:
+    """Minimal construction of the seed-12345/day-3/minute-5340 failure."""
+
+    checkpoint = _decision_fixture(
+        catalog,
+        m3_catalogs,
+        minute=1020,
+        locations_by_agent={"npc_05": "cafe_bar", "npc_07": "shop"},
+        due_agent_ids={"npc_05", "npc_07"},
+        hungry_agent_ids={"npc_05", "npc_07"},
+    )
+    engine = SocietyEngine(
+        catalog,
+        m3_catalogs,
+        checkpoint,
+        behavior_allowlist=frozenset({BehaviorId.IDLE, BehaviorId.EAT_AT_CAFE}),
+    )
+
+    result = engine.advance_to(1020)
+    decisions = {str(item["agent_id"]): item for item in result.decisions}
+
+    assert engine.rulebook.location_open("shop", 1020) is False
+    assert decisions["npc_05"]["selected_behavior_id"] == BehaviorId.EAT_AT_CAFE.value
+    assert decisions["npc_07"]["selected_behavior_id"] == BehaviorId.IDLE.value
+    resolver_attempts = cast(list[dict[str, object]], decisions["npc_07"]["resolver_attempts"])
+    assert [item["result"] for item in resolver_attempts] == [
+        ProposalResult.OBJECT_SLOT_CONFLICT.value,
+        ProposalResult.ACCEPTED.value,
+    ]
+    idle_action_id = str(decisions["npc_07"]["selected_action_id"])
+    idle_runtime = engine.export_checkpoint().action_runtimes[idle_action_id]
+    assert all(
+        engine.export_checkpoint().reservations[item].kind != "LOCATION" for item in idle_runtime.reservation_ids
+    )
+
+
+@pytest.mark.parametrize(
+    ("behavior_id", "agent_id", "location_id", "minute", "hungry", "empty_food"),
+    [
+        (BehaviorId.EAT_AT_CAFE, "npc_01", "cafe_bar", 1, True, False),
+        (BehaviorId.BUY_GROCERIES, "npc_05", "shop", 1, False, True),
+        (BehaviorId.WORK_SHIFT, "npc_01", "cafe_bar", 300, False, False),
+    ],
+)
+def test_closed_business_actions_remain_rejected_before_local_idle_fallback(
+    catalog: CatalogBundle,
+    m3_catalogs: M3Catalogs,
+    behavior_id: BehaviorId,
+    agent_id: str,
+    location_id: str,
+    minute: int,
+    hungry: bool,
+    empty_food: bool,
+) -> None:
+    checkpoint = _decision_fixture(
+        catalog,
+        m3_catalogs,
+        minute=minute,
+        locations_by_agent={agent_id: location_id},
+        due_agent_ids={agent_id},
+        hungry_agent_ids={agent_id} if hungry else frozenset(),
+        empty_food_agent_id=agent_id if empty_food else None,
+    )
+    engine = SocietyEngine(
+        catalog,
+        m3_catalogs,
+        checkpoint,
+        behavior_allowlist=frozenset({BehaviorId.IDLE, behavior_id}),
+    )
+
+    result = engine.advance_to(minute)
+    decision = next(item for item in result.decisions if item["agent_id"] == agent_id)
+
+    assert engine.rulebook.location_open(location_id, minute) is False
+    assert decision["selected_behavior_id"] == BehaviorId.IDLE.value
+    resolver_attempts = cast(list[dict[str, object]], decision["resolver_attempts"])
+    assert [item["result"] for item in resolver_attempts] == [
+        ProposalResult.LOCATION_CLOSED.value,
+        ProposalResult.ACCEPTED.value,
+    ]
+
+
+def test_cross_location_idle_cannot_bypass_closed_location_gate(
+    catalog: CatalogBundle,
+    m3_catalogs: M3Catalogs,
+) -> None:
+    checkpoint = _decision_fixture(
+        catalog,
+        m3_catalogs,
+        minute=1,
+        locations_by_agent={"npc_01": "cafe_bar"},
+        due_agent_ids={"npc_01"},
+    )
+    engine = SocietyEngine(
+        catalog,
+        m3_catalogs,
+        checkpoint,
+        behavior_allowlist=frozenset({BehaviorId.IDLE}),
+    )
+    local_context = _TickContext(checkpoint, 1)
+    source = local_context.provisional_world(state_version=checkpoint.world.state_version)
+    candidates = engine.rulebook.enumerate_candidates(
+        source,
+        "npc_01",
+        work_session=None,
+        conversations={},
+        event_importance={},
+        reserved_money=0,
+        reserved_food=0,
+        next_candidate_id=iter(["candidate_00000001"]).__next__,
+        behavior_allowlist=frozenset({BehaviorId.IDLE}),
+    )
+    prediction = engine.rulebook.predict(source, candidates[0], prediction_id="prediction_00000001")
+    local_scored = engine.rulebook.score_candidates(
+        source,
+        candidates,
+        {"candidate_00000001": prediction},
+        work_session=None,
+        recent_behavior=None,
+        event_importance={},
+    )[0]
+    local_proposal = engine._proposal(source, local_scored, "proposal_00000001")
+    local_result, local_action_id = engine._resolve_and_create(
+        local_context,
+        source,
+        local_proposal,
+        local_scored,
+    )
+
+    assert local_result is ProposalResult.ACCEPTED
+    assert local_action_id is not None
+    assert all(
+        local_context.reservations[item].kind != "LOCATION"
+        for item in local_context.action_runtimes[local_action_id].reservation_ids
+    )
+
+    remote_candidate = local_scored.candidate.candidate.model_copy(
+        update={"destination_location_id": "shop", "estimated_travel_minutes": 6}
+    )
+    remote_scored = local_scored.model_copy(
+        update={"candidate": local_scored.candidate.model_copy(update={"candidate": remote_candidate})}
+    )
+    remote_context = _TickContext(checkpoint, 1)
+    remote_proposal = engine._proposal(source, remote_scored, "proposal_00000002")
+    remote_result, remote_action_id = engine._resolve_and_create(
+        remote_context,
+        source,
+        remote_proposal,
+        remote_scored,
+    )
+
+    assert engine.rulebook.location_open("shop", 7) is False
+    assert remote_result is ProposalResult.LOCATION_CLOSED
+    assert remote_action_id is None
 
 
 def test_cancel_releases_participant_object_and_resource_reservations_atomically(

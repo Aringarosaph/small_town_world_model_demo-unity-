@@ -193,6 +193,45 @@ The same boundary applies to the negative `unknown_share_rejected` probe and
 the forced JointAction cancel/fail/timeout release probes: ordinary soak
 success cannot truthfully stand in for those targeted paths.
 
+### M3 closed-location idle fallback correction
+
+The first external 7-day seed-`12345`, chunk-`60` release attempt stopped at
+the uncommitted minute-5340 tick after its last persisted minute-5280
+transaction. Exact resume from `checkpoint_00005040.json` showed that
+`npc_07` completed `action_00001092` at the shop, then lost its first
+`eat_at_cafe` proposal to the same-snapshot batch winner with
+`OBJECT_SLOT_CONFLICT`. Its mandatory idle fallback was at its current shop,
+whose interval ends at minute-of-day 1020, and the Resolver incorrectly applied
+the business-entry gate to that zero-travel fallback and returned
+`LOCATION_CLOSED`.
+
+The Resolver now exempts only a single-actor `idle` whose destination exactly
+equals the actor's current authoritative location. It does not exempt other
+co-located behavior: targeted tests keep `eat_at_cafe`, `buy_groceries`, and
+`work_shift` rejected at closed businesses, and a synthetic cross-location
+idle remains subject to the same closed-location gate. Local idle creates no
+`LOCATION` reservation. This implements the specification's always-available
+idle invariant without allowing after-hours business actions.
+
+A new external production run at
+`/tmp/stwm-m3-seed12345-chunk60-idle-fix-20260803` completed all 10,080 ticks
+with zero invariant violations. It reported `245.034862s` engine wall time and
+`62,685,184` bytes peak RSS. Production replay checked all 29 persisted
+checkpoints with zero mismatch and matched final state
+`920529fca3828415a1104a9495bf15a97a849ad0a83f5cf50858a72d2e0909b4`, final
+checkpoint `90660de4be8cb086e3aae9651310ab3965bff84914d32511fc07725579696e14`,
+ledger `d8d4650f921a6f3d4fd6406a0d9de9a9dd9d6313c7686c7c874212051e2aef28`,
+and ordered authority log
+`df4375d3baee98ca09dea9de58a9d090d4778e94da8d8a8d09ad96b6307f4db7`.
+The original failed release attempt remains unchanged. The release producer
+also now preserves the child CLI's machine-readable error detail in its own
+failed-attempt record rather than retaining only the exception type.
+
+This 7-day result linearly projects to about `17m30s` for 30 days, so it exposes
+a performance risk against the `<15m` single-run gate that the earlier one-day
+projection did not reveal. It is recorded as a scheduling/optimization issue,
+not relabeled as a passing 30-day result; no additional slow soak was started.
+
 The independent one-day production observation for this increment completed
 in `7.682316s`, peaked at `51,593,216` bytes RSS, used `38 MiB` on disk, and
 passed all five persisted-checkpoint, final-state, ledger, authority-log, and

@@ -740,7 +740,17 @@ class SocietyEngine:
             return ProposalResult.TARGET_UNAVAILABLE, None
         destination = candidate.destination_location_id
         arrival = context.minute + candidate.estimated_travel_minutes
-        if destination is not None and not self.rulebook.location_open(destination, arrival):
+        local_idle_fallback = (
+            candidate.behavior_id is BehaviorId.IDLE
+            and proposal.target_agent_id is None
+            and participants == [proposal.actor_id]
+            and destination == actor.current_location_id
+        )
+        if (
+            destination is not None
+            and not local_idle_fallback
+            and not self.rulebook.location_open(destination, arrival)
+        ):
             return ProposalResult.LOCATION_CLOSED, None
         if destination is not None:
             incoming = sum(
