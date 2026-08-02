@@ -2,15 +2,16 @@
 
 ## Milestone
 
-`M1 - Headless hard-rule vertical slice (accepted on public main)`
+`M2 - One-NPC Unity Bridge functional-greybox slice (active)`
 
 ## State
 
 - Orchestrator thread: `AITOWN-ORCH`
-- Contracts thread: M0 handoff integrated; retained as long-term owner
-- QA thread: M1 QA handoff integrated; retained as long-term owner
-- Simulation thread: M1 handoff integrated; retained as long-term owner
-- Git branch: `main`
+- Contracts thread: active for M2 protocol compatibility audit
+- QA thread: active for M2 acceptance and CI
+- Simulation thread: active for the M2 Python bridge adapter
+- Unity thread: active for the M2 client, greybox, semantic assets, and tests
+- Integration branch: `codex/aitown-orch-m2`
 - Remote: `origin`
 - Unity version: `6000.4.2f1`
 - Training environment: deferred to M4 cloud validation
@@ -59,6 +60,20 @@
 - [x] Pass local M1 acceptance.
 - [x] Pass GitHub M1 acceptance and push the accepted M1 baseline.
 
+## M2 activation
+
+- [x] Producer authorized M2 and selected the functional-greybox route.
+- [x] Unity Hub login and Personal license confirmed by the producer.
+- [x] Editor `6000.4.2f1` and sufficient local disk space verified.
+- [x] Freeze the one-NPC slice and scoped asset-validation policy.
+- [x] Activate CONTRACTS, SIM, QA, and UNITY ownership.
+- [ ] Freeze exact Unity package versions after the controlled first import.
+- [ ] Integrate the Python bridge adapter.
+- [ ] Integrate the Unity bridge, semantic components, and greybox fixture.
+- [ ] Pass local and remote M2 acceptance.
+
 ## Blockers
 
-None. Real DeepSeek credentials, Unity assets, and the cloud training host are intentionally not required in M1.
+None at M2 entry. Final art, DeepSeek credentials, and the cloud training host
+are intentionally not required. A non-iCloud clone remains a contingency only
+if the first Unity import produces a measurable synchronization failure.

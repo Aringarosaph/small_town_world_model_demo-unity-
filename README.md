@@ -17,7 +17,7 @@ Small Town World Model 是一个使用 **Python + Unity** 构建的小型社会�
 - DeepSeek 只负责玩家语言的结构化解析和自然语言表达；
 - 所有关键决策、事件和状态变化都可以追踪、检查和重放。
 
-当前仓库正在开发 **V0 Demo**。M0 契约基线与 M1 Headless 单 NPC 垂直切片已经完成；下一阶段是 M2 Unity Bridge。
+当前仓库正在开发 **V0 Demo**。M0 契约基线与 M1 Headless 单 NPC 垂直切片已经完成；M2 Unity Bridge 功能灰盒切片正在开发。
 
 ## 目录
 
@@ -105,7 +105,7 @@ M0 已冻结以下内容规模：
 | --- | --- | --- |
 | M0 规范与仓库基线 | 已完成 | 配置、Schema、协议、CI、冻结清单和 Unity 目录骨架 |
 | M1 Headless 硬规则切片 | 已完成 | 单 NPC 四行为、三日确定性运行、权威日志与事务回放 |
-| M2 Unity Bridge 切片 | 未开始 | 单 NPC 完成“家 -> 工作 -> 家”的表现闭环 |
+| M2 Unity Bridge 切片 | 进行中 | 单 NPC 功能灰盒“家 -> 工作 -> 家”表现闭环 |
 | M3 完整规则小社会 | 未开始 | 10 NPC、22 行为、经济与事件传播、30 日规则 Soak |
 | M4 社会锚点与世界模型 | 未开始 | 云端训练小型社会 Outcome Model，本地 CPU 推理 |
 | M5 DeepSeek 玩家对话 | 未开始 | 有权限边界的解析、表达、异步与模板回退 |

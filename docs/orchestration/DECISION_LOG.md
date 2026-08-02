@@ -10,3 +10,4 @@
 | ADR-0006 | Freeze the unprefixed 22-value V0 behavior-ID namespace | Accepted |
 | ADR-0007 | Use Small Town World Model (STWM) as the public project name while preserving M0 compatibility IDs | Accepted |
 | ADR-0008 | Freeze M1 work lateness, grace, completion, and exactly-once wage semantics | Accepted |
+| ADR-0009 | Use an M2 functional greybox and a blocking one-NPC asset-validation profile | Accepted |

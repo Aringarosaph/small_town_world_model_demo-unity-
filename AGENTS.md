@@ -32,9 +32,10 @@ utility, resolver, action lifecycle, needs, work/wage settlement, append-only
 events, run evidence, and authoritative replay for `idle`, `sleep`,
 `eat_at_home`, and `work_shift`.
 
-M2 is the next product boundary but is not active until Orchestrator assigns it.
-Do not add Unity transport/runtime behavior, enable the complete 10-NPC society,
-implement neural inference/training, call DeepSeek, or introduce any post-V0
-roadmap feature without the matching milestone handoff. Changes to frozen M0 or
-accepted M1 contracts require an ADR, version review, regenerated evidence, and
-Orchestrator acceptance.
+M2 is active by producer authorization and Orchestrator assignment. Its only
+product boundary is the functional-greybox one-NPC Unity Bridge slice frozen in
+`docs/orchestration/M2_EXECUTION_BASELINE.md` and ADR-0009. Do not enable the
+complete 10-NPC society, implement neural inference/training, call DeepSeek, or
+introduce any post-V0 roadmap feature. Changes to frozen M0 or accepted M1
+contracts require an ADR, version review, regenerated evidence, and Orchestrator
+acceptance.
