@@ -1,0 +1,117 @@
+{
+  "$defs": {
+    "BackgroundDialogueTemplate": {
+      "additionalProperties": false,
+      "properties": {
+        "behavior_id": {
+          "$ref": "#/$defs/BehaviorId"
+        },
+        "lines": {
+          "items": {
+            "maxLength": 240,
+            "minLength": 1,
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Lines",
+          "type": "array"
+        },
+        "outcome": {
+          "$ref": "#/$defs/DialogueOutcome"
+        },
+        "template_id": {
+          "pattern": "^m3_[a-z0-9_]+_(default|accepted|rejected)$",
+          "title": "Template Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "template_id",
+        "behavior_id",
+        "outcome",
+        "lines"
+      ],
+      "title": "BackgroundDialogueTemplate",
+      "type": "object"
+    },
+    "BehaviorId": {
+      "enum": [
+        "idle",
+        "sleep",
+        "eat_at_home",
+        "shower",
+        "watch_tv",
+        "relax_at_home",
+        "work_shift",
+        "take_break",
+        "buy_groceries",
+        "eat_at_cafe",
+        "drink_at_bar",
+        "walk_in_park",
+        "sit_in_park",
+        "greet",
+        "chat",
+        "joke",
+        "compliment",
+        "share_event",
+        "invite_join",
+        "apologize",
+        "confront",
+        "end_conversation"
+      ],
+      "title": "BehaviorId",
+      "type": "string"
+    },
+    "DialogueOutcome": {
+      "enum": [
+        "DEFAULT",
+        "ACCEPTED",
+        "REJECTED"
+      ],
+      "type": "string"
+    }
+  },
+  "$id": "urn:ai-town:protocol:0.3.0:m3-background-dialogue",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "fallback_line": {
+      "maxLength": 240,
+      "minLength": 1,
+      "title": "Fallback Line",
+      "type": "string"
+    },
+    "provider": {
+      "const": "DETERMINISTIC_TEMPLATE",
+      "title": "Provider",
+      "type": "string"
+    },
+    "schema": {
+      "const": "stwm.catalog.m3-background-dialogue/v1",
+      "title": "Schema",
+      "type": "string"
+    },
+    "selection_seed_salt": {
+      "minimum": 0,
+      "title": "Selection Seed Salt",
+      "type": "integer"
+    },
+    "templates": {
+      "items": {
+        "$ref": "#/$defs/BackgroundDialogueTemplate"
+      },
+      "minItems": 1,
+      "title": "Templates",
+      "type": "array"
+    }
+  },
+  "required": [
+    "schema",
+    "provider",
+    "selection_seed_salt",
+    "fallback_line",
+    "templates"
+  ],
+  "title": "BackgroundDialogueCatalog",
+  "type": "object"
+}

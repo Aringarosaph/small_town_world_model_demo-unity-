@@ -1,0 +1,28 @@
+schema: stwm.catalog.m3-background-dialogue/v1
+provider: DETERMINISTIC_TEMPLATE
+selection_seed_salt: 3011
+fallback_line: "这件事先说到这里吧。"
+templates:
+  - {template_id: m3_greet_default, behavior_id: greet, outcome: DEFAULT, lines: ["你好呀。"]}
+  - {template_id: m3_greet_accepted, behavior_id: greet, outcome: ACCEPTED, lines: ["见到你真好。"]}
+  - {template_id: m3_greet_rejected, behavior_id: greet, outcome: REJECTED, lines: ["改天再聊吧。"]}
+  - {template_id: m3_chat_default, behavior_id: chat, outcome: DEFAULT, lines: ["今天过得怎么样？"]}
+  - {template_id: m3_chat_accepted, behavior_id: chat, outcome: ACCEPTED, lines: ["和你聊聊挺开心的。"]}
+  - {template_id: m3_chat_rejected, behavior_id: chat, outcome: REJECTED, lines: ["我现在想安静一会儿。"]}
+  - {template_id: m3_joke_default, behavior_id: joke, outcome: DEFAULT, lines: ["想听个笑话吗？"]}
+  - {template_id: m3_joke_accepted, behavior_id: joke, outcome: ACCEPTED, lines: ["你笑了就好。"]}
+  - {template_id: m3_joke_rejected, behavior_id: joke, outcome: REJECTED, lines: ["看来这个笑话不太行。"]}
+  - {template_id: m3_compliment_default, behavior_id: compliment, outcome: DEFAULT, lines: ["你今天做得不错。"]}
+  - {template_id: m3_compliment_accepted, behavior_id: compliment, outcome: ACCEPTED, lines: ["我说的是真心话。"]}
+  - {template_id: m3_compliment_rejected, behavior_id: compliment, outcome: REJECTED, lines: ["抱歉，让你不自在了。"]}
+  - {template_id: m3_share_event_default, behavior_id: share_event, outcome: DEFAULT, lines: ["有件事我想告诉你。"]}
+  - {template_id: m3_invite_join_default, behavior_id: invite_join, outcome: DEFAULT, lines: ["要一起去吗？"]}
+  - {template_id: m3_invite_join_accepted, behavior_id: invite_join, outcome: ACCEPTED, lines: ["太好了，我们一起走吧。"]}
+  - {template_id: m3_invite_join_rejected, behavior_id: invite_join, outcome: REJECTED, lines: ["没关系，下次再约。"]}
+  - {template_id: m3_apologize_default, behavior_id: apologize, outcome: DEFAULT, lines: ["之前的事，对不起。"]}
+  - {template_id: m3_apologize_accepted, behavior_id: apologize, outcome: ACCEPTED, lines: ["谢谢你愿意听我说。"]}
+  - {template_id: m3_apologize_rejected, behavior_id: apologize, outcome: REJECTED, lines: ["我明白你还需要时间。"]}
+  - {template_id: m3_confront_default, behavior_id: confront, outcome: DEFAULT, lines: ["这件事我们得谈谈。"]}
+  - {template_id: m3_confront_accepted, behavior_id: confront, outcome: ACCEPTED, lines: ["谢谢你愿意面对这件事。"]}
+  - {template_id: m3_confront_rejected, behavior_id: confront, outcome: REJECTED, lines: ["这件事还没有解决。"]}
+  - {template_id: m3_end_conversation_default, behavior_id: end_conversation, outcome: DEFAULT, lines: ["回头见。"]}

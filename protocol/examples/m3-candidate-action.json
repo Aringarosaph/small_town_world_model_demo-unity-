@@ -1,0 +1,20 @@
+{
+  "actor_id": "npc_01",
+  "behavior_id": "invite_join",
+  "candidate_id": "candidate_000401",
+  "context_event_ids": [],
+  "destination_location_id": "park",
+  "estimated_duration_minutes": 5,
+  "estimated_travel_minutes": 0,
+  "hard_cost_preview": {
+    "household_food_units": 0,
+    "household_money": 0
+  },
+  "invited_activity_id": "walk_in_park",
+  "route_planning": "DISABLED",
+  "schedule_conflict_minutes": 0,
+  "selected_context_event_id": null,
+  "target_agent_id": "npc_02",
+  "target_conversation_id": null,
+  "target_object_ids": []
+}

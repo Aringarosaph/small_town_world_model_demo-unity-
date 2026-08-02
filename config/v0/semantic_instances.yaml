@@ -1,0 +1,91 @@
+schema: stwm.catalog.m3-semantic-instances/v1
+profile: M3_FULL
+catalog_protocol_version: 0.1.0
+location_ids: [home_a, home_b, home_c, home_d, cafe_bar, shop, workshop, park]
+npc_view_ids: [npc_01, npc_02, npc_03, npc_04, npc_05, npc_06, npc_07, npc_08, npc_09, npc_10]
+objects:
+  - {object_id: home_a_bed_01, object_type: BED, location_id: home_a, capability_tags: [SLEEP], slot_count: 1, supported_animation_semantics: [SLEEP], assigned_agent_id: npc_01}
+  - {object_id: home_a_bed_02, object_type: BED, location_id: home_a, capability_tags: [SLEEP], slot_count: 1, supported_animation_semantics: [SLEEP], assigned_agent_id: npc_02}
+  - {object_id: home_a_dining_seat_01, object_type: DINING_SEAT, location_id: home_a, capability_tags: [SIT, EAT], slot_count: 1, supported_animation_semantics: [EAT, SIT], assigned_agent_id: npc_01}
+  - {object_id: home_a_dining_seat_02, object_type: DINING_SEAT, location_id: home_a, capability_tags: [SIT, EAT], slot_count: 1, supported_animation_semantics: [EAT, SIT], assigned_agent_id: npc_02}
+  - {object_id: home_a_fridge_01, object_type: FRIDGE, location_id: home_a, capability_tags: [FOOD_SOURCE_HOME], slot_count: 1, supported_animation_semantics: [EAT]}
+  - {object_id: home_a_shower_01, object_type: SHOWER, location_id: home_a, capability_tags: [HYGIENE], slot_count: 1, supported_animation_semantics: [SHOWER_HIDDEN]}
+  - {object_id: home_a_sofa_01, object_type: SOFA, location_id: home_a, capability_tags: [SIT, RELAX, WATCH_TV], slot_count: 2, supported_animation_semantics: [SIT]}
+  - {object_id: home_a_tv_01, object_type: TV, location_id: home_a, capability_tags: [ENTERTAINMENT], slot_count: 4, supported_animation_semantics: [SIT]}
+
+  - {object_id: home_b_bed_01, object_type: BED, location_id: home_b, capability_tags: [SLEEP], slot_count: 1, supported_animation_semantics: [SLEEP], assigned_agent_id: npc_03}
+  - {object_id: home_b_bed_02, object_type: BED, location_id: home_b, capability_tags: [SLEEP], slot_count: 1, supported_animation_semantics: [SLEEP], assigned_agent_id: npc_04}
+  - {object_id: home_b_bed_03, object_type: BED, location_id: home_b, capability_tags: [SLEEP], slot_count: 1, supported_animation_semantics: [SLEEP], assigned_agent_id: npc_05}
+  - {object_id: home_b_dining_seat_01, object_type: DINING_SEAT, location_id: home_b, capability_tags: [SIT, EAT], slot_count: 1, supported_animation_semantics: [EAT, SIT], assigned_agent_id: npc_03}
+  - {object_id: home_b_dining_seat_02, object_type: DINING_SEAT, location_id: home_b, capability_tags: [SIT, EAT], slot_count: 1, supported_animation_semantics: [EAT, SIT], assigned_agent_id: npc_04}
+  - {object_id: home_b_dining_seat_03, object_type: DINING_SEAT, location_id: home_b, capability_tags: [SIT, EAT], slot_count: 1, supported_animation_semantics: [EAT, SIT], assigned_agent_id: npc_05}
+  - {object_id: home_b_fridge_01, object_type: FRIDGE, location_id: home_b, capability_tags: [FOOD_SOURCE_HOME], slot_count: 1, supported_animation_semantics: [EAT]}
+  - {object_id: home_b_shower_01, object_type: SHOWER, location_id: home_b, capability_tags: [HYGIENE], slot_count: 1, supported_animation_semantics: [SHOWER_HIDDEN]}
+  - {object_id: home_b_sofa_01, object_type: SOFA, location_id: home_b, capability_tags: [SIT, RELAX, WATCH_TV], slot_count: 2, supported_animation_semantics: [SIT]}
+  - {object_id: home_b_sofa_02, object_type: SOFA, location_id: home_b, capability_tags: [SIT, RELAX, WATCH_TV], slot_count: 2, supported_animation_semantics: [SIT]}
+  - {object_id: home_b_tv_01, object_type: TV, location_id: home_b, capability_tags: [ENTERTAINMENT], slot_count: 4, supported_animation_semantics: [SIT]}
+
+  - {object_id: home_c_bed_01, object_type: BED, location_id: home_c, capability_tags: [SLEEP], slot_count: 1, supported_animation_semantics: [SLEEP], assigned_agent_id: npc_06}
+  - {object_id: home_c_bed_02, object_type: BED, location_id: home_c, capability_tags: [SLEEP], slot_count: 1, supported_animation_semantics: [SLEEP], assigned_agent_id: npc_07}
+  - {object_id: home_c_dining_seat_01, object_type: DINING_SEAT, location_id: home_c, capability_tags: [SIT, EAT], slot_count: 1, supported_animation_semantics: [EAT, SIT], assigned_agent_id: npc_06}
+  - {object_id: home_c_dining_seat_02, object_type: DINING_SEAT, location_id: home_c, capability_tags: [SIT, EAT], slot_count: 1, supported_animation_semantics: [EAT, SIT], assigned_agent_id: npc_07}
+  - {object_id: home_c_fridge_01, object_type: FRIDGE, location_id: home_c, capability_tags: [FOOD_SOURCE_HOME], slot_count: 1, supported_animation_semantics: [EAT]}
+  - {object_id: home_c_shower_01, object_type: SHOWER, location_id: home_c, capability_tags: [HYGIENE], slot_count: 1, supported_animation_semantics: [SHOWER_HIDDEN]}
+  - {object_id: home_c_sofa_01, object_type: SOFA, location_id: home_c, capability_tags: [SIT, RELAX, WATCH_TV], slot_count: 2, supported_animation_semantics: [SIT]}
+  - {object_id: home_c_tv_01, object_type: TV, location_id: home_c, capability_tags: [ENTERTAINMENT], slot_count: 4, supported_animation_semantics: [SIT]}
+
+  - {object_id: home_d_bed_01, object_type: BED, location_id: home_d, capability_tags: [SLEEP], slot_count: 1, supported_animation_semantics: [SLEEP], assigned_agent_id: npc_08}
+  - {object_id: home_d_bed_02, object_type: BED, location_id: home_d, capability_tags: [SLEEP], slot_count: 1, supported_animation_semantics: [SLEEP], assigned_agent_id: npc_09}
+  - {object_id: home_d_bed_03, object_type: BED, location_id: home_d, capability_tags: [SLEEP], slot_count: 1, supported_animation_semantics: [SLEEP], assigned_agent_id: npc_10}
+  - {object_id: home_d_dining_seat_01, object_type: DINING_SEAT, location_id: home_d, capability_tags: [SIT, EAT], slot_count: 1, supported_animation_semantics: [EAT, SIT], assigned_agent_id: npc_08}
+  - {object_id: home_d_dining_seat_02, object_type: DINING_SEAT, location_id: home_d, capability_tags: [SIT, EAT], slot_count: 1, supported_animation_semantics: [EAT, SIT], assigned_agent_id: npc_09}
+  - {object_id: home_d_dining_seat_03, object_type: DINING_SEAT, location_id: home_d, capability_tags: [SIT, EAT], slot_count: 1, supported_animation_semantics: [EAT, SIT], assigned_agent_id: npc_10}
+  - {object_id: home_d_fridge_01, object_type: FRIDGE, location_id: home_d, capability_tags: [FOOD_SOURCE_HOME], slot_count: 1, supported_animation_semantics: [EAT]}
+  - {object_id: home_d_shower_01, object_type: SHOWER, location_id: home_d, capability_tags: [HYGIENE], slot_count: 1, supported_animation_semantics: [SHOWER_HIDDEN]}
+  - {object_id: home_d_sofa_01, object_type: SOFA, location_id: home_d, capability_tags: [SIT, RELAX, WATCH_TV], slot_count: 2, supported_animation_semantics: [SIT]}
+  - {object_id: home_d_sofa_02, object_type: SOFA, location_id: home_d, capability_tags: [SIT, RELAX, WATCH_TV], slot_count: 2, supported_animation_semantics: [SIT]}
+  - {object_id: home_d_tv_01, object_type: TV, location_id: home_d, capability_tags: [ENTERTAINMENT], slot_count: 4, supported_animation_semantics: [SIT]}
+
+  - {object_id: cafe_bar_workstation_01, object_type: WORKSTATION, location_id: cafe_bar, capability_tags: [WORK, CAFE_MORNING], slot_count: 1, supported_animation_semantics: [WORK_STANDING], assigned_agent_id: npc_01}
+  - {object_id: cafe_bar_workstation_02, object_type: WORKSTATION, location_id: cafe_bar, capability_tags: [WORK, CAFE_MORNING], slot_count: 1, supported_animation_semantics: [WORK_STANDING], assigned_agent_id: npc_10}
+  - {object_id: cafe_bar_workstation_03, object_type: WORKSTATION, location_id: cafe_bar, capability_tags: [WORK, CAFE_EVENING], slot_count: 1, supported_animation_semantics: [WORK_STANDING], assigned_agent_id: npc_06}
+  - {object_id: cafe_bar_workstation_04, object_type: WORKSTATION, location_id: cafe_bar, capability_tags: [WORK, CAFE_EVENING], slot_count: 1, supported_animation_semantics: [WORK_STANDING], assigned_agent_id: npc_08}
+  - {object_id: cafe_bar_cafe_counter_01, object_type: CAFE_COUNTER, location_id: cafe_bar, capability_tags: [BUY_MEAL], slot_count: 1, supported_animation_semantics: [EAT]}
+  - {object_id: cafe_bar_bar_counter_01, object_type: BAR_COUNTER, location_id: cafe_bar, capability_tags: [BUY_DRINK], slot_count: 1, supported_animation_semantics: [DRINK]}
+  - {object_id: cafe_bar_dining_seat_01, object_type: DINING_SEAT, location_id: cafe_bar, capability_tags: [SIT, EAT], slot_count: 1, supported_animation_semantics: [EAT, DRINK, SIT]}
+  - {object_id: cafe_bar_dining_seat_02, object_type: DINING_SEAT, location_id: cafe_bar, capability_tags: [SIT, EAT], slot_count: 1, supported_animation_semantics: [EAT, DRINK, SIT]}
+  - {object_id: cafe_bar_dining_seat_03, object_type: DINING_SEAT, location_id: cafe_bar, capability_tags: [SIT, EAT], slot_count: 1, supported_animation_semantics: [EAT, DRINK, SIT]}
+  - {object_id: cafe_bar_dining_seat_04, object_type: DINING_SEAT, location_id: cafe_bar, capability_tags: [SIT, EAT], slot_count: 1, supported_animation_semantics: [EAT, DRINK, SIT]}
+  - {object_id: cafe_bar_public_seat_01, object_type: PUBLIC_SEAT, location_id: cafe_bar, capability_tags: [SIT, REST], slot_count: 1, supported_animation_semantics: [SIT, DRINK]}
+  - {object_id: cafe_bar_public_seat_02, object_type: PUBLIC_SEAT, location_id: cafe_bar, capability_tags: [SIT, REST], slot_count: 1, supported_animation_semantics: [SIT, DRINK]}
+  - {object_id: cafe_bar_conversation_01, object_type: CONVERSATION_ANCHOR, location_id: cafe_bar, capability_tags: [SOCIAL_POSITION], slot_count: 2, supported_animation_semantics: [TALK_NEUTRAL, TALK_POSITIVE, TALK_NEGATIVE]}
+
+  - {object_id: shop_workstation_01, object_type: WORKSTATION, location_id: shop, capability_tags: [WORK, SHOP], slot_count: 1, supported_animation_semantics: [WORK_DESK], assigned_agent_id: npc_05}
+  - {object_id: shop_workstation_02, object_type: WORKSTATION, location_id: shop, capability_tags: [WORK, SHOP], slot_count: 1, supported_animation_semantics: [WORK_DESK], assigned_agent_id: npc_07}
+  - {object_id: shop_shelf_01, object_type: SHOP_SHELF, location_id: shop, capability_tags: [GROCERY_SOURCE], slot_count: 2, supported_animation_semantics: [WALK, CARRY_GROCERY]}
+  - {object_id: shop_checkout_01, object_type: CHECKOUT_COUNTER, location_id: shop, capability_tags: [PURCHASE], slot_count: 1, supported_animation_semantics: [IDLE, CARRY_GROCERY]}
+  - {object_id: shop_public_seat_01, object_type: PUBLIC_SEAT, location_id: shop, capability_tags: [SIT, REST], slot_count: 1, supported_animation_semantics: [SIT]}
+  - {object_id: shop_public_seat_02, object_type: PUBLIC_SEAT, location_id: shop, capability_tags: [SIT, REST], slot_count: 1, supported_animation_semantics: [SIT]}
+  - {object_id: shop_conversation_01, object_type: CONVERSATION_ANCHOR, location_id: shop, capability_tags: [SOCIAL_POSITION], slot_count: 2, supported_animation_semantics: [TALK_NEUTRAL, TALK_POSITIVE, TALK_NEGATIVE]}
+
+  - {object_id: workshop_workstation_01, object_type: WORKSTATION, location_id: workshop, capability_tags: [WORK, WORKSHOP], slot_count: 1, supported_animation_semantics: [WORK_WORKSHOP], assigned_agent_id: npc_02}
+  - {object_id: workshop_workstation_02, object_type: WORKSTATION, location_id: workshop, capability_tags: [WORK, WORKSHOP], slot_count: 1, supported_animation_semantics: [WORK_WORKSHOP], assigned_agent_id: npc_03}
+  - {object_id: workshop_workstation_03, object_type: WORKSTATION, location_id: workshop, capability_tags: [WORK, WORKSHOP], slot_count: 1, supported_animation_semantics: [WORK_WORKSHOP], assigned_agent_id: npc_04}
+  - {object_id: workshop_workstation_04, object_type: WORKSTATION, location_id: workshop, capability_tags: [WORK, WORKSHOP], slot_count: 1, supported_animation_semantics: [WORK_WORKSHOP], assigned_agent_id: npc_09}
+  - {object_id: workshop_public_seat_01, object_type: PUBLIC_SEAT, location_id: workshop, capability_tags: [SIT, REST], slot_count: 1, supported_animation_semantics: [SIT]}
+  - {object_id: workshop_public_seat_02, object_type: PUBLIC_SEAT, location_id: workshop, capability_tags: [SIT, REST], slot_count: 1, supported_animation_semantics: [SIT]}
+  - {object_id: workshop_public_seat_03, object_type: PUBLIC_SEAT, location_id: workshop, capability_tags: [SIT, REST], slot_count: 1, supported_animation_semantics: [SIT]}
+  - {object_id: workshop_public_seat_04, object_type: PUBLIC_SEAT, location_id: workshop, capability_tags: [SIT, REST], slot_count: 1, supported_animation_semantics: [SIT]}
+  - {object_id: workshop_conversation_01, object_type: CONVERSATION_ANCHOR, location_id: workshop, capability_tags: [SOCIAL_POSITION], slot_count: 2, supported_animation_semantics: [TALK_NEUTRAL, TALK_POSITIVE, TALK_NEGATIVE]}
+
+  - {object_id: park_route_01, object_type: PARK_ROUTE, location_id: park, capability_tags: [WALK_ROUTE], slot_count: 8, supported_animation_semantics: [WALK]}
+  - {object_id: park_public_seat_01, object_type: PUBLIC_SEAT, location_id: park, capability_tags: [SIT, REST], slot_count: 1, supported_animation_semantics: [SIT]}
+  - {object_id: park_public_seat_02, object_type: PUBLIC_SEAT, location_id: park, capability_tags: [SIT, REST], slot_count: 1, supported_animation_semantics: [SIT]}
+  - {object_id: park_public_seat_03, object_type: PUBLIC_SEAT, location_id: park, capability_tags: [SIT, REST], slot_count: 1, supported_animation_semantics: [SIT]}
+  - {object_id: park_public_seat_04, object_type: PUBLIC_SEAT, location_id: park, capability_tags: [SIT, REST], slot_count: 1, supported_animation_semantics: [SIT]}
+  - {object_id: park_leisure_01, object_type: LEISURE_SPOT, location_id: park, capability_tags: [RELAX], slot_count: 2, supported_animation_semantics: [IDLE, SIT]}
+  - {object_id: park_conversation_01, object_type: CONVERSATION_ANCHOR, location_id: park, capability_tags: [SOCIAL_POSITION], slot_count: 2, supported_animation_semantics: [TALK_NEUTRAL, TALK_POSITIVE, TALK_NEGATIVE]}
+required_animation_semantics: [IDLE, SLEEP, EAT, SHOWER_HIDDEN, SIT, WORK_DESK, WORK_STANDING, WORK_WORKSHOP, DRINK, WALK, TALK_NEUTRAL, TALK_POSITIVE, TALK_NEGATIVE, CARRY_GROCERY]
+required_prop_semantics: [MEAL, GROCERY_BAG, DRINK, EVENT_ICON]
+facing_behavior_ids: [greet, chat, joke, compliment, share_event, invite_join, apologize, confront]
+require_entrance_slot_reachability: true

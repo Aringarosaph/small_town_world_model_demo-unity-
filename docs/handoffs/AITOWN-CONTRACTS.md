@@ -1,4 +1,119 @@
-# AITOWN-CONTRACTS M0/M2 Handoff
+# AITOWN-CONTRACTS M0/M2/M3 Handoff
+
+## M3 protocol 0.3.0 and catalog delivery
+
+ADR-0011 makes protocol `0.3.0` the sole M3 session version while preserving
+the accepted M2 `0.2.0` Bridge and the `0.1.0` legacy decoder. Public
+`WorldState` remains schema `v0.1`; the M3 authority checkpoint and its private
+knowledge/conversation/work/reservation ledgers are SIM-owned sidecars and are
+not duplicated by CONTRACTS.
+
+### Version-aware artifacts
+
+| Consumer surface | Python type | JSON Schema |
+| --- | --- | --- |
+| Legacy decode | `ProtocolMessageV010` | `protocol-message-v010-compat.schema.json` |
+| Accepted M2 | `ProtocolMessageV020` / historical `ProtocolMessage` | `protocol-message-v020-compat.schema.json` / historical unprefixed file |
+| M2 directions | `PythonToUnityMessageV020`, `UnityToPythonMessageV020` | matching `*-v020-compat.schema.json` files |
+| Active M3 | `ProtocolMessageV030` | `protocol-message-v030.schema.json` |
+| M3 directions | `PythonToUnityMessageV030`, `UnityToPythonMessageV030` | matching `*-v030.schema.json` files |
+| Bootstrap | `ClientHelloBootstrapMessage` | `client-hello-bootstrap-all.schema.json` |
+
+`protocol/version.json` reports `current=0.3.0`, active M3 `[0.3.0]`, active
+M2 `[0.2.0]`, and legacy decode `[0.1.0]`. An M3 client advertises preference
+`[0.3.0, 0.2.0]`; the M3 gate rejects fallback unless `0.3.0` is first and
+selected. Catalog provenance remains the separate value `0.1.0`.
+
+Protocol `0.3.0` adds:
+
+- structured action participants with `ACTOR`/`TARGET`/`PARTICIPANT` roles,
+  authoritative participant-to-object/slot bindings, per-participant animation,
+  prop and facing targets, optional conversation ID, and one shared JointAction
+  lifecycle;
+- reconnect `active_presentations` that exactly cover the unchanged public
+  `WorldState.active_actions` keys;
+- field-mask agent deltas. A masked field present as JSON `null` means clear;
+  an unmasked/absent field means unchanged;
+- Python-to-Unity `household_state_delta` for non-negative money/food values;
+- a complete Top-K decision trace. `proposal_id`, `resolver_result`, and
+  `conflict_code` all null means `NOT_ATTEMPTED`; an attempted row requires a
+  non-null `proposal_id`, and a rejected attempt also requires a non-`ACCEPTED`
+  result and conflict code. The selected row must be `ACCEPTED`, carry a
+  non-null proposal ID, and exactly match `selected_proposal_id`.
+
+All action-correlated messages retain `correlation_id == action_id`. Debug and
+household messages are Python outputs only. None of these presentation/debug
+messages can mutate Python authority.
+
+### C# consumption rules
+
+Unity should generate or hand-maintain DTOs from the explicit `*-v030` schemas,
+not reinterpret the historical unprefixed M2 files:
+
+- deserialize the envelope only after selecting `0.3.0`;
+- represent participant object bindings as a list, never parallel arrays or a
+  flat action-wide object list;
+- replace the entire active-presentation cache and slot-claim projection on a
+  reconnect snapshot;
+- preserve JSON property presence separately from nullable values when applying
+  `agent_state_delta` (for example with `JObject.ContainsKey` or generated
+  `HasCurrentActionId` flags), then enforce `field_mask`;
+- treat the all-null `proposal_id`/`resolver_result`/`conflict_code` tuple as the
+  explicit unattempted state, never synthesize Resolver conflicts for rows that
+  were not proposed, and retain at most two attempted rows;
+- reject Python-only messages on the Unity-to-Python encoder.
+
+The committed examples cover handshake, structured Joint presentation,
+reconnect recovery, explicit-null clearing, household resources, and all three
+Top-K Resolver states.
+
+### Additive M3 catalogs
+
+`config/v0/semantic_instances.yaml` is the single shared full-town manifest. It
+contains 74 stable semantic objects and exactly implements the M3 capacity/ID
+baseline for homes, workstations, public services, break seats, park resources,
+conversation anchors, animation semantics, prop semantics, facing behaviors,
+and entrance-to-slot reachability requirements. Python validates it against the
+unchanged M0 `CatalogBundle`; Unity consumes the same file/schema rather than a
+competing instance list.
+
+`config/v0/background_dialogue.yaml` is the versioned local template catalog.
+Stable English IDs map every social behavior and every accepted/rejected result
+to non-empty Chinese UTF-8 lines plus a fallback. Selection is deterministic by
+catalog salt and caller-supplied authority key; it performs no API call and no
+state mutation.
+
+These files have an independent parsed hash:
+
+```text
+m3_catalog_hash=cd7e8b1161f3bbddc1e68b8495815a7cd80cd65dd097287ab34d228efc655340
+```
+
+They are deliberately outside `CatalogBundle`, so the accepted M1 catalog hash
+remains:
+
+```text
+6e6c688145ff74ed5326e00bebad3f86e38b5560c6469deaf65f505afe20d5cf
+```
+
+### Ownership boundary
+
+CONTRACTS supplies `M3CandidateAction` fields for selected context event,
+target conversation, and the exact five-behavior invitation allowlist, plus a
+cross-line JointAction presentation projection. SIM owns the authoritative
+`stwm.simulation.m3-authority-checkpoint/v1` model and generates its checkpoint
+schema/evidence. CONTRACTS must consume-test that artifact after SIM integration,
+not define a second checkpoint truth.
+
+Regenerate committed protocol artifacts with:
+
+```bash
+python -m town_core.domain.schema_artifacts --output protocol
+```
+
+ADR-0011 authorizes the associated config/protocol/domain re-freeze. The final
+manifest source commit and manifest hash are reported to AITOWN-ORCH separately
+after the content commit so the manifest never points at pre-format content.
 
 ## M2 protocol 0.2.0 delivery
 

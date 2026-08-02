@@ -1,0 +1,217 @@
+{
+  "$defs": {
+    "ClientHelloMessage": {
+      "additionalProperties": false,
+      "properties": {
+        "correlation_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Correlation Id"
+        },
+        "message_id": {
+          "pattern": "^msg_[0-9]+$",
+          "title": "Message Id",
+          "type": "string"
+        },
+        "message_type": {
+          "const": "client_hello",
+          "title": "Message Type",
+          "type": "string"
+        },
+        "payload": {
+          "$ref": "#/$defs/ClientHelloPayload"
+        },
+        "protocol_version": {
+          "$ref": "#/$defs/SupportedProtocolVersion"
+        },
+        "sent_at_utc": {
+          "format": "date-time",
+          "title": "Sent At Utc",
+          "type": "string"
+        },
+        "state_version": {
+          "minimum": 0,
+          "title": "State Version",
+          "type": "integer"
+        },
+        "world_id": {
+          "pattern": "^[a-z][a-z0-9_]*$",
+          "title": "World Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "protocol_version",
+        "message_id",
+        "message_type",
+        "sent_at_utc",
+        "world_id",
+        "state_version",
+        "correlation_id",
+        "payload"
+      ],
+      "title": "ClientHelloMessage",
+      "type": "object"
+    },
+    "ClientHelloPayload": {
+      "additionalProperties": false,
+      "properties": {
+        "client_name": {
+          "const": "unity",
+          "title": "Client Name",
+          "type": "string"
+        },
+        "supported_protocol_versions": {
+          "items": {
+            "$ref": "#/$defs/SupportedProtocolVersion"
+          },
+          "minItems": 1,
+          "title": "Supported Protocol Versions",
+          "type": "array"
+        },
+        "unity_editor_version": {
+          "const": "6000.4.2f1",
+          "title": "Unity Editor Version",
+          "type": "string"
+        }
+      },
+      "required": [
+        "client_name",
+        "unity_editor_version",
+        "supported_protocol_versions"
+      ],
+      "title": "ClientHelloPayload",
+      "type": "object"
+    },
+    "ClientHelloV030Message": {
+      "additionalProperties": false,
+      "properties": {
+        "correlation_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Correlation Id"
+        },
+        "message_id": {
+          "pattern": "^msg_[0-9]+$",
+          "title": "Message Id",
+          "type": "string"
+        },
+        "message_type": {
+          "const": "client_hello",
+          "title": "Message Type",
+          "type": "string"
+        },
+        "payload": {
+          "$ref": "#/$defs/ClientHelloV030Payload"
+        },
+        "protocol_version": {
+          "const": "0.3.0",
+          "title": "Protocol Version",
+          "type": "string"
+        },
+        "sent_at_utc": {
+          "format": "date-time",
+          "title": "Sent At Utc",
+          "type": "string"
+        },
+        "state_version": {
+          "minimum": 0,
+          "title": "State Version",
+          "type": "integer"
+        },
+        "world_id": {
+          "pattern": "^[a-z][a-z0-9_]*$",
+          "title": "World Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "protocol_version",
+        "message_id",
+        "message_type",
+        "sent_at_utc",
+        "world_id",
+        "state_version",
+        "correlation_id",
+        "payload"
+      ],
+      "title": "ClientHelloV030Message",
+      "type": "object"
+    },
+    "ClientHelloV030Payload": {
+      "additionalProperties": false,
+      "properties": {
+        "client_name": {
+          "const": "unity",
+          "title": "Client Name",
+          "type": "string"
+        },
+        "supported_protocol_versions": {
+          "items": {
+            "$ref": "#/$defs/M3SupportedProtocolVersion"
+          },
+          "minItems": 1,
+          "title": "Supported Protocol Versions",
+          "type": "array"
+        },
+        "unity_editor_version": {
+          "const": "6000.4.2f1",
+          "title": "Unity Editor Version",
+          "type": "string"
+        }
+      },
+      "required": [
+        "client_name",
+        "unity_editor_version",
+        "supported_protocol_versions"
+      ],
+      "title": "ClientHelloV030Payload",
+      "type": "object"
+    },
+    "M3SupportedProtocolVersion": {
+      "enum": [
+        "0.1.0",
+        "0.2.0",
+        "0.3.0"
+      ],
+      "type": "string"
+    },
+    "SupportedProtocolVersion": {
+      "enum": [
+        "0.1.0",
+        "0.2.0"
+      ],
+      "type": "string"
+    }
+  },
+  "$id": "urn:ai-town:protocol:0.3.0:client-hello-bootstrap-all",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "discriminator": {
+    "mapping": {
+      "0.1.0": "#/$defs/ClientHelloMessage",
+      "0.2.0": "#/$defs/ClientHelloMessage",
+      "0.3.0": "#/$defs/ClientHelloV030Message"
+    },
+    "propertyName": "protocol_version"
+  },
+  "oneOf": [
+    {
+      "$ref": "#/$defs/ClientHelloV030Message"
+    },
+    {
+      "$ref": "#/$defs/ClientHelloMessage"
+    }
+  ]
+}

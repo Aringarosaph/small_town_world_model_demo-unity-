@@ -1,0 +1,254 @@
+{
+  "$defs": {
+    "AnimationSemantic": {
+      "enum": [
+        "IDLE",
+        "SLEEP",
+        "EAT",
+        "SHOWER_HIDDEN",
+        "SIT",
+        "WORK_DESK",
+        "WORK_STANDING",
+        "WORK_WORKSHOP",
+        "DRINK",
+        "WALK",
+        "TALK_NEUTRAL",
+        "TALK_POSITIVE",
+        "TALK_NEGATIVE",
+        "CARRY_GROCERY"
+      ],
+      "title": "AnimationSemantic",
+      "type": "string"
+    },
+    "BehaviorId": {
+      "enum": [
+        "idle",
+        "sleep",
+        "eat_at_home",
+        "shower",
+        "watch_tv",
+        "relax_at_home",
+        "work_shift",
+        "take_break",
+        "buy_groceries",
+        "eat_at_cafe",
+        "drink_at_bar",
+        "walk_in_park",
+        "sit_in_park",
+        "greet",
+        "chat",
+        "joke",
+        "compliment",
+        "share_event",
+        "invite_join",
+        "apologize",
+        "confront",
+        "end_conversation"
+      ],
+      "title": "BehaviorId",
+      "type": "string"
+    },
+    "CapabilityTag": {
+      "enum": [
+        "SLEEP",
+        "FOOD_SOURCE_HOME",
+        "SIT",
+        "EAT",
+        "HYGIENE",
+        "RELAX",
+        "WATCH_TV",
+        "ENTERTAINMENT",
+        "WORK",
+        "CAFE_MORNING",
+        "CAFE_EVENING",
+        "SHOP",
+        "WORKSHOP",
+        "GROCERY_SOURCE",
+        "PURCHASE",
+        "BUY_MEAL",
+        "BUY_DRINK",
+        "REST",
+        "WALK_ROUTE",
+        "SOCIAL_POSITION"
+      ],
+      "title": "CapabilityTag",
+      "type": "string"
+    },
+    "ObjectType": {
+      "enum": [
+        "BED",
+        "FRIDGE",
+        "DINING_SEAT",
+        "SHOWER",
+        "SOFA",
+        "TV",
+        "WORKSTATION",
+        "SHOP_SHELF",
+        "CHECKOUT_COUNTER",
+        "CAFE_COUNTER",
+        "BAR_COUNTER",
+        "PUBLIC_SEAT",
+        "PARK_ROUTE",
+        "LEISURE_SPOT",
+        "CONVERSATION_ANCHOR"
+      ],
+      "title": "ObjectType",
+      "type": "string"
+    },
+    "SemanticInstance": {
+      "additionalProperties": false,
+      "properties": {
+        "assigned_agent_id": {
+          "anyOf": [
+            {
+              "pattern": "^npc_[0-9]{2}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Assigned Agent Id"
+        },
+        "capability_tags": {
+          "items": {
+            "$ref": "#/$defs/CapabilityTag"
+          },
+          "minItems": 1,
+          "title": "Capability Tags",
+          "type": "array"
+        },
+        "location_id": {
+          "pattern": "^[a-z][a-z0-9_]*$",
+          "title": "Location Id",
+          "type": "string"
+        },
+        "object_id": {
+          "pattern": "^[a-z][a-z0-9_]*_[0-9]{2}$",
+          "title": "Object Id",
+          "type": "string"
+        },
+        "object_type": {
+          "$ref": "#/$defs/ObjectType"
+        },
+        "slot_count": {
+          "exclusiveMinimum": 0,
+          "title": "Slot Count",
+          "type": "integer"
+        },
+        "supported_animation_semantics": {
+          "items": {
+            "$ref": "#/$defs/AnimationSemantic"
+          },
+          "minItems": 1,
+          "title": "Supported Animation Semantics",
+          "type": "array"
+        }
+      },
+      "required": [
+        "object_id",
+        "object_type",
+        "location_id",
+        "capability_tags",
+        "slot_count",
+        "supported_animation_semantics"
+      ],
+      "title": "SemanticInstance",
+      "type": "object"
+    }
+  },
+  "$id": "urn:ai-town:protocol:0.3.0:m3-semantic-instances",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "catalog_protocol_version": {
+      "const": "0.1.0",
+      "title": "Catalog Protocol Version",
+      "type": "string"
+    },
+    "facing_behavior_ids": {
+      "items": {
+        "$ref": "#/$defs/BehaviorId"
+      },
+      "maxItems": 8,
+      "minItems": 8,
+      "title": "Facing Behavior Ids",
+      "type": "array"
+    },
+    "location_ids": {
+      "items": {
+        "pattern": "^[a-z][a-z0-9_]*$",
+        "type": "string"
+      },
+      "maxItems": 8,
+      "minItems": 8,
+      "title": "Location Ids",
+      "type": "array"
+    },
+    "npc_view_ids": {
+      "items": {
+        "pattern": "^npc_[0-9]{2}$",
+        "type": "string"
+      },
+      "maxItems": 10,
+      "minItems": 10,
+      "title": "Npc View Ids",
+      "type": "array"
+    },
+    "objects": {
+      "items": {
+        "$ref": "#/$defs/SemanticInstance"
+      },
+      "minItems": 1,
+      "title": "Objects",
+      "type": "array"
+    },
+    "profile": {
+      "const": "M3_FULL",
+      "title": "Profile",
+      "type": "string"
+    },
+    "require_entrance_slot_reachability": {
+      "const": true,
+      "title": "Require Entrance Slot Reachability",
+      "type": "boolean"
+    },
+    "required_animation_semantics": {
+      "items": {
+        "$ref": "#/$defs/AnimationSemantic"
+      },
+      "minItems": 1,
+      "title": "Required Animation Semantics",
+      "type": "array"
+    },
+    "required_prop_semantics": {
+      "items": {
+        "type": "string"
+      },
+      "maxItems": 4,
+      "minItems": 4,
+      "title": "Required Prop Semantics",
+      "type": "array"
+    },
+    "schema": {
+      "const": "stwm.catalog.m3-semantic-instances/v1",
+      "title": "Schema",
+      "type": "string"
+    }
+  },
+  "required": [
+    "schema",
+    "profile",
+    "catalog_protocol_version",
+    "location_ids",
+    "npc_view_ids",
+    "objects",
+    "required_animation_semantics",
+    "required_prop_semantics",
+    "facing_behavior_ids",
+    "require_entrance_slot_reachability"
+  ],
+  "title": "FullTownSemanticManifest",
+  "type": "object"
+}

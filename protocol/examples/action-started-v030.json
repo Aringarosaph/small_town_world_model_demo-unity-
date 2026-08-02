@@ -1,0 +1,51 @@
+{
+  "correlation_id": "action_00000301",
+  "message_id": "msg_000303",
+  "message_type": "action_started",
+  "payload": {
+    "action_id": "action_00000301",
+    "behavior_id": "chat",
+    "conversation_id": "conversation_000301",
+    "destination_location_id": "park",
+    "is_joint": true,
+    "participants": [
+      {
+        "agent_id": "npc_01",
+        "animation_semantic": "TALK_NEUTRAL",
+        "facing_target": {
+          "target_agent_id": "npc_02",
+          "target_object_id": null
+        },
+        "object_bindings": [
+          {
+            "object_id": "park_conversation_01",
+            "slot_index": 0
+          }
+        ],
+        "prop_semantic": null,
+        "role": "ACTOR"
+      },
+      {
+        "agent_id": "npc_02",
+        "animation_semantic": "TALK_NEUTRAL",
+        "facing_target": {
+          "target_agent_id": "npc_01",
+          "target_object_id": null
+        },
+        "object_bindings": [
+          {
+            "object_id": "park_conversation_01",
+            "slot_index": 1
+          }
+        ],
+        "prop_semantic": null,
+        "role": "TARGET"
+      }
+    ],
+    "planned_duration_minutes": 12
+  },
+  "protocol_version": "0.3.0",
+  "sent_at_utc": "2026-08-02T12:00:02Z",
+  "state_version": 42,
+  "world_id": "demo_world"
+}

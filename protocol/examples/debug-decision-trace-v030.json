@@ -1,0 +1,183 @@
+{
+  "correlation_id": "decision_000301",
+  "message_id": "msg_000307",
+  "message_type": "debug_decision_trace",
+  "payload": {
+    "agent_id": "npc_01",
+    "candidates": [
+      {
+        "actor_id": "npc_01",
+        "behavior_id": "eat_at_home",
+        "candidate_id": "candidate_000301",
+        "conflict_code": null,
+        "destination_location_id": "home_a",
+        "hard_preview": {
+          "household_food_units_delta": -1,
+          "household_money_delta": 0,
+          "object_bindings": [
+            {
+              "object_id": "home_a_fridge_01",
+              "slot_index": 0
+            },
+            {
+              "object_id": "home_a_dining_seat_01",
+              "slot_index": 0
+            }
+          ],
+          "reservation_keys": [
+            "slot:home_a_dining_seat_01:0",
+            "food:household_a:1"
+          ],
+          "settlement_keys": [
+            "meal:action_00000302"
+          ]
+        },
+        "invited_activity_id": null,
+        "prediction": {
+          "acceptance_probability": null,
+          "actor_mood_delta": {
+            "stress": 0.0,
+            "valence": 0.04
+          },
+          "candidate_id": "candidate_000301",
+          "event_probabilities": {
+            "MEAL_CONSUMED": 1.0
+          },
+          "need_delta_preview": {
+            "energy": 0.0,
+            "fun": 0.0,
+            "hunger": 0.6,
+            "hygiene": 0.0,
+            "social": 0.0
+          },
+          "prediction_id": "prediction_000301",
+          "relationship_delta_target_to_actor": null,
+          "relationship_direction": "TARGET_TO_ACTOR",
+          "target_mood_delta": null
+        },
+        "proposal_id": "proposal_000301",
+        "rank": 1,
+        "resolver_result": "ACCEPTED",
+        "selected_context_event_id": null,
+        "target_agent_id": null,
+        "target_conversation_id": null,
+        "total_score": 1.2,
+        "utility_terms": {
+          "money_cost": 0.0,
+          "needs": 1.2
+        }
+      },
+      {
+        "actor_id": "npc_01",
+        "behavior_id": "work_shift",
+        "candidate_id": "candidate_000302",
+        "conflict_code": "WORKSTATION_RESERVED",
+        "destination_location_id": "cafe_bar",
+        "hard_preview": {
+          "household_food_units_delta": 0,
+          "household_money_delta": 0,
+          "object_bindings": [
+            {
+              "object_id": "cafe_bar_workstation_01",
+              "slot_index": 0
+            }
+          ],
+          "reservation_keys": [
+            "slot:cafe_bar_workstation_01:0"
+          ],
+          "settlement_keys": [
+            "wage:npc_01:day_0000"
+          ]
+        },
+        "invited_activity_id": null,
+        "prediction": {
+          "acceptance_probability": null,
+          "actor_mood_delta": {
+            "stress": 0.05,
+            "valence": 0.0
+          },
+          "candidate_id": "candidate_000302",
+          "event_probabilities": {
+            "WORK_STARTED": 1.0
+          },
+          "need_delta_preview": {
+            "energy": -0.2,
+            "fun": -0.1,
+            "hunger": 0.0,
+            "hygiene": -0.1,
+            "social": 0.0
+          },
+          "prediction_id": "prediction_000302",
+          "relationship_delta_target_to_actor": null,
+          "relationship_direction": "TARGET_TO_ACTOR",
+          "target_mood_delta": null
+        },
+        "proposal_id": "proposal_000302",
+        "rank": 2,
+        "resolver_result": "OBJECT_SLOT_CONFLICT",
+        "selected_context_event_id": null,
+        "target_agent_id": null,
+        "target_conversation_id": null,
+        "total_score": 0.7,
+        "utility_terms": {
+          "schedule": 0.9,
+          "travel_cost": -0.2
+        }
+      },
+      {
+        "actor_id": "npc_01",
+        "behavior_id": "idle",
+        "candidate_id": "candidate_000303",
+        "conflict_code": null,
+        "destination_location_id": "home_a",
+        "hard_preview": {
+          "household_food_units_delta": 0,
+          "household_money_delta": 0,
+          "object_bindings": [],
+          "reservation_keys": [],
+          "settlement_keys": []
+        },
+        "invited_activity_id": null,
+        "prediction": {
+          "acceptance_probability": null,
+          "actor_mood_delta": {
+            "stress": -0.01,
+            "valence": 0.0
+          },
+          "candidate_id": "candidate_000303",
+          "event_probabilities": {},
+          "need_delta_preview": {
+            "energy": 0.0,
+            "fun": 0.0,
+            "hunger": 0.0,
+            "hygiene": 0.0,
+            "social": 0.0
+          },
+          "prediction_id": "prediction_000303",
+          "relationship_delta_target_to_actor": null,
+          "relationship_direction": "TARGET_TO_ACTOR",
+          "target_mood_delta": null
+        },
+        "proposal_id": null,
+        "rank": 3,
+        "resolver_result": null,
+        "selected_context_event_id": null,
+        "target_agent_id": null,
+        "target_conversation_id": null,
+        "total_score": -0.1,
+        "utility_terms": {
+          "idle_penalty": -0.1
+        }
+      }
+    ],
+    "decision_id": "decision_000301",
+    "selected_candidate_id": "candidate_000301",
+    "selected_proposal_id": "proposal_000301",
+    "source_state_version": 44,
+    "trigger": "DECISION_DUE"
+  },
+  "protocol_version": "0.3.0",
+  "sent_at_utc": "2026-08-02T12:00:06Z",
+  "state_version": 45,
+  "world_id": "demo_world"
+}

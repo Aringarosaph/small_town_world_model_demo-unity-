@@ -1,0 +1,16 @@
+{
+  "correlation_id": "action_00000301",
+  "message_id": "msg_000305",
+  "message_type": "agent_state_delta",
+  "payload": {
+    "agent_id": "npc_01",
+    "current_action_id": null,
+    "field_mask": [
+      "current_action_id"
+    ]
+  },
+  "protocol_version": "0.3.0",
+  "sent_at_utc": "2026-08-02T12:00:04Z",
+  "state_version": 43,
+  "world_id": "demo_world"
+}

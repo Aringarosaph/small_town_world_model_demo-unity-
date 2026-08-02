@@ -10,6 +10,9 @@ LEGACY_PROTOCOL_VERSION = "0.1.0"
 PROTOCOL_VERSION = "0.2.0"
 SUPPORTED_PROTOCOL_VERSIONS = (PROTOCOL_VERSION, LEGACY_PROTOCOL_VERSION)
 M2_ACCEPTED_PROTOCOL_VERSIONS = (PROTOCOL_VERSION,)
+M3_PROTOCOL_VERSION = "0.3.0"
+M3_SUPPORTED_PROTOCOL_VERSIONS = (M3_PROTOCOL_VERSION, PROTOCOL_VERSION, LEGACY_PROTOCOL_VERSION)
+M3_ACCEPTED_PROTOCOL_VERSIONS = (M3_PROTOCOL_VERSION,)
 FEATURE_VERSION = "v0.1"
 
 
@@ -255,6 +258,34 @@ class ProposalResult(StrEnum):
     SOCIAL_TARGET_COMMITTED = "SOCIAL_TARGET_COMMITTED"
 
 
+class ActionParticipantRole(StrEnum):
+    ACTOR = "ACTOR"
+    TARGET = "TARGET"
+    PARTICIPANT = "PARTICIPANT"
+
+
+class AgentDeltaField(StrEnum):
+    CURRENT_LOCATION_ID = "current_location_id"
+    CURRENT_ACTION_ID = "current_action_id"
+    NEEDS = "needs"
+    MOOD = "mood"
+    KNOWN_EVENT_IDS = "known_event_ids"
+
+
+class HouseholdDeltaField(StrEnum):
+    MONEY = "money"
+    FOOD_UNITS = "food_units"
+
+
+class DecisionTrigger(StrEnum):
+    DECISION_DUE = "DECISION_DUE"
+    ACTION_COMPLETED = "ACTION_COMPLETED"
+    ACTION_FAILED = "ACTION_FAILED"
+    ACTION_CANCELLED = "ACTION_CANCELLED"
+    INTERRUPTED = "INTERRUPTED"
+    CHECKPOINT_RESUME = "CHECKPOINT_RESUME"
+
+
 class MovementFailureReason(StrEnum):
     NO_PATH = "NO_PATH"
     DESTINATION_DISABLED = "DESTINATION_DISABLED"
@@ -304,6 +335,7 @@ class MessageType(StrEnum):
     ACTION_PHASE_CHANGED = "action_phase_changed"
     ACTION_CANCELLED = "action_cancelled"
     AGENT_STATE_DELTA = "agent_state_delta"
+    HOUSEHOLD_STATE_DELTA = "household_state_delta"
     RELATIONSHIP_DELTA = "relationship_delta"
     WORLD_EVENT_CREATED = "world_event_created"
     DIALOGUE_LINE_READY = "dialogue_line_ready"

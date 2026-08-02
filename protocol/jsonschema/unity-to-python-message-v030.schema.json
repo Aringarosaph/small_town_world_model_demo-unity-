@@ -1,0 +1,1212 @@
+{
+  "$defs": {
+    "AnimationSemantic": {
+      "enum": [
+        "IDLE",
+        "SLEEP",
+        "EAT",
+        "SHOWER_HIDDEN",
+        "SIT",
+        "WORK_DESK",
+        "WORK_STANDING",
+        "WORK_WORKSHOP",
+        "DRINK",
+        "WALK",
+        "TALK_NEUTRAL",
+        "TALK_POSITIVE",
+        "TALK_NEGATIVE",
+        "CARRY_GROCERY"
+      ],
+      "title": "AnimationSemantic",
+      "type": "string"
+    },
+    "AssetRegistryPayload": {
+      "additionalProperties": false,
+      "properties": {
+        "locations": {
+          "items": {
+            "$ref": "#/$defs/RegisteredLocation"
+          },
+          "title": "Locations",
+          "type": "array"
+        },
+        "mapped_animation_semantics": {
+          "items": {
+            "$ref": "#/$defs/AnimationSemantic"
+          },
+          "title": "Mapped Animation Semantics",
+          "type": "array"
+        },
+        "npc_views": {
+          "items": {
+            "$ref": "#/$defs/RegisteredNpcView"
+          },
+          "title": "Npc Views",
+          "type": "array"
+        },
+        "objects": {
+          "items": {
+            "$ref": "#/$defs/RegisteredObject"
+          },
+          "title": "Objects",
+          "type": "array"
+        }
+      },
+      "required": [
+        "locations",
+        "objects",
+        "npc_views",
+        "mapped_animation_semantics"
+      ],
+      "title": "AssetRegistryPayload",
+      "type": "object"
+    },
+    "AssetRegistryV030Message": {
+      "additionalProperties": false,
+      "properties": {
+        "correlation_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Correlation Id"
+        },
+        "message_id": {
+          "pattern": "^msg_[0-9]+$",
+          "title": "Message Id",
+          "type": "string"
+        },
+        "message_type": {
+          "const": "asset_registry",
+          "title": "Message Type",
+          "type": "string"
+        },
+        "payload": {
+          "$ref": "#/$defs/AssetRegistryPayload"
+        },
+        "protocol_version": {
+          "const": "0.3.0",
+          "title": "Protocol Version",
+          "type": "string"
+        },
+        "sent_at_utc": {
+          "format": "date-time",
+          "title": "Sent At Utc",
+          "type": "string"
+        },
+        "state_version": {
+          "minimum": 0,
+          "title": "State Version",
+          "type": "integer"
+        },
+        "world_id": {
+          "pattern": "^[a-z][a-z0-9_]*$",
+          "title": "World Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "protocol_version",
+        "message_id",
+        "message_type",
+        "sent_at_utc",
+        "world_id",
+        "state_version",
+        "correlation_id",
+        "payload"
+      ],
+      "title": "AssetRegistryV030Message",
+      "type": "object"
+    },
+    "CapabilityTag": {
+      "enum": [
+        "SLEEP",
+        "FOOD_SOURCE_HOME",
+        "SIT",
+        "EAT",
+        "HYGIENE",
+        "RELAX",
+        "WATCH_TV",
+        "ENTERTAINMENT",
+        "WORK",
+        "CAFE_MORNING",
+        "CAFE_EVENING",
+        "SHOP",
+        "WORKSHOP",
+        "GROCERY_SOURCE",
+        "PURCHASE",
+        "BUY_MEAL",
+        "BUY_DRINK",
+        "REST",
+        "WALK_ROUTE",
+        "SOCIAL_POSITION"
+      ],
+      "title": "CapabilityTag",
+      "type": "string"
+    },
+    "ClientHelloV030Message": {
+      "additionalProperties": false,
+      "properties": {
+        "correlation_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Correlation Id"
+        },
+        "message_id": {
+          "pattern": "^msg_[0-9]+$",
+          "title": "Message Id",
+          "type": "string"
+        },
+        "message_type": {
+          "const": "client_hello",
+          "title": "Message Type",
+          "type": "string"
+        },
+        "payload": {
+          "$ref": "#/$defs/ClientHelloV030Payload"
+        },
+        "protocol_version": {
+          "const": "0.3.0",
+          "title": "Protocol Version",
+          "type": "string"
+        },
+        "sent_at_utc": {
+          "format": "date-time",
+          "title": "Sent At Utc",
+          "type": "string"
+        },
+        "state_version": {
+          "minimum": 0,
+          "title": "State Version",
+          "type": "integer"
+        },
+        "world_id": {
+          "pattern": "^[a-z][a-z0-9_]*$",
+          "title": "World Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "protocol_version",
+        "message_id",
+        "message_type",
+        "sent_at_utc",
+        "world_id",
+        "state_version",
+        "correlation_id",
+        "payload"
+      ],
+      "title": "ClientHelloV030Message",
+      "type": "object"
+    },
+    "ClientHelloV030Payload": {
+      "additionalProperties": false,
+      "properties": {
+        "client_name": {
+          "const": "unity",
+          "title": "Client Name",
+          "type": "string"
+        },
+        "supported_protocol_versions": {
+          "items": {
+            "$ref": "#/$defs/M3SupportedProtocolVersion"
+          },
+          "minItems": 1,
+          "title": "Supported Protocol Versions",
+          "type": "array"
+        },
+        "unity_editor_version": {
+          "const": "6000.4.2f1",
+          "title": "Unity Editor Version",
+          "type": "string"
+        }
+      },
+      "required": [
+        "client_name",
+        "unity_editor_version",
+        "supported_protocol_versions"
+      ],
+      "title": "ClientHelloV030Payload",
+      "type": "object"
+    },
+    "ClientReadyPayload": {
+      "additionalProperties": false,
+      "properties": {
+        "registry_message_id": {
+          "pattern": "^msg_[0-9]+$",
+          "title": "Registry Message Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "registry_message_id"
+      ],
+      "title": "ClientReadyPayload",
+      "type": "object"
+    },
+    "ClientReadyV030Message": {
+      "additionalProperties": false,
+      "properties": {
+        "correlation_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Correlation Id"
+        },
+        "message_id": {
+          "pattern": "^msg_[0-9]+$",
+          "title": "Message Id",
+          "type": "string"
+        },
+        "message_type": {
+          "const": "client_ready",
+          "title": "Message Type",
+          "type": "string"
+        },
+        "payload": {
+          "$ref": "#/$defs/ClientReadyPayload"
+        },
+        "protocol_version": {
+          "const": "0.3.0",
+          "title": "Protocol Version",
+          "type": "string"
+        },
+        "sent_at_utc": {
+          "format": "date-time",
+          "title": "Sent At Utc",
+          "type": "string"
+        },
+        "state_version": {
+          "minimum": 0,
+          "title": "State Version",
+          "type": "integer"
+        },
+        "world_id": {
+          "pattern": "^[a-z][a-z0-9_]*$",
+          "title": "World Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "protocol_version",
+        "message_id",
+        "message_type",
+        "sent_at_utc",
+        "world_id",
+        "state_version",
+        "correlation_id",
+        "payload"
+      ],
+      "title": "ClientReadyV030Message",
+      "type": "object"
+    },
+    "LocationType": {
+      "enum": [
+        "HOME",
+        "CAFE_BAR",
+        "SHOP",
+        "WORKPLACE",
+        "PARK"
+      ],
+      "title": "LocationType",
+      "type": "string"
+    },
+    "M3SupportedProtocolVersion": {
+      "enum": [
+        "0.1.0",
+        "0.2.0",
+        "0.3.0"
+      ],
+      "type": "string"
+    },
+    "MovementArrivedPayload": {
+      "additionalProperties": false,
+      "properties": {
+        "action_id": {
+          "pattern": "^action_[0-9]+$",
+          "title": "Action Id",
+          "type": "string"
+        },
+        "agent_id": {
+          "pattern": "^npc_[0-9]{2}$",
+          "title": "Agent Id",
+          "type": "string"
+        },
+        "object_id": {
+          "anyOf": [
+            {
+              "pattern": "^[a-z][a-z0-9_]*_[0-9]{2}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Object Id"
+        },
+        "slot_index": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Slot Index"
+        }
+      },
+      "required": [
+        "action_id",
+        "agent_id",
+        "object_id",
+        "slot_index"
+      ],
+      "title": "MovementArrivedPayload",
+      "type": "object"
+    },
+    "MovementArrivedV030Message": {
+      "additionalProperties": false,
+      "properties": {
+        "correlation_id": {
+          "pattern": "^action_[0-9]+$",
+          "title": "Correlation Id",
+          "type": "string"
+        },
+        "message_id": {
+          "pattern": "^msg_[0-9]+$",
+          "title": "Message Id",
+          "type": "string"
+        },
+        "message_type": {
+          "const": "movement_arrived",
+          "title": "Message Type",
+          "type": "string"
+        },
+        "payload": {
+          "$ref": "#/$defs/MovementArrivedPayload"
+        },
+        "protocol_version": {
+          "const": "0.3.0",
+          "title": "Protocol Version",
+          "type": "string"
+        },
+        "sent_at_utc": {
+          "format": "date-time",
+          "title": "Sent At Utc",
+          "type": "string"
+        },
+        "state_version": {
+          "minimum": 0,
+          "title": "State Version",
+          "type": "integer"
+        },
+        "world_id": {
+          "pattern": "^[a-z][a-z0-9_]*$",
+          "title": "World Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "protocol_version",
+        "message_id",
+        "message_type",
+        "sent_at_utc",
+        "world_id",
+        "state_version",
+        "correlation_id",
+        "payload"
+      ],
+      "title": "MovementArrivedV030Message",
+      "type": "object"
+    },
+    "MovementCancellationReason": {
+      "enum": [
+        "NAVIGATION_STOPPED",
+        "SCENE_UNLOADED",
+        "CLIENT_SHUTDOWN",
+        "UNKNOWN"
+      ],
+      "title": "MovementCancellationReason",
+      "type": "string"
+    },
+    "MovementCancelledPayload": {
+      "additionalProperties": false,
+      "properties": {
+        "action_id": {
+          "pattern": "^action_[0-9]+$",
+          "title": "Action Id",
+          "type": "string"
+        },
+        "agent_id": {
+          "pattern": "^npc_[0-9]{2}$",
+          "title": "Agent Id",
+          "type": "string"
+        },
+        "reason": {
+          "$ref": "#/$defs/MovementCancellationReason"
+        }
+      },
+      "required": [
+        "action_id",
+        "agent_id",
+        "reason"
+      ],
+      "title": "MovementCancelledPayload",
+      "type": "object"
+    },
+    "MovementCancelledV030Message": {
+      "additionalProperties": false,
+      "properties": {
+        "correlation_id": {
+          "pattern": "^action_[0-9]+$",
+          "title": "Correlation Id",
+          "type": "string"
+        },
+        "message_id": {
+          "pattern": "^msg_[0-9]+$",
+          "title": "Message Id",
+          "type": "string"
+        },
+        "message_type": {
+          "const": "movement_cancelled",
+          "title": "Message Type",
+          "type": "string"
+        },
+        "payload": {
+          "$ref": "#/$defs/MovementCancelledPayload"
+        },
+        "protocol_version": {
+          "const": "0.3.0",
+          "title": "Protocol Version",
+          "type": "string"
+        },
+        "sent_at_utc": {
+          "format": "date-time",
+          "title": "Sent At Utc",
+          "type": "string"
+        },
+        "state_version": {
+          "minimum": 0,
+          "title": "State Version",
+          "type": "integer"
+        },
+        "world_id": {
+          "pattern": "^[a-z][a-z0-9_]*$",
+          "title": "World Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "protocol_version",
+        "message_id",
+        "message_type",
+        "sent_at_utc",
+        "world_id",
+        "state_version",
+        "correlation_id",
+        "payload"
+      ],
+      "title": "MovementCancelledV030Message",
+      "type": "object"
+    },
+    "MovementFailedPayload": {
+      "additionalProperties": false,
+      "properties": {
+        "action_id": {
+          "pattern": "^action_[0-9]+$",
+          "title": "Action Id",
+          "type": "string"
+        },
+        "agent_id": {
+          "pattern": "^npc_[0-9]{2}$",
+          "title": "Agent Id",
+          "type": "string"
+        },
+        "reason": {
+          "$ref": "#/$defs/MovementFailureReason"
+        }
+      },
+      "required": [
+        "action_id",
+        "agent_id",
+        "reason"
+      ],
+      "title": "MovementFailedPayload",
+      "type": "object"
+    },
+    "MovementFailedV030Message": {
+      "additionalProperties": false,
+      "properties": {
+        "correlation_id": {
+          "pattern": "^action_[0-9]+$",
+          "title": "Correlation Id",
+          "type": "string"
+        },
+        "message_id": {
+          "pattern": "^msg_[0-9]+$",
+          "title": "Message Id",
+          "type": "string"
+        },
+        "message_type": {
+          "const": "movement_failed",
+          "title": "Message Type",
+          "type": "string"
+        },
+        "payload": {
+          "$ref": "#/$defs/MovementFailedPayload"
+        },
+        "protocol_version": {
+          "const": "0.3.0",
+          "title": "Protocol Version",
+          "type": "string"
+        },
+        "sent_at_utc": {
+          "format": "date-time",
+          "title": "Sent At Utc",
+          "type": "string"
+        },
+        "state_version": {
+          "minimum": 0,
+          "title": "State Version",
+          "type": "integer"
+        },
+        "world_id": {
+          "pattern": "^[a-z][a-z0-9_]*$",
+          "title": "World Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "protocol_version",
+        "message_id",
+        "message_type",
+        "sent_at_utc",
+        "world_id",
+        "state_version",
+        "correlation_id",
+        "payload"
+      ],
+      "title": "MovementFailedV030Message",
+      "type": "object"
+    },
+    "MovementFailureReason": {
+      "enum": [
+        "NO_PATH",
+        "DESTINATION_DISABLED",
+        "SLOT_BLOCKED",
+        "AGENT_DISABLED",
+        "TIMEOUT",
+        "UNKNOWN"
+      ],
+      "title": "MovementFailureReason",
+      "type": "string"
+    },
+    "ObjectType": {
+      "enum": [
+        "BED",
+        "FRIDGE",
+        "DINING_SEAT",
+        "SHOWER",
+        "SOFA",
+        "TV",
+        "WORKSTATION",
+        "SHOP_SHELF",
+        "CHECKOUT_COUNTER",
+        "CAFE_COUNTER",
+        "BAR_COUNTER",
+        "PUBLIC_SEAT",
+        "PARK_ROUTE",
+        "LEISURE_SPOT",
+        "CONVERSATION_ANCHOR"
+      ],
+      "title": "ObjectType",
+      "type": "string"
+    },
+    "PauseRequestPayload": {
+      "additionalProperties": false,
+      "properties": {
+        "paused": {
+          "title": "Paused",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "paused"
+      ],
+      "title": "PauseRequestPayload",
+      "type": "object"
+    },
+    "PauseRequestV030Message": {
+      "additionalProperties": false,
+      "properties": {
+        "correlation_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Correlation Id"
+        },
+        "message_id": {
+          "pattern": "^msg_[0-9]+$",
+          "title": "Message Id",
+          "type": "string"
+        },
+        "message_type": {
+          "const": "pause_request",
+          "title": "Message Type",
+          "type": "string"
+        },
+        "payload": {
+          "$ref": "#/$defs/PauseRequestPayload"
+        },
+        "protocol_version": {
+          "const": "0.3.0",
+          "title": "Protocol Version",
+          "type": "string"
+        },
+        "sent_at_utc": {
+          "format": "date-time",
+          "title": "Sent At Utc",
+          "type": "string"
+        },
+        "state_version": {
+          "minimum": 0,
+          "title": "State Version",
+          "type": "integer"
+        },
+        "world_id": {
+          "pattern": "^[a-z][a-z0-9_]*$",
+          "title": "World Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "protocol_version",
+        "message_id",
+        "message_type",
+        "sent_at_utc",
+        "world_id",
+        "state_version",
+        "correlation_id",
+        "payload"
+      ],
+      "title": "PauseRequestV030Message",
+      "type": "object"
+    },
+    "PlayerEndConversationPayload": {
+      "additionalProperties": false,
+      "properties": {
+        "conversation_id": {
+          "pattern": "^conversation_[0-9]+$",
+          "title": "Conversation Id",
+          "type": "string"
+        },
+        "target_agent_id": {
+          "pattern": "^npc_[0-9]{2}$",
+          "title": "Target Agent Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "conversation_id",
+        "target_agent_id"
+      ],
+      "title": "PlayerEndConversationPayload",
+      "type": "object"
+    },
+    "PlayerEndConversationV030Message": {
+      "additionalProperties": false,
+      "properties": {
+        "correlation_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Correlation Id"
+        },
+        "message_id": {
+          "pattern": "^msg_[0-9]+$",
+          "title": "Message Id",
+          "type": "string"
+        },
+        "message_type": {
+          "const": "player_end_conversation",
+          "title": "Message Type",
+          "type": "string"
+        },
+        "payload": {
+          "$ref": "#/$defs/PlayerEndConversationPayload"
+        },
+        "protocol_version": {
+          "const": "0.3.0",
+          "title": "Protocol Version",
+          "type": "string"
+        },
+        "sent_at_utc": {
+          "format": "date-time",
+          "title": "Sent At Utc",
+          "type": "string"
+        },
+        "state_version": {
+          "minimum": 0,
+          "title": "State Version",
+          "type": "integer"
+        },
+        "world_id": {
+          "pattern": "^[a-z][a-z0-9_]*$",
+          "title": "World Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "protocol_version",
+        "message_id",
+        "message_type",
+        "sent_at_utc",
+        "world_id",
+        "state_version",
+        "correlation_id",
+        "payload"
+      ],
+      "title": "PlayerEndConversationV030Message",
+      "type": "object"
+    },
+    "PlayerUtterancePayload": {
+      "additionalProperties": false,
+      "properties": {
+        "client_state_version": {
+          "minimum": 0,
+          "title": "Client State Version",
+          "type": "integer"
+        },
+        "conversation_id": {
+          "pattern": "^conversation_[0-9]+$",
+          "title": "Conversation Id",
+          "type": "string"
+        },
+        "player_id": {
+          "const": "player",
+          "title": "Player Id",
+          "type": "string"
+        },
+        "target_agent_id": {
+          "pattern": "^npc_[0-9]{2}$",
+          "title": "Target Agent Id",
+          "type": "string"
+        },
+        "text": {
+          "maxLength": 2000,
+          "minLength": 1,
+          "title": "Text",
+          "type": "string"
+        }
+      },
+      "required": [
+        "conversation_id",
+        "player_id",
+        "target_agent_id",
+        "text",
+        "client_state_version"
+      ],
+      "title": "PlayerUtterancePayload",
+      "type": "object"
+    },
+    "PlayerUtteranceV030Message": {
+      "additionalProperties": false,
+      "properties": {
+        "correlation_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Correlation Id"
+        },
+        "message_id": {
+          "pattern": "^msg_[0-9]+$",
+          "title": "Message Id",
+          "type": "string"
+        },
+        "message_type": {
+          "const": "player_utterance",
+          "title": "Message Type",
+          "type": "string"
+        },
+        "payload": {
+          "$ref": "#/$defs/PlayerUtterancePayload"
+        },
+        "protocol_version": {
+          "const": "0.3.0",
+          "title": "Protocol Version",
+          "type": "string"
+        },
+        "sent_at_utc": {
+          "format": "date-time",
+          "title": "Sent At Utc",
+          "type": "string"
+        },
+        "state_version": {
+          "minimum": 0,
+          "title": "State Version",
+          "type": "integer"
+        },
+        "world_id": {
+          "pattern": "^[a-z][a-z0-9_]*$",
+          "title": "World Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "protocol_version",
+        "message_id",
+        "message_type",
+        "sent_at_utc",
+        "world_id",
+        "state_version",
+        "correlation_id",
+        "payload"
+      ],
+      "title": "PlayerUtteranceV030Message",
+      "type": "object"
+    },
+    "PresentationCompletedPayload": {
+      "additionalProperties": false,
+      "properties": {
+        "action_id": {
+          "pattern": "^action_[0-9]+$",
+          "title": "Action Id",
+          "type": "string"
+        },
+        "agent_id": {
+          "pattern": "^npc_[0-9]{2}$",
+          "title": "Agent Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "action_id",
+        "agent_id"
+      ],
+      "title": "PresentationCompletedPayload",
+      "type": "object"
+    },
+    "PresentationCompletedV030Message": {
+      "additionalProperties": false,
+      "properties": {
+        "correlation_id": {
+          "pattern": "^action_[0-9]+$",
+          "title": "Correlation Id",
+          "type": "string"
+        },
+        "message_id": {
+          "pattern": "^msg_[0-9]+$",
+          "title": "Message Id",
+          "type": "string"
+        },
+        "message_type": {
+          "const": "presentation_completed",
+          "title": "Message Type",
+          "type": "string"
+        },
+        "payload": {
+          "$ref": "#/$defs/PresentationCompletedPayload"
+        },
+        "protocol_version": {
+          "const": "0.3.0",
+          "title": "Protocol Version",
+          "type": "string"
+        },
+        "sent_at_utc": {
+          "format": "date-time",
+          "title": "Sent At Utc",
+          "type": "string"
+        },
+        "state_version": {
+          "minimum": 0,
+          "title": "State Version",
+          "type": "integer"
+        },
+        "world_id": {
+          "pattern": "^[a-z][a-z0-9_]*$",
+          "title": "World Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "protocol_version",
+        "message_id",
+        "message_type",
+        "sent_at_utc",
+        "world_id",
+        "state_version",
+        "correlation_id",
+        "payload"
+      ],
+      "title": "PresentationCompletedV030Message",
+      "type": "object"
+    },
+    "RegisteredInteractionSlot": {
+      "additionalProperties": false,
+      "properties": {
+        "slot_index": {
+          "minimum": 0,
+          "title": "Slot Index",
+          "type": "integer"
+        },
+        "supported_animation_semantics": {
+          "items": {
+            "$ref": "#/$defs/AnimationSemantic"
+          },
+          "title": "Supported Animation Semantics",
+          "type": "array"
+        }
+      },
+      "required": [
+        "slot_index",
+        "supported_animation_semantics"
+      ],
+      "title": "RegisteredInteractionSlot",
+      "type": "object"
+    },
+    "RegisteredLocation": {
+      "additionalProperties": false,
+      "properties": {
+        "location_id": {
+          "pattern": "^[a-z][a-z0-9_]*$",
+          "title": "Location Id",
+          "type": "string"
+        },
+        "location_type": {
+          "$ref": "#/$defs/LocationType"
+        }
+      },
+      "required": [
+        "location_id",
+        "location_type"
+      ],
+      "title": "RegisteredLocation",
+      "type": "object"
+    },
+    "RegisteredNpcView": {
+      "additionalProperties": false,
+      "properties": {
+        "agent_id": {
+          "pattern": "^npc_[0-9]{2}$",
+          "title": "Agent Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "agent_id"
+      ],
+      "title": "RegisteredNpcView",
+      "type": "object"
+    },
+    "RegisteredObject": {
+      "additionalProperties": false,
+      "properties": {
+        "capability_tags": {
+          "items": {
+            "$ref": "#/$defs/CapabilityTag"
+          },
+          "minItems": 1,
+          "title": "Capability Tags",
+          "type": "array"
+        },
+        "enabled": {
+          "title": "Enabled",
+          "type": "boolean"
+        },
+        "interaction_slots": {
+          "items": {
+            "$ref": "#/$defs/RegisteredInteractionSlot"
+          },
+          "minItems": 1,
+          "title": "Interaction Slots",
+          "type": "array"
+        },
+        "location_id": {
+          "pattern": "^[a-z][a-z0-9_]*$",
+          "title": "Location Id",
+          "type": "string"
+        },
+        "object_id": {
+          "pattern": "^[a-z][a-z0-9_]*_[0-9]{2}$",
+          "title": "Object Id",
+          "type": "string"
+        },
+        "object_type": {
+          "$ref": "#/$defs/ObjectType"
+        }
+      },
+      "required": [
+        "object_id",
+        "object_type",
+        "location_id",
+        "capability_tags",
+        "enabled",
+        "interaction_slots"
+      ],
+      "title": "RegisteredObject",
+      "type": "object"
+    },
+    "SetTimeScaleRequestPayload": {
+      "additionalProperties": false,
+      "properties": {
+        "requested_time_scale": {
+          "maximum": 1000.0,
+          "minimum": 0.0,
+          "title": "Requested Time Scale",
+          "type": "number"
+        }
+      },
+      "required": [
+        "requested_time_scale"
+      ],
+      "title": "SetTimeScaleRequestPayload",
+      "type": "object"
+    },
+    "SetTimeScaleRequestV030Message": {
+      "additionalProperties": false,
+      "properties": {
+        "correlation_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Correlation Id"
+        },
+        "message_id": {
+          "pattern": "^msg_[0-9]+$",
+          "title": "Message Id",
+          "type": "string"
+        },
+        "message_type": {
+          "const": "set_time_scale_request",
+          "title": "Message Type",
+          "type": "string"
+        },
+        "payload": {
+          "$ref": "#/$defs/SetTimeScaleRequestPayload"
+        },
+        "protocol_version": {
+          "const": "0.3.0",
+          "title": "Protocol Version",
+          "type": "string"
+        },
+        "sent_at_utc": {
+          "format": "date-time",
+          "title": "Sent At Utc",
+          "type": "string"
+        },
+        "state_version": {
+          "minimum": 0,
+          "title": "State Version",
+          "type": "integer"
+        },
+        "world_id": {
+          "pattern": "^[a-z][a-z0-9_]*$",
+          "title": "World Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "protocol_version",
+        "message_id",
+        "message_type",
+        "sent_at_utc",
+        "world_id",
+        "state_version",
+        "correlation_id",
+        "payload"
+      ],
+      "title": "SetTimeScaleRequestV030Message",
+      "type": "object"
+    }
+  },
+  "$id": "urn:ai-town:protocol:0.3.0:unity-to-python-message-v030",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "discriminator": {
+    "mapping": {
+      "asset_registry": "#/$defs/AssetRegistryV030Message",
+      "client_hello": "#/$defs/ClientHelloV030Message",
+      "client_ready": "#/$defs/ClientReadyV030Message",
+      "movement_arrived": "#/$defs/MovementArrivedV030Message",
+      "movement_cancelled": "#/$defs/MovementCancelledV030Message",
+      "movement_failed": "#/$defs/MovementFailedV030Message",
+      "pause_request": "#/$defs/PauseRequestV030Message",
+      "player_end_conversation": "#/$defs/PlayerEndConversationV030Message",
+      "player_utterance": "#/$defs/PlayerUtteranceV030Message",
+      "presentation_completed": "#/$defs/PresentationCompletedV030Message",
+      "set_time_scale_request": "#/$defs/SetTimeScaleRequestV030Message"
+    },
+    "propertyName": "message_type"
+  },
+  "oneOf": [
+    {
+      "$ref": "#/$defs/ClientHelloV030Message"
+    },
+    {
+      "$ref": "#/$defs/AssetRegistryV030Message"
+    },
+    {
+      "$ref": "#/$defs/ClientReadyV030Message"
+    },
+    {
+      "$ref": "#/$defs/MovementArrivedV030Message"
+    },
+    {
+      "$ref": "#/$defs/MovementFailedV030Message"
+    },
+    {
+      "$ref": "#/$defs/MovementCancelledV030Message"
+    },
+    {
+      "$ref": "#/$defs/PresentationCompletedV030Message"
+    },
+    {
+      "$ref": "#/$defs/PlayerUtteranceV030Message"
+    },
+    {
+      "$ref": "#/$defs/PlayerEndConversationV030Message"
+    },
+    {
+      "$ref": "#/$defs/SetTimeScaleRequestV030Message"
+    },
+    {
+      "$ref": "#/$defs/PauseRequestV030Message"
+    }
+  ]
+}

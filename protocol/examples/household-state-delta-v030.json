@@ -1,0 +1,18 @@
+{
+  "correlation_id": "action_00000302",
+  "message_id": "msg_000306",
+  "message_type": "household_state_delta",
+  "payload": {
+    "field_mask": [
+      "money",
+      "food_units"
+    ],
+    "food_units": 12,
+    "household_id": "household_a",
+    "money": 145
+  },
+  "protocol_version": "0.3.0",
+  "sent_at_utc": "2026-08-02T12:00:05Z",
+  "state_version": 44,
+  "world_id": "demo_world"
+}

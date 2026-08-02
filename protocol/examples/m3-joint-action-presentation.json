@@ -1,0 +1,34 @@
+{
+  "action_id": "action_00000401",
+  "authority": "CENTRAL_RESOLVER",
+  "behavior_id": "walk_in_park",
+  "conversation_id": "conversation_000401",
+  "invited_activity_id": "walk_in_park",
+  "location_id": "park",
+  "participants": [
+    {
+      "agent_id": "npc_01",
+      "object_bindings": [
+        {
+          "object_id": "park_route_01",
+          "slot_index": 0
+        }
+      ],
+      "proposal_id": "proposal_000401",
+      "role": "ACTOR"
+    },
+    {
+      "agent_id": "npc_02",
+      "object_bindings": [
+        {
+          "object_id": "park_route_01",
+          "slot_index": 1
+        }
+      ],
+      "proposal_id": "proposal_000402",
+      "role": "PARTICIPANT"
+    }
+  ],
+  "phase": "TRAVELING",
+  "source_state_version": 50
+}

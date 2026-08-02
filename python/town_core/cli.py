@@ -7,7 +7,7 @@ import json
 from collections.abc import Sequence
 from pathlib import Path
 
-from town_core.catalogs import CatalogValidationError, load_catalog
+from town_core.catalogs import CatalogValidationError, load_catalog, load_m3_catalogs, m3_catalog_hash
 from town_core.replay import replay_run
 from town_core.simulation.run import run_headless
 
@@ -38,6 +38,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     if args.command == "validate-config":
         try:
             catalog = load_catalog(args.config)
+            m3_catalogs = load_m3_catalogs(args.config, catalog=catalog)
         except CatalogValidationError as exc:
             print(json.dumps({"valid": False, "error": str(exc)}, ensure_ascii=False))
             return 1
@@ -47,6 +48,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             "schema_version": catalog.world.schema_version,
             "protocol_version": catalog.world.protocol_version,
             "counts": dict(catalog.world.fixed_counts),
+            "m3_catalog_hash": m3_catalog_hash(m3_catalogs),
         }
         print(json.dumps(summary, ensure_ascii=False, sort_keys=True))
         return 0

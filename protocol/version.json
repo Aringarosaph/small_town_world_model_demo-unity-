@@ -3,15 +3,22 @@
     "active_m2_acceptance_versions": [
       "0.2.0"
     ],
+    "active_m3_acceptance_versions": [
+      "0.3.0"
+    ],
     "bootstrap_decodable_versions": [
+      "0.3.0",
       "0.2.0",
       "0.1.0"
     ],
     "breaking_changes_require_protocol_bump": true,
+    "current": "0.3.0",
     "legacy_decode_only_versions": [
       "0.1.0"
     ],
+    "m2_compatibility_artifacts_immutable": true,
     "movement_cancelled_versions": [
+      "0.3.0",
       "0.2.0"
     ]
   },
@@ -26,13 +33,17 @@
     ],
     "heartbeat": "WEBSOCKET_PING_PONG",
     "joint_action_authority": "CENTRAL_RESOLVER",
+    "m3_agent_delta_presence": "FIELD_MASK_NULL_MEANS_CLEAR",
+    "m3_authority_checkpoint": "SIM_OWNED_SIDECAR_V1",
+    "m3_joint_presentation": "STRUCTURED_PARTICIPANTS_AND_BINDINGS",
+    "m3_public_world_schema": "v0.1",
     "movement_cancelled_direction": "UNITY_TO_PYTHON_NON_AUTHORITATIVE_REPORT",
     "perception_authority": "HIGH_LEVEL_LOCATION",
     "relationship_prediction": "TARGET_TO_ACTOR",
     "resync": "FULL_HANDSHAKE_REGISTRY_SNAPSHOT_CLIENT_READY",
     "route_planning": "DISABLED"
   },
-  "protocol_version": "0.2.0",
+  "protocol_version": "0.3.0",
   "python_version": "3.12",
   "schema_version": "v0.1",
   "unity_editor": "6000.4.2f1"

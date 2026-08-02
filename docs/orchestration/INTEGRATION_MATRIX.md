@@ -7,13 +7,14 @@
 | Behavior/object catalogs | CONTRACTS | SIM, UNITY, MODEL, QA | YAML catalogs | Catalog version + coverage test |
 | Message envelope | CONTRACTS | SIM, UNITY, QA | M3 `0.3.0`; M2 `0.2.0`; `0.1.0` legacy decode | Protocol semver + compatibility test |
 | Authority transactions | SIM | UNITY, MODEL, QA | M1 | ADR + invariant tests |
-| Semantic asset registry | UNITY | SIM, QA | M2 scoped profile from ADR-0009 | Protocol update + Unity validation |
-| Movement/presentation reports | CONTRACTS | SIM, UNITY, QA | Directional `0.2.0` DTO/Schema | ADR + direction/version/idempotency tests |
+| Semantic asset registry | CONTRACTS / UNITY | SIM, QA | M2 scoped profile; M3 shared full-town manifest | Catalog re-freeze + dual Python/Unity validation |
+| Movement/presentation reports | CONTRACTS | SIM, UNITY, QA | M2 directional `0.2.0`; M3 structured `0.3.0` | ADR + direction/version/idempotency tests |
 | OutcomeModel DTO | CONTRACTS | SIM, MODEL, QA | M0 protocol only | Feature/model version + regression |
 | Knowledge/SpeechPlan | CONTRACTS | SIM, DIALOGUE, UNITY, QA | M0 schema | Schema + permission tests |
 | Decision trace and run layout | QA | All | M0 docs/checks | Observability review |
 | M3 authority checkpoint | SIM | QA, replay | ADR-0011 sidecar v1 | Checkpoint schema + resume/replay hashes |
 | Full-town semantic instances | CONTRACTS | SIM, UNITY, QA | M3 shared manifest | Catalog re-freeze + dual registry gate |
+| Background NPC templates | CONTRACTS | SIM, UNITY, QA | M3 deterministic UTF-8 catalog | Coverage + deterministic selection + catalog re-freeze |
 
 ## Merge order for M0
 
@@ -104,3 +105,17 @@ with an M0 artifact are frozen inputs to that work.
 - Contract decision: ADR-0011
 - M3 active protocol: exactly `0.3.0`
 - Accepted M2 compatibility protocol: exactly `0.2.0`
+
+## M3 CONTRACTS integration record
+
+- Active wire contract: `ProtocolMessageV030` and direction-specific V030 unions.
+- Public snapshot state: unchanged `WorldState` schema `v0.1`; reconnect adds a
+  presentation projection outside the public state.
+- Compatibility: explicit V020 aliases/artifacts plus unchanged historical M2
+  artifact names; V010 remains legacy decode.
+- Shared M3 catalogs: `stwm.catalog.m3-semantic-instances/v1` and
+  `stwm.catalog.m3-background-dialogue/v1`.
+- Checkpoint owner: SIM. CONTRACTS does not publish a competing authority
+  checkpoint or private-ledger model.
+- Re-freeze authority: ADR-0011; content commit and final manifest commit are
+  reported in cherry-pick order after validation.

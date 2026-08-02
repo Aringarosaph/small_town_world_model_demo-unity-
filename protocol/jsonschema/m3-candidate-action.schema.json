@@ -1,0 +1,184 @@
+{
+  "$defs": {
+    "BehaviorId": {
+      "enum": [
+        "idle",
+        "sleep",
+        "eat_at_home",
+        "shower",
+        "watch_tv",
+        "relax_at_home",
+        "work_shift",
+        "take_break",
+        "buy_groceries",
+        "eat_at_cafe",
+        "drink_at_bar",
+        "walk_in_park",
+        "sit_in_park",
+        "greet",
+        "chat",
+        "joke",
+        "compliment",
+        "share_event",
+        "invite_join",
+        "apologize",
+        "confront",
+        "end_conversation"
+      ],
+      "title": "BehaviorId",
+      "type": "string"
+    },
+    "HardCostPreview": {
+      "additionalProperties": false,
+      "properties": {
+        "household_food_units": {
+          "default": 0,
+          "title": "Household Food Units",
+          "type": "integer"
+        },
+        "household_money": {
+          "default": 0,
+          "title": "Household Money",
+          "type": "integer"
+        }
+      },
+      "title": "HardCostPreview",
+      "type": "object"
+    }
+  },
+  "$id": "urn:ai-town:protocol:0.3.0:m3-candidate-action",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "M3-only candidate additions; the accepted M1 candidate stays unchanged.",
+  "properties": {
+    "actor_id": {
+      "pattern": "^npc_[0-9]{2}$",
+      "title": "Actor Id",
+      "type": "string"
+    },
+    "behavior_id": {
+      "$ref": "#/$defs/BehaviorId"
+    },
+    "candidate_id": {
+      "pattern": "^candidate_[0-9]+$",
+      "title": "Candidate Id",
+      "type": "string"
+    },
+    "context_event_ids": {
+      "items": {
+        "pattern": "^event_[0-9]+$",
+        "type": "string"
+      },
+      "title": "Context Event Ids",
+      "type": "array"
+    },
+    "destination_location_id": {
+      "anyOf": [
+        {
+          "pattern": "^[a-z][a-z0-9_]*$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Destination Location Id"
+    },
+    "estimated_duration_minutes": {
+      "minimum": 0,
+      "title": "Estimated Duration Minutes",
+      "type": "integer"
+    },
+    "estimated_travel_minutes": {
+      "minimum": 0,
+      "title": "Estimated Travel Minutes",
+      "type": "integer"
+    },
+    "hard_cost_preview": {
+      "$ref": "#/$defs/HardCostPreview"
+    },
+    "invited_activity_id": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/BehaviorId"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "route_planning": {
+      "const": "DISABLED",
+      "title": "Route Planning",
+      "type": "string"
+    },
+    "schedule_conflict_minutes": {
+      "minimum": 0,
+      "title": "Schedule Conflict Minutes",
+      "type": "integer"
+    },
+    "selected_context_event_id": {
+      "anyOf": [
+        {
+          "pattern": "^event_[0-9]+$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Selected Context Event Id"
+    },
+    "target_agent_id": {
+      "anyOf": [
+        {
+          "pattern": "^npc_[0-9]{2}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Target Agent Id"
+    },
+    "target_conversation_id": {
+      "anyOf": [
+        {
+          "pattern": "^conversation_[0-9]+$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Target Conversation Id"
+    },
+    "target_object_ids": {
+      "items": {
+        "pattern": "^[a-z][a-z0-9_]*_[0-9]{2}$",
+        "type": "string"
+      },
+      "title": "Target Object Ids",
+      "type": "array"
+    }
+  },
+  "required": [
+    "candidate_id",
+    "actor_id",
+    "behavior_id",
+    "target_agent_id",
+    "target_object_ids",
+    "destination_location_id",
+    "estimated_travel_minutes",
+    "estimated_duration_minutes",
+    "hard_cost_preview",
+    "schedule_conflict_minutes",
+    "context_event_ids",
+    "route_planning"
+  ],
+  "title": "M3CandidateAction",
+  "type": "object"
+}

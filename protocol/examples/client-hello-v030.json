@@ -1,0 +1,17 @@
+{
+  "correlation_id": null,
+  "message_id": "msg_000301",
+  "message_type": "client_hello",
+  "payload": {
+    "client_name": "unity",
+    "supported_protocol_versions": [
+      "0.3.0",
+      "0.2.0"
+    ],
+    "unity_editor_version": "6000.4.2f1"
+  },
+  "protocol_version": "0.3.0",
+  "sent_at_utc": "2026-08-02T12:00:00Z",
+  "state_version": 0,
+  "world_id": "demo_world"
+}

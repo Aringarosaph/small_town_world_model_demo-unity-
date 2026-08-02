@@ -1,0 +1,187 @@
+{
+  "$defs": {
+    "ActionParticipantRole": {
+      "enum": [
+        "ACTOR",
+        "TARGET",
+        "PARTICIPANT"
+      ],
+      "title": "ActionParticipantRole",
+      "type": "string"
+    },
+    "ActionPhase": {
+      "enum": [
+        "CREATED",
+        "RESERVING",
+        "TRAVELING",
+        "ALIGNING",
+        "PERFORMING",
+        "RESOLVING",
+        "COMPLETED",
+        "CANCELLED",
+        "FAILED",
+        "INTERRUPTED"
+      ],
+      "title": "ActionPhase",
+      "type": "string"
+    },
+    "BehaviorId": {
+      "enum": [
+        "idle",
+        "sleep",
+        "eat_at_home",
+        "shower",
+        "watch_tv",
+        "relax_at_home",
+        "work_shift",
+        "take_break",
+        "buy_groceries",
+        "eat_at_cafe",
+        "drink_at_bar",
+        "walk_in_park",
+        "sit_in_park",
+        "greet",
+        "chat",
+        "joke",
+        "compliment",
+        "share_event",
+        "invite_join",
+        "apologize",
+        "confront",
+        "end_conversation"
+      ],
+      "title": "BehaviorId",
+      "type": "string"
+    },
+    "JointParticipantMetadata": {
+      "additionalProperties": false,
+      "properties": {
+        "agent_id": {
+          "pattern": "^npc_[0-9]{2}$",
+          "title": "Agent Id",
+          "type": "string"
+        },
+        "object_bindings": {
+          "items": {
+            "$ref": "#/$defs/PresentationObjectBinding"
+          },
+          "title": "Object Bindings",
+          "type": "array"
+        },
+        "proposal_id": {
+          "pattern": "^proposal_[0-9]+$",
+          "title": "Proposal Id",
+          "type": "string"
+        },
+        "role": {
+          "$ref": "#/$defs/ActionParticipantRole"
+        }
+      },
+      "required": [
+        "agent_id",
+        "proposal_id",
+        "role",
+        "object_bindings"
+      ],
+      "title": "JointParticipantMetadata",
+      "type": "object"
+    },
+    "PresentationObjectBinding": {
+      "additionalProperties": false,
+      "properties": {
+        "object_id": {
+          "pattern": "^[a-z][a-z0-9_]*_[0-9]{2}$",
+          "title": "Object Id",
+          "type": "string"
+        },
+        "slot_index": {
+          "minimum": 0,
+          "title": "Slot Index",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "object_id",
+        "slot_index"
+      ],
+      "title": "PresentationObjectBinding",
+      "type": "object"
+    }
+  },
+  "$id": "urn:ai-town:protocol:0.3.0:m3-joint-action-presentation",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "Cross-line presentation projection, not the SIM-owned authority aggregate.",
+  "properties": {
+    "action_id": {
+      "pattern": "^action_[0-9]+$",
+      "title": "Action Id",
+      "type": "string"
+    },
+    "authority": {
+      "const": "CENTRAL_RESOLVER",
+      "title": "Authority",
+      "type": "string"
+    },
+    "behavior_id": {
+      "$ref": "#/$defs/BehaviorId"
+    },
+    "conversation_id": {
+      "anyOf": [
+        {
+          "pattern": "^conversation_[0-9]+$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Conversation Id"
+    },
+    "invited_activity_id": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/BehaviorId"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "location_id": {
+      "pattern": "^[a-z][a-z0-9_]*$",
+      "title": "Location Id",
+      "type": "string"
+    },
+    "participants": {
+      "items": {
+        "$ref": "#/$defs/JointParticipantMetadata"
+      },
+      "maxItems": 10,
+      "minItems": 2,
+      "title": "Participants",
+      "type": "array"
+    },
+    "phase": {
+      "$ref": "#/$defs/ActionPhase"
+    },
+    "source_state_version": {
+      "minimum": 0,
+      "title": "Source State Version",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "action_id",
+    "behavior_id",
+    "invited_activity_id",
+    "authority",
+    "source_state_version",
+    "location_id",
+    "conversation_id",
+    "phase",
+    "participants"
+  ],
+  "title": "JointActionPresentationMetadata",
+  "type": "object"
+}
