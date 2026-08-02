@@ -23,6 +23,13 @@ namespace STWM.AITown.Bridge
             }
         }
 
+        public void Configure(TownBridgeClient client, TextAsset messageRecording, bool shouldPlayOnStart)
+        {
+            bridgeClient = client;
+            recording = messageRecording;
+            playOnStart = shouldPlayOnStart;
+        }
+
         [ContextMenu("Play recorded envelopes")]
         public void Play()
         {
@@ -32,7 +39,8 @@ namespace STWM.AITown.Bridge
                 return;
             }
 
-            StartCoroutine(PlayRoutine(ReadMessages(recording.text)));
+            var messages = ReadMessages(recording.text);
+            StartCoroutine(PlayRoutine(messages));
         }
 
         public static IReadOnlyList<string> ReadMessages(string text)
@@ -66,9 +74,39 @@ namespace STWM.AITown.Bridge
             return result;
         }
 
+        public static string FindRecordedRegistryMessageId(IReadOnlyList<string> messages)
+        {
+            foreach (var message in messages)
+            {
+                var envelope = JObject.Parse(message);
+                if (string.Equals(envelope.Value<string>("message_type"), "asset_registry_result", StringComparison.Ordinal))
+                {
+                    return envelope.Value<string>("correlation_id");
+                }
+            }
+
+            return null;
+        }
+
+        public static string FindRecordedClientHelloMessageId(IReadOnlyList<string> messages)
+        {
+            foreach (var message in messages)
+            {
+                var envelope = JObject.Parse(message);
+                if (string.Equals(envelope.Value<string>("message_type"), "server_hello", StringComparison.Ordinal))
+                {
+                    return envelope.Value<string>("correlation_id");
+                }
+            }
+
+            return null;
+        }
+
         private IEnumerator PlayRoutine(IReadOnlyList<string> messages)
         {
-            bridgeClient.BeginRecordedReplaySession();
+            bridgeClient.BeginRecordedReplaySession(
+                FindRecordedClientHelloMessageId(messages),
+                FindRecordedRegistryMessageId(messages));
             foreach (var message in messages)
             {
                 bridgeClient.InjectInboundForReplay(message);

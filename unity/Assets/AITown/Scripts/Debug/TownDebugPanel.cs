@@ -10,6 +10,7 @@ namespace STWM.AITown.Debugging
     {
         [SerializeField] private bool visible = true;
         [SerializeField] private Rect panelRect = new Rect(12f, 12f, 520f, 430f);
+        [SerializeField] private TownBridgeClient bridgeClient;
 
         private readonly Queue<string> recentErrors = new Queue<string>();
         private readonly Queue<string> recentInfo = new Queue<string>();
@@ -29,6 +30,11 @@ namespace STWM.AITown.Debugging
 
         public IReadOnlyCollection<string> RecentErrors => recentErrors;
         public string ConnectionState => connectionState;
+
+        public void BindBridge(TownBridgeClient bridge)
+        {
+            bridgeClient = bridge;
+        }
 
         public void SetConnectionState(string value)
         {
@@ -93,6 +99,7 @@ namespace STWM.AITown.Debugging
             scroll = GUILayout.BeginScrollView(scroll);
             GUILayout.Label($"Connection: {connectionState}");
             GUILayout.Label($"Clock: minute {gameMinute} | scale {timeScale:0.#}x | paused {paused}");
+            DrawTimeControls();
             GUILayout.Label($"Snapshot: v{snapshotStateVersion} | model {modelVersion}");
             GUILayout.Label($"NPC: {selectedAgentId} | behavior {behaviorId} | phase {actionPhase}");
             GUILayout.Space(6f);
@@ -113,6 +120,33 @@ namespace STWM.AITown.Debugging
 
             GUILayout.EndScrollView();
             GUI.DragWindow(new Rect(0f, 0f, 10000f, 24f));
+        }
+
+        private void DrawTimeControls()
+        {
+            var previousEnabled = GUI.enabled;
+            GUI.enabled = bridgeClient != null && bridgeClient.IsReady;
+            GUILayout.BeginHorizontal();
+            GUILayout.Label("Time request:", GUILayout.Width(86f));
+            DrawTimeScaleButton("0x", 0f);
+            DrawTimeScaleButton("1x", 1f);
+            DrawTimeScaleButton("2x", 2f);
+            DrawTimeScaleButton("4x", 4f);
+            if (GUILayout.Button(paused ? "Resume" : "Pause", GUILayout.Width(68f)))
+            {
+                bridgeClient.RequestPause(!paused);
+            }
+
+            GUILayout.EndHorizontal();
+            GUI.enabled = previousEnabled;
+        }
+
+        private void DrawTimeScaleButton(string label, float requestedScale)
+        {
+            if (GUILayout.Button(label, GUILayout.Width(40f)))
+            {
+                bridgeClient.RequestTimeScale(requestedScale);
+            }
         }
 
         private static void DrawIssues(string title, IReadOnlyCollection<AssetValidationIssueDto> issues)

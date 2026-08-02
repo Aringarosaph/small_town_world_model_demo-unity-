@@ -1,6 +1,8 @@
 # M2 One-NPC Unity Bridge implementation design
 
-Baseline: `d014e70` (`main`)
+Authority references read during implementation: M2 baseline `0a4caa1` and
+protocol 0.2.0 contract `392f941`. Their history is owned and integrated by
+AITOWN-ORCH; the final Unity increment does not duplicate those commits.
 Editor: macOS ARM64 Unity `6000.4.2f1`
 Public project: Small Town World Model（STWM）
 Internal owner: `AITOWN-UNITY`

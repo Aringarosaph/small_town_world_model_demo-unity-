@@ -30,9 +30,10 @@ namespace STWM.AITown.Bridge
     public sealed class TownBridgeClient : MonoBehaviour
     {
         private const int SeenMessageCapacity = 4096;
+        public const string DefaultEndpointUrl = "ws://127.0.0.1:8765/town";
 
         [Header("Local authority endpoint")]
-        [SerializeField] private string endpointUrl = "ws://127.0.0.1:8765/ws";
+        [SerializeField] private string endpointUrl = DefaultEndpointUrl;
         [SerializeField] private string worldId = TownProtocol.DefaultWorldId;
         [SerializeField] private bool connectOnStart = true;
 
@@ -60,7 +61,9 @@ namespace STWM.AITown.Bridge
         private float reconnectAtUnscaledTime;
         private int reconnectAttempt;
         private DateTime lastInboundUtc;
+        private string clientHelloMessageId;
         private string registryMessageId;
+        private string recordedRegistryMessageId;
         private long lastAppliedStateVersion = -1;
         private long minimumResyncStateVersion = -1;
         private int connectionGeneration;
@@ -69,7 +72,9 @@ namespace STWM.AITown.Bridge
         public BridgeConnectionState ConnectionState { get; private set; } = BridgeConnectionState.Disconnected;
         public long LastAppliedStateVersion => Math.Max(0, lastAppliedStateVersion);
         public string WorldId => worldId;
+        public string EndpointUrl => endpointUrl;
         public int ConnectionGeneration => connectionGeneration;
+        public bool IsReady => ConnectionState == BridgeConnectionState.Ready;
 
         public event Action<BridgeConnectionState> ConnectionStateChanged;
         public event Action<TownEnvelope> EnvelopeApplied;
@@ -82,6 +87,8 @@ namespace STWM.AITown.Bridge
             {
                 debugPanel = FindFirstObjectByType<TownDebugPanel>();
             }
+
+            debugPanel?.BindBridge(this);
         }
 
         private void Start()
@@ -151,6 +158,12 @@ namespace STWM.AITown.Bridge
             connectOnStart = shouldConnectOnStart;
         }
 
+        public void BindDebugPanel(TownDebugPanel panel)
+        {
+            debugPanel = panel;
+            panel?.BindBridge(this);
+        }
+
         public void SetTransportFactoryForTests(Func<ITownSocketTransport> factory)
         {
             transportFactory = factory ?? throw new ArgumentNullException(nameof(factory));
@@ -171,6 +184,8 @@ namespace STWM.AITown.Bridge
             }
 
             connectInFlight = true;
+            recordedRegistryMessageId = null;
+            clientHelloMessageId = null;
             var generation = Interlocked.Increment(ref connectionGeneration);
             Transition(ConnectionState == BridgeConnectionState.Reconnecting
                 ? BridgeConnectionState.Reconnecting
@@ -196,7 +211,9 @@ namespace STWM.AITown.Bridge
             inboundMessages.Enqueue(new InboundFrame(generation, json));
         }
 
-        public void BeginRecordedReplaySession()
+        public void BeginRecordedReplaySession(
+            string clientHelloMessageIdOverride = null,
+            string registryMessageIdOverride = null)
         {
             if (transport != null && transport.State == WebSocketState.Open)
             {
@@ -204,6 +221,8 @@ namespace STWM.AITown.Bridge
             }
 
             registryMessageId = null;
+            recordedRegistryMessageId = registryMessageIdOverride;
+            clientHelloMessageId = clientHelloMessageIdOverride;
             Interlocked.Increment(ref connectionGeneration);
             lastInboundUtc = DateTime.UtcNow;
             Transition(BridgeConnectionState.AwaitingServerHello);
@@ -307,6 +326,49 @@ namespace STWM.AITown.Bridge
                 actionId));
         }
 
+        public void RequestTimeScale(float requestedTimeScale)
+        {
+            if (!IsAllowedTimeScale(requestedTimeScale))
+            {
+                throw new ArgumentOutOfRangeException(
+                    nameof(requestedTimeScale),
+                    requestedTimeScale,
+                    "UNITY_LIVE time scale must be exactly 0x, 1x, 2x, or 4x.");
+            }
+
+            EnsureReadyForControlRequest("set_time_scale_request");
+
+            Send(TownEnvelope.Create(
+                "set_time_scale_request",
+                new SetTimeScaleRequestPayload { RequestedTimeScale = requestedTimeScale },
+                worldId,
+                LastAppliedStateVersion));
+        }
+
+        public void RequestPause(bool shouldPause)
+        {
+            EnsureReadyForControlRequest("pause_request");
+            Send(TownEnvelope.Create(
+                "pause_request",
+                new PauseRequestPayload { Paused = shouldPause },
+                worldId,
+                LastAppliedStateVersion));
+        }
+
+        public static bool IsAllowedTimeScale(float value)
+        {
+            return value == 0f || value == 1f || value == 2f || value == 4f;
+        }
+
+        private void EnsureReadyForControlRequest(string messageType)
+        {
+            if (!IsReady)
+            {
+                throw new InvalidOperationException(
+                    $"{messageType} requires a completed 0.2.0 handshake, registry, snapshot, and client_ready.");
+            }
+        }
+
         private async Task ConnectSessionAsync(Uri endpoint, int generation)
         {
             ITownSocketTransport nextTransport = null;
@@ -343,11 +405,13 @@ namespace STWM.AITown.Bridge
                     registryMessageId = null;
                     lastInboundUtc = DateTime.UtcNow;
                     Transition(BridgeConnectionState.AwaitingServerHello);
-                    Send(TownEnvelope.Create(
+                    var clientHello = TownEnvelope.Create(
                         "client_hello",
                         new ClientHelloPayload(),
                         worldId,
-                        LastAppliedStateVersion));
+                        LastAppliedStateVersion);
+                    clientHelloMessageId = clientHello.MessageId;
+                    Send(clientHello);
                 });
             }
             catch (Exception exception) when (exception is WebSocketException
@@ -466,7 +530,9 @@ namespace STWM.AITown.Bridge
             }
 
             var hello = envelope.ReadPayload<ServerHelloPayload>();
-            if (hello.ServerName != "python_town_core"
+            if (!string.Equals(envelope.ProtocolVersion, hello.AcceptedProtocolVersion, StringComparison.Ordinal)
+                || !string.Equals(envelope.CorrelationId, clientHelloMessageId, StringComparison.Ordinal)
+                || hello.ServerName != "python_town_core"
                 || hello.AcceptedProtocolVersion != TownProtocol.Version
                 || hello.ConfigVersion != TownProtocol.ConfigVersion
                 || hello.SchemaVersion != TownProtocol.SchemaVersion)
@@ -483,7 +549,12 @@ namespace STWM.AITown.Bridge
                 scan.Payload,
                 worldId,
                 envelope.StateVersion,
-                envelope.MessageId);
+                clientHelloMessageId);
+            if (!string.IsNullOrEmpty(recordedRegistryMessageId))
+            {
+                registry.MessageId = recordedRegistryMessageId;
+            }
+
             registryMessageId = registry.MessageId;
             Send(registry);
             Transition(BridgeConnectionState.AwaitingRegistryResult);

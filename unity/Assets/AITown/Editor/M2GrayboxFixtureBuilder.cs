@@ -24,7 +24,9 @@ namespace STWM.AITown.Editor
             AnimationSemantic.WALK,
             AnimationSemantic.SLEEP,
             AnimationSemantic.EAT,
-            AnimationSemantic.WORK_STANDING
+            AnimationSemantic.WORK_DESK,
+            AnimationSemantic.WORK_STANDING,
+            AnimationSemantic.WORK_WORKSHOP
         };
 
         [MenuItem("AITown/Create M2 Functional Graybox")]
@@ -107,7 +109,12 @@ namespace STWM.AITown.Editor
                 SemanticObjectType.WORKSTATION,
                 "cafe_bar",
                 new[] { SemanticCapability.WORK, SemanticCapability.CAFE_MORNING },
-                new[] { AnimationSemantic.WORK_STANDING },
+                new[]
+                {
+                    AnimationSemantic.WORK_DESK,
+                    AnimationSemantic.WORK_STANDING,
+                    AnimationSemantic.WORK_WORKSHOP
+                },
                 new Vector3(10.5f, 0.6f, 0f),
                 new Vector3(9f, 0f, 0f),
                 new Vector3(1f, 1.2f, 3f));
@@ -280,11 +287,11 @@ namespace STWM.AITown.Editor
             bridgeObject.transform.SetParent(parent);
             var panel = bridgeObject.AddComponent<TownDebugPanel>();
             var bridge = bridgeObject.AddComponent<TownBridgeClient>();
-            bridge.Configure("ws://127.0.0.1:8765/ws", TownProtocol.DefaultWorldId, false);
-            bridgeObject.AddComponent<TownRecordedMessagePlayer>();
-            // TownBridgeClient discovers the panel in Awake. The local variable keeps
-            // the component explicit in the generated scene hierarchy.
-            _ = panel;
+            bridge.Configure(TownBridgeClient.DefaultEndpointUrl, TownProtocol.DefaultWorldId, true);
+            bridge.BindDebugPanel(panel);
+            var recording = AssetDatabase.LoadAssetAtPath<TextAsset>(
+                "Assets/AITown/Tests/Fixtures/m2-handshake-replay.json");
+            bridgeObject.AddComponent<TownRecordedMessagePlayer>().Configure(bridge, recording, false);
         }
 
         private static void CreateFloor(Transform parent)

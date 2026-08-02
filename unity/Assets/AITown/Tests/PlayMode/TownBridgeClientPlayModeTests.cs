@@ -43,9 +43,12 @@ namespace STWM.AITown.Tests.PlayMode
 
             bridge.Connect();
             yield return WaitForSend(mock, "client_hello");
-            mock.EnqueueInbound(ServerHello("msg_101", 4));
+            var clientHelloMessageId = ExtractString(mock.LastSent("client_hello"), "message_id");
+            mock.EnqueueInbound(ServerHello("msg_101", 4, clientHelloMessageId));
             yield return WaitForSend(mock, "asset_registry");
-            var registryMessageId = ExtractString(mock.LastSent("asset_registry"), "message_id");
+            var registryJson = mock.LastSent("asset_registry");
+            var registryMessageId = ExtractString(registryJson, "message_id");
+            Assert.That(ExtractString(registryJson, "correlation_id"), Is.EqualTo(clientHelloMessageId));
             mock.EnqueueInbound(RegistryResult("msg_102", 4, registryMessageId));
             mock.EnqueueInbound(WorldSnapshot("msg_103", 5));
             yield return WaitForSend(mock, "client_ready");
@@ -63,6 +66,14 @@ namespace STWM.AITown.Tests.PlayMode
             Assert.That(bridge.ProcessInboundJson(clock), Is.False);
             Assert.That(bridge.ProcessInboundJson(Clock("msg_150", 6, 481)), Is.False);
             Assert.That(errors, Has.Some.Contains("MESSAGE_ID_CONTENT_CONFLICT"));
+
+            bridge.RequestTimeScale(4f);
+            yield return WaitForSend(mock, "set_time_scale_request");
+            StringAssert.Contains("\"requested_time_scale\":4.0", mock.LastSent("set_time_scale_request"));
+            Assert.Throws<ArgumentOutOfRangeException>(() => bridge.RequestTimeScale(3f));
+            bridge.RequestPause(true);
+            yield return WaitForSend(mock, "pause_request");
+            StringAssert.Contains("\"paused\":true", mock.LastSent("pause_request"));
 
             bridge.ReportMovementCancelled(
                 "action_7",
@@ -97,7 +108,8 @@ namespace STWM.AITown.Tests.PlayMode
             yield return WaitForSend(second, "client_hello");
             Assert.That(bridge.ConnectionState, Is.EqualTo(BridgeConnectionState.AwaitingServerHello));
 
-            second.EnqueueInbound(ServerHello("msg_301", 10));
+            var reconnectClientHelloId = ExtractString(second.LastSent("client_hello"), "message_id");
+            second.EnqueueInbound(ServerHello("msg_301", 10, reconnectClientHelloId));
             yield return WaitForSend(second, "asset_registry");
             var secondRegistryMessageId = ExtractString(second.LastSent("asset_registry"), "message_id");
             second.EnqueueInbound(RegistryResult("msg_302", 10, secondRegistryMessageId));
@@ -119,6 +131,72 @@ namespace STWM.AITown.Tests.PlayMode
             Assert.That(bridge.LastAppliedStateVersion, Is.EqualTo(11));
         }
 
+        [UnityTest]
+        public IEnumerator RejectsServerHelloWhoseEnvelopeDoesNotEqualSelectedVersion()
+        {
+            CreateValidM2Inventory();
+            var mock = new MockTownSocketTransport();
+            var bridge = CreateBridge(() => mock);
+            yield return null;
+
+            bridge.Connect();
+            yield return WaitForSend(mock, "client_hello");
+            var clientHelloMessageId = ExtractString(mock.LastSent("client_hello"), "message_id");
+            mock.EnqueueInbound(ServerHello("msg_401", 0, clientHelloMessageId, TownProtocol.LegacyBootstrapVersion));
+            var deadline = Time.realtimeSinceStartup + 1f;
+            while (bridge.ConnectionState == BridgeConnectionState.AwaitingServerHello
+                   && Time.realtimeSinceStartup < deadline)
+            {
+                yield return null;
+            }
+
+            Assert.That(bridge.ConnectionState, Is.EqualTo(BridgeConnectionState.ProtocolRejected));
+            Assert.That(mock.SentMessageTypes, Does.Not.Contain("asset_registry"));
+        }
+
+        [UnityTest]
+        public IEnumerator LivePythonBridgeCompletesProductionHandshakeWhenEnabled()
+        {
+            if (!string.Equals(
+                    Environment.GetEnvironmentVariable("STWM_M2_LIVE_BRIDGE"),
+                    "1",
+                    StringComparison.Ordinal))
+            {
+                Assert.Ignore("Set STWM_M2_LIVE_BRIDGE=1 after starting the production Python BridgeWebSocketServer.");
+            }
+
+            var endpoint = Environment.GetEnvironmentVariable("STWM_M2_LIVE_BRIDGE_URL")
+                           ?? TownBridgeClient.DefaultEndpointUrl;
+            Assert.That(Uri.TryCreate(endpoint, UriKind.Absolute, out var uri), Is.True);
+            Assert.That(uri.Scheme, Is.EqualTo("ws"));
+            Assert.That(
+                uri.Host,
+                Is.EqualTo("127.0.0.1").Or.EqualTo("localhost").Or.EqualTo("::1"));
+            Assert.That(uri.AbsolutePath, Is.EqualTo("/town"));
+
+            CreateValidM2Inventory();
+            var root = Track(new GameObject("TownBridgeLiveSmoke"));
+            var bridge = root.AddComponent<TownBridgeClient>();
+            bridge.Configure(endpoint, TownProtocol.DefaultWorldId, false);
+            var errors = new List<string>();
+            bridge.BridgeError += errors.Add;
+            yield return null;
+
+            bridge.Connect();
+            var deadline = Time.realtimeSinceStartup + 15f;
+            while (bridge.ConnectionState != BridgeConnectionState.Ready
+                   && bridge.ConnectionState != BridgeConnectionState.ProtocolRejected
+                   && Time.realtimeSinceStartup < deadline)
+            {
+                yield return null;
+            }
+
+            Assert.That(bridge.ConnectionState, Is.EqualTo(BridgeConnectionState.Ready), string.Join(" | ", errors));
+            Assert.That(bridge.EndpointUrl, Does.EndWith("/town"));
+            bridge.Disconnect();
+            yield return null;
+        }
+
         private IEnumerator CompleteHandshake(
             TownBridgeClient bridge,
             MockTownSocketTransport mock,
@@ -131,7 +209,11 @@ namespace STWM.AITown.Tests.PlayMode
                 yield return WaitForSend(mock, "client_hello");
             }
 
-            mock.EnqueueInbound(ServerHello($"msg_{messageBase + 1}", snapshotVersion - 1));
+            var clientHelloMessageId = ExtractString(mock.LastSent("client_hello"), "message_id");
+            mock.EnqueueInbound(ServerHello(
+                $"msg_{messageBase + 1}",
+                snapshotVersion - 1,
+                clientHelloMessageId));
             yield return WaitForSend(mock, "asset_registry");
             var registryMessageId = ExtractString(mock.LastSent("asset_registry"), "message_id");
             mock.EnqueueInbound(RegistryResult($"msg_{messageBase + 2}", snapshotVersion - 1, registryMessageId));
@@ -144,7 +226,8 @@ namespace STWM.AITown.Tests.PlayMode
         {
             var root = Track(new GameObject("TownBridgeTest"));
             var bridge = root.AddComponent<TownBridgeClient>();
-            bridge.Configure("ws://127.0.0.1:8765/ws", TownProtocol.DefaultWorldId, false);
+            bridge.Configure(TownBridgeClient.DefaultEndpointUrl, TownProtocol.DefaultWorldId, false);
+            Assert.That(bridge.EndpointUrl, Is.EqualTo("ws://127.0.0.1:8765/town"));
             bridge.SetTransportFactoryForTests(transportFactory);
             return bridge;
         }
@@ -202,14 +285,19 @@ namespace STWM.AITown.Tests.PlayMode
             yield return new WaitUntil(() => mock.SentMessageTypes.Contains(messageType));
         }
 
-        private static string ServerHello(string messageId, long stateVersion)
+        private static string ServerHello(
+            string messageId,
+            long stateVersion,
+            string clientHelloMessageId,
+            string envelopeProtocolVersion = TownProtocol.Version)
         {
             return Envelope(
                 messageId,
                 "server_hello",
                 stateVersion,
-                "null",
-                "{\"server_name\":\"python_town_core\",\"accepted_protocol_version\":\"0.2.0\",\"config_version\":\"v0\",\"schema_version\":\"v0.1\"}");
+                $"\"{clientHelloMessageId}\"",
+                "{\"server_name\":\"python_town_core\",\"accepted_protocol_version\":\"0.2.0\",\"config_version\":\"v0\",\"schema_version\":\"v0.1\"}",
+                envelopeProtocolVersion);
         }
 
         private static string RegistryResult(string messageId, long stateVersion, string registryMessageId)
@@ -245,9 +333,10 @@ namespace STWM.AITown.Tests.PlayMode
             string messageType,
             long stateVersion,
             string correlationJson,
-            string payloadJson)
+            string payloadJson,
+            string protocolVersion = TownProtocol.Version)
         {
-            return $"{{\"protocol_version\":\"0.2.0\",\"message_id\":\"{messageId}\","
+            return $"{{\"protocol_version\":\"{protocolVersion}\",\"message_id\":\"{messageId}\","
                    + $"\"message_type\":\"{messageType}\",\"sent_at_utc\":\"2026-08-02T00:00:00Z\","
                    + $"\"world_id\":\"{TownProtocol.DefaultWorldId}\",\"state_version\":{stateVersion},"
                    + $"\"correlation_id\":{correlationJson},\"payload\":{payloadJson}}}";

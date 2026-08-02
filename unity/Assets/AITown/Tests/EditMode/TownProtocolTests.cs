@@ -1,10 +1,52 @@
 using NUnit.Framework;
 using STWM.AITown.Bridge;
+using UnityEngine;
 
 namespace STWM.AITown.Tests.EditMode
 {
     public sealed class TownProtocolTests
     {
+        [Test]
+        public void ProductionEndpointMatchesPythonServerDefault()
+        {
+            Assert.That(TownBridgeClient.DefaultEndpointUrl, Is.EqualTo("ws://127.0.0.1:8765/town"));
+        }
+
+        [TestCase(0f)]
+        [TestCase(1f)]
+        [TestCase(2f)]
+        [TestCase(4f)]
+        public void UnityLiveTimeScaleAllowlistAcceptsOnlyFrozenValues(float value)
+        {
+            Assert.That(TownBridgeClient.IsAllowedTimeScale(value), Is.True);
+        }
+
+        [TestCase(-1f)]
+        [TestCase(0.5f)]
+        [TestCase(3f)]
+        [TestCase(8f)]
+        public void UnityLiveTimeScaleAllowlistRejectsOtherValues(float value)
+        {
+            Assert.That(TownBridgeClient.IsAllowedTimeScale(value), Is.False);
+        }
+
+        [Test]
+        public void PublicClockControlsRejectBeforeBridgeReady()
+        {
+            var root = new GameObject("BridgeControlBoundaryTest");
+            var bridge = root.AddComponent<TownBridgeClient>();
+            try
+            {
+                Assert.Throws<System.InvalidOperationException>(() => bridge.RequestTimeScale(1f));
+                Assert.Throws<System.InvalidOperationException>(() => bridge.RequestPause(true));
+                Assert.Throws<System.ArgumentOutOfRangeException>(() => bridge.RequestTimeScale(3f));
+            }
+            finally
+            {
+                Object.DestroyImmediate(root);
+            }
+        }
+
         [Test]
         public void ClientHelloUsesFrozenEnvelopeAndPayload()
         {

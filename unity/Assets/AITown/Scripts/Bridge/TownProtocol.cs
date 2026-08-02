@@ -540,4 +540,16 @@ namespace STWM.AITown.Bridge
         [JsonProperty("agent_id")]
         public string AgentId { get; set; }
     }
+
+    public sealed class SetTimeScaleRequestPayload
+    {
+        [JsonProperty("requested_time_scale")]
+        public float RequestedTimeScale { get; set; }
+    }
+
+    public sealed class PauseRequestPayload
+    {
+        [JsonProperty("paused")]
+        public bool Paused { get; set; }
+    }
 }
