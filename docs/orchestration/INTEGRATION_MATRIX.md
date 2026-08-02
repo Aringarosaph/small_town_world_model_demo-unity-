@@ -5,9 +5,10 @@
 | Domain IDs and enums | CONTRACTS | SIM, UNITY, MODEL, DIALOGUE, QA | Python DTOs and JSON Schema | Schema version + ADR |
 | World configuration | CONTRACTS | SIM, MODEL, QA | `config/v0/` | Config hash + validation |
 | Behavior/object catalogs | CONTRACTS | SIM, UNITY, MODEL, QA | YAML catalogs | Catalog version + coverage test |
-| Message envelope | CONTRACTS | SIM, UNITY, QA | `protocol/` | Protocol semver + compatibility test |
+| Message envelope | CONTRACTS | SIM, UNITY, QA | Protocol `0.2.0`; `0.1.0` legacy decode | Protocol semver + compatibility test |
 | Authority transactions | SIM | UNITY, MODEL, QA | M1 | ADR + invariant tests |
-| Semantic asset registry | UNITY | SIM, QA | M2 | Protocol update + Unity validation |
+| Semantic asset registry | UNITY | SIM, QA | M2 scoped profile from ADR-0009 | Protocol update + Unity validation |
+| Movement/presentation reports | CONTRACTS | SIM, UNITY, QA | Directional `0.2.0` DTO/Schema | ADR + direction/version/idempotency tests |
 | OutcomeModel DTO | CONTRACTS | SIM, MODEL, QA | M0 protocol only | Feature/model version + regression |
 | Knowledge/SpeechPlan | CONTRACTS | SIM, DIALOGUE, UNITY, QA | M0 schema | Schema + permission tests |
 | Decision trace and run layout | QA | All | M0 docs/checks | Observability review |
@@ -47,3 +48,18 @@ with an M0 artifact are frozen inputs to that work.
 - Final strict gate: `tools/diagnostics/check_m1.py --require-sim`
 - Orchestrator acceptance commit: `3d43c15`
 - GitHub Actions acceptance run: `30722721963` (all three jobs passed)
+
+## M2 protocol integration record
+
+- M2 functional-greybox and scoped-registry baseline: ADR-0009 / `0a4caa1`
+- Movement cancellation and protocol `0.2.0`: ADR-0010
+- Active M2 acceptance version: exactly `0.2.0`
+- Legacy compatibility: `0.1.0` bootstrap/decode tests only; no cancellation gate
+- Heartbeat: WebSocket ping/pong; no JSON message
+- Reconnect: full hello/registry/snapshot/ready sequence; no resync JSON message
+- Authority direction: Unity reports `movement_cancelled`; only Python emits the
+  committed `action_cancelled`
+- Evidence naming: M2 sessions record `catalog_protocol_version` separately from
+  `negotiated_protocol_version`
+- Freeze gate: protocol/domain changes require the ADR-0010 M2 re-freeze manifest;
+  the original M0 `0.1.0` source evidence remains recorded

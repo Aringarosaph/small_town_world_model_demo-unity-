@@ -1,0 +1,28 @@
+{
+  "correlation_id": "msg_000004",
+  "message_id": "msg_000006",
+  "message_type": "world_snapshot",
+  "payload": {
+    "world": {
+      "active_actions": {},
+      "agents": {},
+      "config_hash": "0000000000000000000000000000000000000000000000000000000000000000",
+      "dialogue_session_ids": [],
+      "event_cursor": 0,
+      "game_minute": 1024,
+      "households": {},
+      "locations": {},
+      "model_version": null,
+      "objects": {},
+      "random_seed": 12345,
+      "relationships": [],
+      "schema_version": "v0.1",
+      "state_version": 1024,
+      "world_id": "demo_world"
+    }
+  },
+  "protocol_version": "0.2.0",
+  "sent_at_utc": "2026-01-01T00:00:05Z",
+  "state_version": 1024,
+  "world_id": "demo_world"
+}

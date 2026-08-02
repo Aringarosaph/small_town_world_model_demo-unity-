@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from datetime import datetime
 from typing import Annotated, Literal
 
@@ -18,6 +19,7 @@ from town_core.domain.enums import (
     CapabilityTag,
     LocationType,
     MessageType,
+    MovementCancellationReason,
     MovementFailureReason,
     ObjectType,
     PerceptionAuthority,
@@ -33,9 +35,33 @@ from town_core.domain.identifiers import (
 )
 from town_core.domain.state_models import RelationshipDelta, WorldEvent, WorldState
 
+type SupportedProtocolVersion = Literal["0.1.0", "0.2.0"]
 
-class EnvelopeBase(ContractModel):
-    protocol_version: Literal["0.1.0"]
+
+def select_protocol_version(
+    client_preference: Sequence[SupportedProtocolVersion],
+    server_supported: Sequence[SupportedProtocolVersion] = ("0.2.0", "0.1.0"),
+) -> SupportedProtocolVersion:
+    """Select the first client-preferred version also understood by the server."""
+
+    for version in client_preference:
+        if version in server_supported:
+            return version
+    raise ValueError("client and server have no compatible protocol version")
+
+
+def select_m2_protocol_version(
+    client_preference: Sequence[SupportedProtocolVersion],
+) -> Literal["0.2.0"]:
+    """Negotiate the sole protocol version accepted by the active M2 gate."""
+
+    if not client_preference or client_preference[0] != "0.2.0":
+        raise ValueError("active M2 requires protocol 0.2.0 as the first client preference")
+    return "0.2.0"
+
+
+class BootstrapEnvelopeBase(ContractModel):
+    protocol_version: SupportedProtocolVersion
     message_id: MessageId
     message_type: MessageType
     sent_at_utc: datetime
@@ -44,15 +70,25 @@ class EnvelopeBase(ContractModel):
     correlation_id: str | None
 
 
+class EnvelopeBase(BootstrapEnvelopeBase):
+    protocol_version: Literal["0.2.0"]
+
+
 class ClientHelloPayload(ContractModel):
     client_name: Literal["unity"]
     unity_editor_version: Literal["6000.4.2f1"]
-    supported_protocol_versions: Annotated[list[Literal["0.1.0"]], Field(min_length=1)]
+    supported_protocol_versions: Annotated[list[SupportedProtocolVersion], Field(min_length=1)]
+
+    @model_validator(mode="after")
+    def validate_unique_preference_order(self) -> ClientHelloPayload:
+        if len(self.supported_protocol_versions) != len(set(self.supported_protocol_versions)):
+            raise ValueError("supported protocol versions must be unique and preference ordered")
+        return self
 
 
 class ServerHelloPayload(ContractModel):
     server_name: Literal["python_town_core"]
-    accepted_protocol_version: Literal["0.1.0"]
+    accepted_protocol_version: SupportedProtocolVersion
     config_version: Literal["v0"]
     schema_version: Literal["v0.1"]
 
@@ -177,6 +213,12 @@ class MovementFailedPayload(ContractModel):
     reason: MovementFailureReason
 
 
+class MovementCancelledPayload(ContractModel):
+    action_id: ActionId
+    agent_id: AgentId
+    reason: MovementCancellationReason
+
+
 class PresentationCompletedPayload(ContractModel):
     action_id: ActionId
     agent_id: AgentId
@@ -203,14 +245,26 @@ class PauseRequestPayload(ContractModel):
     paused: bool
 
 
-class ClientHelloMessage(EnvelopeBase):
+class ClientHelloMessage(BootstrapEnvelopeBase):
     message_type: Literal[MessageType.CLIENT_HELLO]
     payload: ClientHelloPayload
 
+    @model_validator(mode="after")
+    def validate_bootstrap_version(self) -> ClientHelloMessage:
+        if self.protocol_version not in self.payload.supported_protocol_versions:
+            raise ValueError("client_hello envelope version must appear in the supported version preference list")
+        return self
 
-class ServerHelloMessage(EnvelopeBase):
+
+class ServerHelloMessage(BootstrapEnvelopeBase):
     message_type: Literal[MessageType.SERVER_HELLO]
     payload: ServerHelloPayload
+
+    @model_validator(mode="after")
+    def validate_selected_version(self) -> ServerHelloMessage:
+        if self.protocol_version != self.payload.accepted_protocol_version:
+            raise ValueError("server_hello envelope must use the selected protocol version")
+        return self
 
 
 class AssetRegistryMessage(EnvelopeBase):
@@ -238,17 +292,29 @@ class SimulationClockUpdatedMessage(EnvelopeBase):
     payload: SimulationClockPayload
 
 
-class ActionStartedMessage(EnvelopeBase):
+class ActionCorrelatedMessage(EnvelopeBase):
+    correlation_id: ActionId
+
+    @model_validator(mode="after")
+    def validate_action_correlation(self) -> ActionCorrelatedMessage:
+        payload = self.__dict__.get("payload")
+        payload_action_id = getattr(payload, "action_id", None)
+        if payload_action_id is None or self.correlation_id != payload_action_id:
+            raise ValueError("action message correlation_id must equal payload.action_id")
+        return self
+
+
+class ActionStartedMessage(ActionCorrelatedMessage):
     message_type: Literal[MessageType.ACTION_STARTED]
     payload: ActionStartedPayload
 
 
-class ActionPhaseChangedMessage(EnvelopeBase):
+class ActionPhaseChangedMessage(ActionCorrelatedMessage):
     message_type: Literal[MessageType.ACTION_PHASE_CHANGED]
     payload: ActionPhaseChangedPayload
 
 
-class ActionCancelledMessage(EnvelopeBase):
+class ActionCancelledMessage(ActionCorrelatedMessage):
     message_type: Literal[MessageType.ACTION_CANCELLED]
     payload: ActionCancelledPayload
 
@@ -278,17 +344,23 @@ class DebugDecisionTraceMessage(EnvelopeBase):
     payload: DebugDecisionTracePayload
 
 
-class MovementArrivedMessage(EnvelopeBase):
+class MovementArrivedMessage(ActionCorrelatedMessage):
     message_type: Literal[MessageType.MOVEMENT_ARRIVED]
     payload: MovementArrivedPayload
 
 
-class MovementFailedMessage(EnvelopeBase):
+class MovementFailedMessage(ActionCorrelatedMessage):
     message_type: Literal[MessageType.MOVEMENT_FAILED]
     payload: MovementFailedPayload
 
 
-class PresentationCompletedMessage(EnvelopeBase):
+class MovementCancelledMessage(ActionCorrelatedMessage):
+    protocol_version: Literal["0.2.0"]
+    message_type: Literal[MessageType.MOVEMENT_CANCELLED]
+    payload: MovementCancelledPayload
+
+
+class PresentationCompletedMessage(ActionCorrelatedMessage):
     message_type: Literal[MessageType.PRESENTATION_COMPLETED]
     payload: PresentationCompletedPayload
 
@@ -331,11 +403,203 @@ type ProtocolMessage = Annotated[
     | DebugDecisionTraceMessage
     | MovementArrivedMessage
     | MovementFailedMessage
+    | MovementCancelledMessage
     | PresentationCompletedMessage
     | PlayerUtteranceMessage
     | PlayerEndConversationMessage
     | SetTimeScaleRequestMessage
     | PauseRequestMessage,
+    Field(discriminator="message_type"),
+]
+
+type PythonToUnityMessage = Annotated[
+    ServerHelloMessage
+    | AssetRegistryResultMessage
+    | WorldSnapshotMessage
+    | SimulationClockUpdatedMessage
+    | ActionStartedMessage
+    | ActionPhaseChangedMessage
+    | ActionCancelledMessage
+    | AgentStateDeltaMessage
+    | RelationshipDeltaMessage
+    | WorldEventCreatedMessage
+    | DialogueLineReadyMessage
+    | DebugDecisionTraceMessage,
+    Field(discriminator="message_type"),
+]
+
+type UnityToPythonMessage = Annotated[
+    ClientHelloMessage
+    | AssetRegistryMessage
+    | ClientReadyMessage
+    | MovementArrivedMessage
+    | MovementFailedMessage
+    | MovementCancelledMessage
+    | PresentationCompletedMessage
+    | PlayerUtteranceMessage
+    | PlayerEndConversationMessage
+    | SetTimeScaleRequestMessage
+    | PauseRequestMessage,
+    Field(discriminator="message_type"),
+]
+
+
+class ClientHelloV010Payload(ContractModel):
+    client_name: Literal["unity"]
+    unity_editor_version: Literal["6000.4.2f1"]
+    supported_protocol_versions: Annotated[list[Literal["0.1.0"]], Field(min_length=1)]
+
+
+class ServerHelloV010Payload(ContractModel):
+    server_name: Literal["python_town_core"]
+    accepted_protocol_version: Literal["0.1.0"]
+    config_version: Literal["v0"]
+    schema_version: Literal["v0.1"]
+
+
+class EnvelopeV010Base(ContractModel):
+    protocol_version: Literal["0.1.0"]
+    message_id: MessageId
+    message_type: MessageType
+    sent_at_utc: datetime
+    world_id: WorldId
+    state_version: NonNegativeInt
+    correlation_id: str | None
+
+
+class ClientHelloV010Message(EnvelopeV010Base):
+    message_type: Literal[MessageType.CLIENT_HELLO]
+    payload: ClientHelloV010Payload
+
+
+class ServerHelloV010Message(EnvelopeV010Base):
+    message_type: Literal[MessageType.SERVER_HELLO]
+    payload: ServerHelloV010Payload
+
+
+class AssetRegistryV010Message(EnvelopeV010Base):
+    message_type: Literal[MessageType.ASSET_REGISTRY]
+    payload: AssetRegistryPayload
+
+
+class AssetRegistryResultV010Message(EnvelopeV010Base):
+    message_type: Literal[MessageType.ASSET_REGISTRY_RESULT]
+    payload: AssetRegistryResultPayload
+
+
+class ClientReadyV010Message(EnvelopeV010Base):
+    message_type: Literal[MessageType.CLIENT_READY]
+    payload: ClientReadyPayload
+
+
+class WorldSnapshotV010Message(EnvelopeV010Base):
+    message_type: Literal[MessageType.WORLD_SNAPSHOT]
+    payload: WorldSnapshotPayload
+
+
+class SimulationClockUpdatedV010Message(EnvelopeV010Base):
+    message_type: Literal[MessageType.SIMULATION_CLOCK_UPDATED]
+    payload: SimulationClockPayload
+
+
+class ActionStartedV010Message(EnvelopeV010Base):
+    message_type: Literal[MessageType.ACTION_STARTED]
+    payload: ActionStartedPayload
+
+
+class ActionPhaseChangedV010Message(EnvelopeV010Base):
+    message_type: Literal[MessageType.ACTION_PHASE_CHANGED]
+    payload: ActionPhaseChangedPayload
+
+
+class ActionCancelledV010Message(EnvelopeV010Base):
+    message_type: Literal[MessageType.ACTION_CANCELLED]
+    payload: ActionCancelledPayload
+
+
+class AgentStateDeltaV010Message(EnvelopeV010Base):
+    message_type: Literal[MessageType.AGENT_STATE_DELTA]
+    payload: AgentStateDeltaPayload
+
+
+class RelationshipDeltaV010Message(EnvelopeV010Base):
+    message_type: Literal[MessageType.RELATIONSHIP_DELTA]
+    payload: RelationshipDeltaPayload
+
+
+class WorldEventCreatedV010Message(EnvelopeV010Base):
+    message_type: Literal[MessageType.WORLD_EVENT_CREATED]
+    payload: WorldEventCreatedPayload
+
+
+class DialogueLineReadyV010Message(EnvelopeV010Base):
+    message_type: Literal[MessageType.DIALOGUE_LINE_READY]
+    payload: DialogueLineReadyPayload
+
+
+class DebugDecisionTraceV010Message(EnvelopeV010Base):
+    message_type: Literal[MessageType.DEBUG_DECISION_TRACE]
+    payload: DebugDecisionTracePayload
+
+
+class MovementArrivedV010Message(EnvelopeV010Base):
+    message_type: Literal[MessageType.MOVEMENT_ARRIVED]
+    payload: MovementArrivedPayload
+
+
+class MovementFailedV010Message(EnvelopeV010Base):
+    message_type: Literal[MessageType.MOVEMENT_FAILED]
+    payload: MovementFailedPayload
+
+
+class PresentationCompletedV010Message(EnvelopeV010Base):
+    message_type: Literal[MessageType.PRESENTATION_COMPLETED]
+    payload: PresentationCompletedPayload
+
+
+class PlayerUtteranceV010Message(EnvelopeV010Base):
+    message_type: Literal[MessageType.PLAYER_UTTERANCE]
+    payload: PlayerUtterancePayload
+
+
+class PlayerEndConversationV010Message(EnvelopeV010Base):
+    message_type: Literal[MessageType.PLAYER_END_CONVERSATION]
+    payload: PlayerEndConversationPayload
+
+
+class SetTimeScaleRequestV010Message(EnvelopeV010Base):
+    message_type: Literal[MessageType.SET_TIME_SCALE_REQUEST]
+    payload: SetTimeScaleRequestPayload
+
+
+class PauseRequestV010Message(EnvelopeV010Base):
+    message_type: Literal[MessageType.PAUSE_REQUEST]
+    payload: PauseRequestPayload
+
+
+type ProtocolMessageV010 = Annotated[
+    ClientHelloV010Message
+    | ServerHelloV010Message
+    | AssetRegistryV010Message
+    | AssetRegistryResultV010Message
+    | ClientReadyV010Message
+    | WorldSnapshotV010Message
+    | SimulationClockUpdatedV010Message
+    | ActionStartedV010Message
+    | ActionPhaseChangedV010Message
+    | ActionCancelledV010Message
+    | AgentStateDeltaV010Message
+    | RelationshipDeltaV010Message
+    | WorldEventCreatedV010Message
+    | DialogueLineReadyV010Message
+    | DebugDecisionTraceV010Message
+    | MovementArrivedV010Message
+    | MovementFailedV010Message
+    | PresentationCompletedV010Message
+    | PlayerUtteranceV010Message
+    | PlayerEndConversationV010Message
+    | SetTimeScaleRequestV010Message
+    | PauseRequestV010Message,
     Field(discriminator="message_type"),
 ]
 

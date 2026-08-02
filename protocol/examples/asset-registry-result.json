@@ -1,0 +1,20 @@
+{
+  "correlation_id": "msg_000004",
+  "message_id": "msg_000005",
+  "message_type": "asset_registry_result",
+  "payload": {
+    "accepted": true,
+    "issues": [
+      {
+        "code": "M2_FULL_V0_LOCATION_MISSING",
+        "entity_id": "park",
+        "message": "A full-V0 location is outside the blocking M2 profile",
+        "severity": "WARNING"
+      }
+    ]
+  },
+  "protocol_version": "0.2.0",
+  "sent_at_utc": "2026-01-01T00:00:04Z",
+  "state_version": 0,
+  "world_id": "demo_world"
+}

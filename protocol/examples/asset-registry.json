@@ -1,0 +1,68 @@
+{
+  "correlation_id": "msg_000001",
+  "message_id": "msg_000004",
+  "message_type": "asset_registry",
+  "payload": {
+    "locations": [
+      {
+        "location_id": "home_a",
+        "location_type": "HOME"
+      },
+      {
+        "location_id": "cafe_bar",
+        "location_type": "CAFE_BAR"
+      }
+    ],
+    "mapped_animation_semantics": [
+      "WALK",
+      "SLEEP",
+      "WORK_STANDING"
+    ],
+    "npc_views": [
+      {
+        "agent_id": "npc_01"
+      }
+    ],
+    "objects": [
+      {
+        "capability_tags": [
+          "SLEEP"
+        ],
+        "enabled": true,
+        "interaction_slots": [
+          {
+            "slot_index": 0,
+            "supported_animation_semantics": [
+              "SLEEP"
+            ]
+          }
+        ],
+        "location_id": "home_a",
+        "object_id": "home_a_bed_01",
+        "object_type": "BED"
+      },
+      {
+        "capability_tags": [
+          "WORK",
+          "CAFE_MORNING"
+        ],
+        "enabled": true,
+        "interaction_slots": [
+          {
+            "slot_index": 0,
+            "supported_animation_semantics": [
+              "WORK_STANDING"
+            ]
+          }
+        ],
+        "location_id": "cafe_bar",
+        "object_id": "cafe_bar_workstation_01",
+        "object_type": "WORKSTATION"
+      }
+    ]
+  },
+  "protocol_version": "0.2.0",
+  "sent_at_utc": "2026-01-01T00:00:03Z",
+  "state_version": 0,
+  "world_id": "demo_world"
+}

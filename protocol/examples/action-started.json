@@ -17,7 +17,7 @@
       "home_b_seat_02"
     ]
   },
-  "protocol_version": "0.1.0",
+  "protocol_version": "0.2.0",
   "sent_at_utc": "2026-01-01T00:10:00Z",
   "state_version": 1024,
   "world_id": "demo_world"

@@ -1,15 +1,14 @@
 {
   "correlation_id": "action_0000098",
-  "message_id": "msg_000043",
-  "message_type": "movement_arrived",
+  "message_id": "msg_000046",
+  "message_type": "movement_cancelled",
   "payload": {
     "action_id": "action_0000098",
     "agent_id": "npc_03",
-    "object_id": "home_b_fridge_01",
-    "slot_index": 0
+    "reason": "NAVIGATION_STOPPED"
   },
   "protocol_version": "0.2.0",
-  "sent_at_utc": "2026-01-01T00:11:00Z",
+  "sent_at_utc": "2026-01-01T00:11:02Z",
   "state_version": 1024,
   "world_id": "demo_world"
 }

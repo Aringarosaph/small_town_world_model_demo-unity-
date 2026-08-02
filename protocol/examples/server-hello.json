@@ -1,0 +1,15 @@
+{
+  "correlation_id": "msg_000001",
+  "message_id": "msg_000003",
+  "message_type": "server_hello",
+  "payload": {
+    "accepted_protocol_version": "0.2.0",
+    "config_version": "v0",
+    "schema_version": "v0.1",
+    "server_name": "python_town_core"
+  },
+  "protocol_version": "0.2.0",
+  "sent_at_utc": "2026-01-01T00:00:02Z",
+  "state_version": 0,
+  "world_id": "demo_world"
+}

@@ -1,0 +1,13 @@
+{
+  "correlation_id": "action_0000098",
+  "message_id": "msg_000047",
+  "message_type": "action_cancelled",
+  "payload": {
+    "action_id": "action_0000098",
+    "reason": "MOVEMENT_CANCELLED"
+  },
+  "protocol_version": "0.2.0",
+  "sent_at_utc": "2026-01-01T00:11:03Z",
+  "state_version": 1025,
+  "world_id": "demo_world"
+}

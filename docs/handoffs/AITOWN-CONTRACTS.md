@@ -1,10 +1,77 @@
-# AITOWN-CONTRACTS M0 Handoff
+# AITOWN-CONTRACTS M0/M2 Handoff
+
+## M2 protocol 0.2.0 delivery
+
+ADR-0010 records the 2026-08-02 AITOWN-ORCH decision to add the missing
+Unity-to-Python `movement_cancelled` report and make protocol `0.2.0` the sole
+active M2 acceptance version. Protocol `0.1.0` remains a legacy decode and
+bootstrap-negotiation input; it cannot pass the M2 cancellation gate.
+
+The M2 contract adds:
+
+- bootstrap `client_hello` parsing for `0.2.0` and `0.1.0`, preserving the
+  client's unique preference order;
+- selected-version equality between the `server_hello` envelope and payload;
+- `MovementCancellationReason` and `movement_cancelled` at protocol `0.2.0`;
+- exact `correlation_id == payload.action_id` validation for all action,
+  movement, and presentation messages;
+- separate `PythonToUnityMessage` and `UnityToPythonMessage` unions and JSON
+  Schemas, so inbound routing rejects Python-authority `action_cancelled` and
+  outbound routing rejects Unity-report `movement_cancelled`;
+- examples for M2 negotiation, scoped registry/readiness, reconnect snapshot,
+  movement success/failure/cancellation, authoritative cancellation, and
+  presentation completion;
+- a strict M2 re-freeze of changed protocol/domain artifacts. The manifest keeps
+  the original `0.1.0` M0 source evidence and does not weaken any Appendix D or
+  digest check.
+
+### M2 protocol gap matrix
+
+| Surface | Protocol 0.1.0 audit | Protocol 0.2.0 disposition |
+| --- | --- | --- |
+| `client_hello` / `server_hello` | Hard-coded to `0.1.0`; no preference negotiation | Bootstrap accepts both known versions; M2 selects only `0.2.0`; server envelope equals selected version |
+| `asset_registry` / result | DTOs and Schema present | Shape remains compatible; ADR-0009 blocking M2 profile is server/runtime policy |
+| `client_ready` | Present and correlated to registry message ID | Compatible; reconnect must not resume before the new ready message |
+| `world_snapshot` | Full `WorldState` payload present | Reused as the authoritative reconnect overwrite; no resync JSON type |
+| Clock | Envelope and clock payload present | Reused; server continues to enforce ADR-0003 Unity Live `{0,1,2,4}` policy |
+| Action lifecycle | Started, phase-changed, and cancelled present | Action messages now require action correlation; `action_cancelled` is Python-to-Unity only |
+| Movement arrived / failed | Both present | Compatible and action-correlated |
+| Movement cancelled | Missing from enum, union, Schema, and examples | Added only to Unity-to-Python at `0.2.0`; distinct from failure |
+| Presentation | `presentation_completed` present | Compatible and action-correlated; never settles hard state directly |
+| Heartbeat | No JSON type | WebSocket ping/pong; no protocol message added |
+| Reconnect / resync | Envelope fields and snapshot available, behavior unspecified | Full hello/registry/snapshot/ready sequence frozen by ADR-0010; no new JSON type |
+| Unified envelope | Present | Both versions bootstrap-decodable; session messages use the selected version |
+| `state_version` | Non-negative field present | Runtime rule frozen: never accept a future version; stale reports require exact current generation/action/agent/phase match |
+| Correlation | Nullable free string | Action/movement/presentation messages require non-null exact action ID |
+| Idempotency | Unique `message_id` field but no storage semantics | ADR-0010 freezes same-ID same-content no-op and same-ID different-content protocol error; runtime owns storage |
+
+### Required downstream M2 work
+
+- SIM must validate connection generation, world/action/agent/phase, reported
+  version, and message-id replay before one atomic cancellation transaction
+  releases reservations, advances authority version, and emits
+  `action_cancelled`.
+- UNITY must use the direction-specific `0.2.0` Schema/DTOs, prefer `0.2.0` in
+  `client_hello`, and treat the report as non-authoritative.
+- QA must cover legacy decode, incompatible version rejection, direction misuse,
+  duplicate/conflicting IDs, future/stale versions, obsolete connection
+  generations, cancellation release, and full reconnect readiness.
+- Existing M1 run metadata records only `protocol_version`, populated from the
+  frozen catalog. It cannot represent the required M2 distinction without an
+  evidence-schema change. SIM/QA must record both
+  `catalog_protocol_version=0.1.0` and
+  `negotiated_protocol_version=0.2.0` in M2 run/session evidence.
+
+`config/v0/world.yaml` intentionally remains at `0.1.0` as the M0 catalog
+provenance value. Bridge negotiation must read `protocol/version.json` and the
+selected session version, never that catalog field.
 
 ## Current responsibility
 
-Own the M0 configuration, domain Schema, Python/Unity protocol, catalog validation,
-and generated contract artifacts. This handoff does not implement simulation,
-Unity behavior, model inference/training, networking, or LLM calls.
+Own the frozen configuration, domain Schema, Python/Unity protocol, catalog
+validation, and generated contract artifacts. This handoff does not implement
+simulation mutation, Unity behavior, model inference/training, networking, or
+LLM calls.
 
 Authoritative inputs reviewed in full:
 
@@ -57,7 +124,8 @@ allowed write scope.
 
 - Config: `v0`
 - Domain Schema: `v0.1`
-- Unity/Python protocol: `0.1.0`
+- Unity/Python active M2 protocol: `0.2.0`
+- Legacy protocol decode/bootstrap compatibility: `0.1.0`
 - World-model feature contract: `v0.1`
 - Python runtime: `3.12.x`
 - Unity editor: `6000.4.2f1`
@@ -91,9 +159,10 @@ protocol_version, message_id, message_type, sent_at_utc,
 world_id, state_version, correlation_id, payload
 ```
 
-The union covers the minimum V0 handshake, registry, snapshot, clock, action,
-delta/event/debug, movement/presentation, player utterance, and time-control
-messages named in the implementation specification.
+The generic union covers the minimum V0 handshake, registry, snapshot, clock,
+action, delta/event/debug, movement/presentation, player utterance, and
+time-control messages named in the implementation specification. Live Bridge
+boundaries must use the direction-specific unions introduced by ADR-0010.
 
 ### Frozen semantic decisions
 
@@ -177,10 +246,9 @@ python3.12 -m venv .venv
   semantics remain deferred as allowed by V0.
 - Prompt schemas/templates are frozen for compatibility, but the backend remains
   `deferred_to_m5`; there is no API client or prompt execution here.
-- The protocol defines DTO validation, not WebSocket transport, idempotency
-  storage, state mutation, or reconnect behavior.
-- Main-branch ADR contents other than the supplied frozen summaries were not
-  visible. Orchestrator should re-run integration checks after merging its ADRs.
+- The protocol defines DTO validation and normative direction/version policy,
+  not WebSocket transport, idempotency storage, or state mutation. ADR-0010
+  freezes the required runtime behavior for its SIM/UNITY/QA owners.
 
 ## Pending decisions
 

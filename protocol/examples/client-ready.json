@@ -1,0 +1,12 @@
+{
+  "correlation_id": "msg_000004",
+  "message_id": "msg_000007",
+  "message_type": "client_ready",
+  "payload": {
+    "registry_message_id": "msg_000004"
+  },
+  "protocol_version": "0.2.0",
+  "sent_at_utc": "2026-01-01T00:00:06Z",
+  "state_version": 1024,
+  "world_id": "demo_world"
+}

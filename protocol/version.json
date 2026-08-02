@@ -1,20 +1,38 @@
 {
   "compatibility": {
-    "breaking_changes_require_protocol_bump": true
+    "active_m2_acceptance_versions": [
+      "0.2.0"
+    ],
+    "bootstrap_decodable_versions": [
+      "0.2.0",
+      "0.1.0"
+    ],
+    "breaking_changes_require_protocol_bump": true,
+    "legacy_decode_only_versions": [
+      "0.1.0"
+    ],
+    "movement_cancelled_versions": [
+      "0.2.0"
+    ]
   },
   "config_version": "v0",
   "feature_version": "v0.1",
   "frozen_decisions": {
+    "action_cancelled_direction": "PYTHON_TO_UNITY_AUTHORITATIVE_DECISION",
+    "action_correlation": "CORRELATION_ID_EQUALS_ACTION_ID",
     "event_witness_scopes": [
       "PARTICIPANTS_ONLY",
       "HIGH_LEVEL_LOCATION"
     ],
+    "heartbeat": "WEBSOCKET_PING_PONG",
     "joint_action_authority": "CENTRAL_RESOLVER",
+    "movement_cancelled_direction": "UNITY_TO_PYTHON_NON_AUTHORITATIVE_REPORT",
     "perception_authority": "HIGH_LEVEL_LOCATION",
     "relationship_prediction": "TARGET_TO_ACTOR",
+    "resync": "FULL_HANDSHAKE_REGISTRY_SNAPSHOT_CLIENT_READY",
     "route_planning": "DISABLED"
   },
-  "protocol_version": "0.1.0",
+  "protocol_version": "0.2.0",
   "python_version": "3.12",
   "schema_version": "v0.1",
   "unity_editor": "6000.4.2f1"

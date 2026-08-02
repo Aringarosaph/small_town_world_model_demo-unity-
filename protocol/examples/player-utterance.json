@@ -9,7 +9,7 @@
     "target_agent_id": "npc_05",
     "text": "Why are you angry with npc_03?"
   },
-  "protocol_version": "0.1.0",
+  "protocol_version": "0.2.0",
   "sent_at_utc": "2026-01-01T00:12:00Z",
   "state_version": 1030,
   "world_id": "demo_world"

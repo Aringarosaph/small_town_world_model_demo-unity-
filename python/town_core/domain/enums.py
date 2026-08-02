@@ -6,7 +6,10 @@ from enum import StrEnum
 
 CONFIG_VERSION = "v0"
 SCHEMA_VERSION = "v0.1"
-PROTOCOL_VERSION = "0.1.0"
+LEGACY_PROTOCOL_VERSION = "0.1.0"
+PROTOCOL_VERSION = "0.2.0"
+SUPPORTED_PROTOCOL_VERSIONS = (PROTOCOL_VERSION, LEGACY_PROTOCOL_VERSION)
+M2_ACCEPTED_PROTOCOL_VERSIONS = (PROTOCOL_VERSION,)
 FEATURE_VERSION = "v0.1"
 
 
@@ -261,6 +264,13 @@ class MovementFailureReason(StrEnum):
     UNKNOWN = "UNKNOWN"
 
 
+class MovementCancellationReason(StrEnum):
+    NAVIGATION_STOPPED = "NAVIGATION_STOPPED"
+    SCENE_UNLOADED = "SCENE_UNLOADED"
+    CLIENT_SHUTDOWN = "CLIENT_SHUTDOWN"
+    UNKNOWN = "UNKNOWN"
+
+
 class SpeechAct(StrEnum):
     GREET = "GREET"
     SMALL_TALK = "SMALL_TALK"
@@ -300,6 +310,7 @@ class MessageType(StrEnum):
     DEBUG_DECISION_TRACE = "debug_decision_trace"
     MOVEMENT_ARRIVED = "movement_arrived"
     MOVEMENT_FAILED = "movement_failed"
+    MOVEMENT_CANCELLED = "movement_cancelled"
     PRESENTATION_COMPLETED = "presentation_completed"
     PLAYER_UTTERANCE = "player_utterance"
     PLAYER_END_CONVERSATION = "player_end_conversation"

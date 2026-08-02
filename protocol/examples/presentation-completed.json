@@ -1,0 +1,13 @@
+{
+  "correlation_id": "action_0000098",
+  "message_id": "msg_000048",
+  "message_type": "presentation_completed",
+  "payload": {
+    "action_id": "action_0000098",
+    "agent_id": "npc_03"
+  },
+  "protocol_version": "0.2.0",
+  "sent_at_utc": "2026-01-01T00:11:04Z",
+  "state_version": 1025,
+  "world_id": "demo_world"
+}
