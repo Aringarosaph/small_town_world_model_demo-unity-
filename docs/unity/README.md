@@ -1,12 +1,12 @@
 # Unity M2/M3 Functional Greyboxes
 
-## M3 full-town A/B increment
+## M3 full-town CONTRACTS-consumption increment
 
 M3 starts from frozen entry `2a51615`, `M3_EXECUTION_BASELINE`, and ADR-0011.
-The current Unity-owned increment is deliberately wire-independent while
-CONTRACTS finishes protocol `0.3.0`: it builds and validates the complete
-functional greybox, but it does not negotiate `0.3.0`, infer participant
-bindings, or claim SIM acceptance.
+CONTRACTS commits `3fe06f6` and `ca8944b` freeze protocol `0.3.0` and the shared
+semantic-instance catalog. Unity consumes those contracts directly. SIM live
+interop and authority evidence are not present in this increment and remain
+explicitly PENDING; Unity does not claim SIM acceptance.
 
 The committed M3 fixture is
 `Assets/AITown/Scenes/M3FunctionalGraybox.unity`. It contains exactly 8
@@ -16,11 +16,16 @@ animation semantics, the four prop semantics, and facing coverage for the
 eight social behaviors. The strict route matrix checks every location entrance
 against every enabled required slot: 8 entrances x 105 slots = 840 routes.
 
-The builder and strict scanner consume one replaceable data source:
-`Assets/AITown/Resources/M3FunctionalGrayboxManifest.json`. At this increment
-the document is explicitly marked `PENDING_CONTRACTS_0_3`; it is a projection
-of the frozen baseline capacities, not a substitute for the shared CONTRACTS
-semantic-instance manifest promised by ADR-0011.
+The builder and strict scanner consume exactly one semantic-instance inventory:
+repository-root `config/v0/semantic_instances.yaml`, schema
+`stwm.catalog.m3-semantic-instances/v1`. `M3SemanticManifestDocument` reads that
+file directly from the Unity project and strictly validates its profile,
+catalog version, IDs, counts, capabilities, slots, animation/prop/facing
+coverage, and bed assignments. The former
+`Assets/AITown/Resources/M3FunctionalGrayboxManifest.json` projection has been
+deleted; no 74-instance Unity copy or second catalog is maintained. Location
+coordinates are presentation-only greybox layout, and NPC home placement is
+derived from authoritative bed assignments.
 
 Rebuild and validate the scene in the Editor with
 `AITown > M3 > Create Functional Graybox`, or in batchmode:
@@ -36,19 +41,23 @@ Rebuild and validate the scene in the Editor with
 `ScanFullV0`/profile `M3_FULL` treats missing or extra IDs, wrong location/type,
 capability or default-slot drift, missing per-NPC animation/prop/facing
 components, and unreachable routes as blocking errors. `ScanM2Fixture` remains
-unchanged as the accepted scoped regression profile. The M3 scene disables
-bridge auto-connect until the real 0.3 DTO/profile switch lands; using 0.2 for
-an M3 session is forbidden.
+unchanged as the accepted scoped regression profile. The M3 scene selects
+`M3_FULL_V030` and rejects a `0.2.0` fallback. It keeps auto-connect disabled
+until the production M3 SIM server lands; using 0.2 for an M3 session is
+forbidden.
 
 `NpcPropPresenter`, `SocialFacingController`, and
-`ActionPresentationGroup` are presentation-only. The group sorts participants
-and atomically claims only explicitly supplied object/slot bindings, rolling
-back the complete local claim set on conflict. It never chooses a slot, target,
-participant, or action outcome. `TownDebugPanel` has a stable ten-NPC selector
-and read-only authority surface; Top-K decision rows remain visibly PENDING
-until the 0.3 trace DTO arrives.
+`ActionPresentationGroup` are presentation-only. Protocol 0.3 structured
+participants supply role, per-agent object/slot bindings, animation, prop, and
+facing targets. The group atomically claims only those explicit bindings in
+stable participant order and rolls back the whole local claim set on conflict.
+Snapshots replace all active presentation groups and claims; masked agent
+deltas preserve property presence so explicit JSON null clears cached state.
+`TownDebugPanel` exposes the ten-NPC authority surface, household updates, and
+complete authoritative Top-K rows (hard preview, prediction, utility,
+selection, Resolver result/conflict). Missing traces remain visibly PENDING.
 
-Run the combined M2 regression plus M3 A/B tests with:
+Run the combined M2 regression plus M3 contract-consumption tests with:
 
 ```bash
 "$STWM_UNITY_EDITOR" \
@@ -77,10 +86,28 @@ The framework exporter writes only external, auditable PENDING evidence:
   -logFile /tmp/stwm-m3-readiness-export.log
 ```
 
-It may report the Unity-local fixture gate as PASS, but overall status and
-`acceptance_eligible` remain `PENDING`/`false` until real protocol 0.3, SIM
-authority, zero-skipped EditMode/PlayMode, and live `/town` inputs are consumed.
-It never fabricates Python facts.
+It reports CONTRACTS 0.3 consumption and the Unity-local fixture independently,
+but overall status and `acceptance_eligible` remain `PENDING`/`false` until SIM
+authority, zero-skipped final EditMode/PlayMode, and live `/town` inputs are
+consumed. The document records the manifest locator rather than copying the
+catalog. It never fabricates Python facts.
+
+The production live seam is environment-gated:
+
+```bash
+STWM_M3_LIVE_BRIDGE=1 \
+STWM_M3_LIVE_BRIDGE_URL=ws://127.0.0.1:8765/town \
+"$STWM_UNITY_EDITOR" \
+  -batchmode -nographics \
+  -projectPath "$PWD/unity" \
+  -runTests -testPlatform PlayMode \
+  -testFilter STWM.AITown.Tests.PlayMode.M3FunctionalGrayboxPlayModeTests.Live030PythonBridgeCompletesFullRegistrySnapshotAndReadyWhenEnabled \
+  -testResults /tmp/stwm-m3-live-playmode.xml \
+  -logFile /tmp/stwm-m3-live-playmode.log
+```
+
+Without a production M3 server this case is explicitly ignored and cannot be
+used as final zero-skipped evidence.
 
 ## M2 accepted one-NPC bridge
 

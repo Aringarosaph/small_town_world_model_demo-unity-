@@ -2,6 +2,64 @@
 
 ## M3 active A/B increment
 
+### C-F CONTRACTS consumption (current)
+
+- Unity-owned implementation commit: `93c21cb`.
+- CONTRACTS inputs were cherry-picked in the required order:
+  `3fe06f659479dcdc0e0834b2e49dff2e2608eb71` -> local `e00594b`, then
+  `ca8944b0ca9cd17a85791527815d2ac81b403186` -> local `09fdb75`.
+- The only semantic-instance inventory is
+  `config/v0/semantic_instances.yaml`, exact schema
+  `stwm.catalog.m3-semantic-instances/v1`, profile `M3_FULL`, catalog protocol
+  `0.1.0`. Unity reads this repository-root YAML directly. The former
+  `unity/Assets/AITown/Resources/M3FunctionalGrayboxManifest.json` and meta are
+  deleted; no locator with an embedded instance copy remains.
+- `TownBridgeClient` now has explicit compatibility profiles. M2 continues to
+  use `M2_SCOPED_V020`; the M3 scene uses `M3_FULL_V030`, advertises
+  `[0.3.0, 0.2.0]`, requires the server to select `0.3.0`, applies the full
+  registry gate, and emits 0.3 envelopes. M3 fallback to 0.2 is rejected.
+- Protocol 0.3 DTOs and validation cover structured participant bindings,
+  JointAction identity/roles/order, facing and props, full snapshot
+  `active_presentations`, explicit-presence field-mask clear, household delta,
+  and Top-K Resolver tuple rules. Python-only household/debug messages are
+  read-only Unity inputs.
+- Full snapshots release and replace Unity presentation groups/slot claims,
+  then rebind every authoritative active presentation. Action start/phase/
+  cancellation operate across all participants without choosing authority
+  participants or slots locally.
+- `TownDebugPanel` renders ten-NPC authority state, household resources, and
+  complete authoritative Top-K hard preview/prediction/utility/selection/
+  Resolver rows. No trace is shown as PENDING rather than synthesized.
+- The readiness/exporter framework records manifest source, catalog and target
+  protocol versions, CONTRACTS gate PASS, and separate PENDING
+  gates for SIM authority, real 0.3 `/town` interop, and final zero-skipped XML.
+  It remains `acceptance_eligible=false` and does not fabricate final QA PASS.
+
+The M3 scene intentionally keeps `connectOnStart=false` until the production
+M3 SIM bridge/evidence surface lands. A real `ClientWebSocket` 0.3 `/town`
+PlayMode seam exists behind `STWM_M3_LIVE_BRIDGE=1`; it has not been run in
+this increment because no production M3 server was supplied.
+
+Current validation evidence:
+
+| Check | Result | External evidence |
+| --- | --- | --- |
+| authoritative YAML -> builder + `M3_FULL` + NavMesh | PASS, 8 locations, 10 NPCs, 74 objects, 105 slots, 840 routes | `/tmp/stwm-m3-contracts-graybox.log` |
+| combined EditMode | PASS, 42/42, skipped 0 | `/tmp/stwm-m3-contracts-editmode-final.xml` |
+| M3 PlayMode | 3 PASS, 0 fail, 1 explicit M3 live Ignore | `/tmp/stwm-m3-contracts-playmode-final.xml` |
+| combined M2/M3 PlayMode regression | 6 PASS, 0 fail, 2 explicit live Ignore (M2/M3) | `/tmp/stwm-m3-contracts-playmode-all.xml` |
+| readiness/exporter framework | local + CONTRACTS PASS; overall PENDING and acceptance-ineligible | `/tmp/stwm-m3-contracts-readiness` |
+
+The M3 local PlayMode passes cover full-scene strict registry/routes, stable
+two-participant slot/facing claims, and recorded 0.3 handshake -> full snapshot
+active-action rebind -> explicit-null clear -> terminal claim release. The
+ignored case is only the real production `ClientWebSocket` `/town` smoke;
+therefore these results are not represented as final zero-skipped acceptance.
+SIM authority/live evidence and the final QA composition remain deferred to
+their owning deliveries.
+
+### Historical A/B foundation
+
 - Frozen entry: `2a51615` (`M3_EXECUTION_BASELINE` + ADR-0011).
 - Branch: `codex/aitown-unity-m3`; no remote push.
 - Unity A/B implementation commit: `664786f`.
@@ -25,10 +83,8 @@ Delivered in this increment:
   overall result is necessarily PENDING and `acceptance_eligible=false` until
   real CONTRACTS/SIM/test inputs exist.
 
-The local manifest records `shared_contract_manifest_status=PENDING_CONTRACTS_0_3`.
-ADR-0011 requires the eventual CONTRACTS manifest to be shared by Python and
-Unity; this baseline projection must be replaced/adapted when that commit is
-delivered, not maintained as a competing authority source.
+The A/B projection described below has now been replaced by direct consumption
+of the CONTRACTS-owned YAML above.
 
 Deferred exactly as assigned:
 
