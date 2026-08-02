@@ -36,8 +36,13 @@ def test_one_day_run_replay_and_six_hour_resume_match_full_authority_hash(
     )
 
     assert replay["match"] is True
+    assert replay["actual_final_state_hash"] == baseline["final_state_hash"]
+    assert replay["actual_ledger_hash"] == baseline["ledger_hash"]
+    assert replay["checkpoint_mismatch_count"] == 0
+    assert replay["checked_checkpoint_count"] == 5
     assert resumed["final_state_hash"] == baseline["final_state_hash"]
     assert resumed["final_checkpoint_hash"] == baseline["final_checkpoint_hash"]
     assert resumed["authority_log_hash"] == baseline["authority_log_hash"]
     assert resumed["authority_record_count"] == baseline["authority_record_count"]
     assert resumed["transaction_chain_hash"] == baseline["transaction_chain_hash"]
+    assert resumed["ledger_hash"] == baseline["ledger_hash"]

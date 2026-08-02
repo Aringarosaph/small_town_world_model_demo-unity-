@@ -20,6 +20,7 @@ from town_core.society.checkpoint import (
     canonical_json,
     checkpoint_hash,
     initial_authority_log_hash,
+    ledger_hash,
     write_checkpoint,
 )
 from town_core.society.engine import SocietyEngine
@@ -267,6 +268,9 @@ def run_society(
     if start_minute >= end_minute:
         raise ValueError("resume checkpoint is already at or beyond the requested M3 scenario end")
     started = time.perf_counter()
+    rss_daily_samples = [
+        {"game_day": start_minute // 1440, "game_minute": start_minute, "peak_rss_bytes": _peak_rss_bytes()}
+    ]
     try:
         while engine.state.game_minute < end_minute:
             next_checkpoint = (
@@ -280,6 +284,14 @@ def run_society(
             writer.append(engine.advance_to(target))
             if engine.state.game_minute % CHECKPOINT_INTERVAL_MINUTES == 0:
                 writer.write_periodic_checkpoint(engine.export_checkpoint())
+            if engine.state.game_minute % 1440 == 0:
+                rss_daily_samples.append(
+                    {
+                        "game_day": engine.state.game_minute // 1440,
+                        "game_minute": engine.state.game_minute,
+                        "peak_rss_bytes": _peak_rss_bytes(),
+                    }
+                )
         final = engine.export_checkpoint()
         assert_society_invariants(final, catalog, m3_catalogs)
         wall_seconds = time.perf_counter() - started
@@ -301,6 +313,7 @@ def run_society(
             "final_state_hash": state_hash(final.world),
             "initial_checkpoint_hash": checkpoint_hash(initial),
             "final_checkpoint_hash": checkpoint_hash(final),
+            "ledger_hash": ledger_hash(final),
             "transaction_chain_hash": final.transaction_chain_hash,
             "m3_catalog_hash": final.m3_catalog_hash,
             "authority_log_hash": writer.hasher.hexdigest,
@@ -328,7 +341,7 @@ def run_society(
                 "terminal_reservation_leaks": 0,
                 "relationship_boundary_fraction": _relationship_boundary_fraction(final),
             },
-            "performance": _performance_document(engine, wall_seconds),
+            "performance": _performance_document(engine, wall_seconds, rss_daily_samples),
             "invariants": {"passed": True, "violations": []},
         }
         writer.finish(summary, final)
@@ -363,16 +376,39 @@ def _percentile(values: list[float], percentile: float) -> float:
     return round(ordered[index], 6)
 
 
-def _performance_document(engine: SocietyEngine, wall_seconds: float) -> dict[str, object]:
+def _peak_rss_bytes() -> int:
     raw_rss = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
     system = platform.system()
-    peak_rss_bytes = int(raw_rss if system == "Darwin" else raw_rss * 1024)
+    return int(raw_rss if system == "Darwin" else raw_rss * 1024)
+
+
+def _linear_slope(samples: list[dict[str, int]]) -> float:
+    post_warmup = [item for item in samples if item["game_day"] >= 1]
+    if len(post_warmup) < 2:
+        return 0.0
+    xs = [float(item["game_day"]) for item in post_warmup]
+    ys = [float(item["peak_rss_bytes"]) for item in post_warmup]
+    x_mean = sum(xs) / len(xs)
+    y_mean = sum(ys) / len(ys)
+    denominator = sum((value - x_mean) ** 2 for value in xs)
+    if denominator == 0:
+        return 0.0
+    return round(max(0.0, sum((x - x_mean) * (y - y_mean) for x, y in zip(xs, ys, strict=True)) / denominator), 6)
+
+
+def _performance_document(
+    engine: SocietyEngine,
+    wall_seconds: float,
+    rss_daily_samples: list[dict[str, int]],
+) -> dict[str, object]:
     return {
         "wall_seconds": round(wall_seconds, 6),
         "tick_p99_ms": _percentile(engine.tick_durations_ms, 0.99),
         "decision_batch_p95_ms": _percentile(engine.decision_batch_durations_ms, 0.95),
-        "peak_rss_bytes": peak_rss_bytes,
+        "peak_rss_bytes": _peak_rss_bytes(),
         "rss_collection_method": "resource.getrusage(RUSAGE_SELF).ru_maxrss",
+        "rss_daily_samples": rss_daily_samples,
+        "post_warmup_rss_slope_bytes_per_game_day": _linear_slope(rss_daily_samples),
         "platform": platform.platform(),
         "python_version": platform.python_version(),
         "machine": platform.machine(),

@@ -7,7 +7,7 @@ from dataclasses import dataclass
 from time import perf_counter
 from typing import Any, cast
 
-from town_core.domain.config_models import BehaviorConfig, CatalogBundle, ScheduleEntry
+from town_core.domain.config_models import BehaviorConfig, CatalogBundle, MoodValues, NeedValues, ScheduleEntry
 from town_core.domain.decision_models import ActionProposal, HardCostPreview, JointAction, JointActionParticipant
 from town_core.domain.enums import (
     ActionPhase,
@@ -30,8 +30,6 @@ from town_core.domain.state_models import (
     ActionState,
     InteractionObjectState,
     KnowledgeRecord,
-    MoodValues,
-    NeedValues,
     RelationshipState,
     WorldEvent,
     WorldState,

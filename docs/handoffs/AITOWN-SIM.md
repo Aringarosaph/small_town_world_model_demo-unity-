@@ -69,6 +69,11 @@ clears), household deltas, directed relationship deltas, events, Chinese
 background dialogue, and at most 12 Top-K rows with at most two Resolver
 attempts. Participant presentations contain stable roles, object/slot bindings,
 social facing targets, animation/prop semantics, and conversation identity.
+The WebSocket serializer keeps complete non-delta envelopes/snapshots, but
+serializes agent and household delta payloads from `model_fields_set`: masked
+explicit null clears stay on the wire and unmasked optional defaults do not.
+This preserves the frozen 0.3 field-mask presence contract without relaxing
+Unity validation.
 
 In `UNITY_LIVE`, every moving participant must report arrival. A JointAction
 leaves `TRAVELING` only after the complete participant barrier; a failure,
@@ -107,6 +112,96 @@ time was `7.543836` seconds with peak process RSS `57,688,064` bytes, tick p99
 `12.412417` ms, and decision-batch p95 `0.451833` ms. A 30x wall-time projection
 is `226.31508` seconds (`3m46.3s`); this remains a projection, not slow-soak
 evidence.
+
+### M3 release soak producer
+
+The sole SIM-owned slow-release entry point is:
+
+```text
+python -m town_core.society.m3_release_producer --config config/v0 --output-root <external-root> --source-commit <full-40-character-sha> --reference-machine "producer Apple-silicon MacBook Air"
+```
+
+It never writes a run below the repository. It executes one child
+`run-society` process at a time, preserving a stable `producer-state.json`
+after every attempt. A failed attempt is retained and the next invocation uses
+a new numbered attempt directory. A same-host dead PID lock is recovered; a
+live or foreign-host lock is never stolen. `--max-new-runs N` stops cleanly
+after N additional jobs, and `--plan-only` freezes/validates the exact plan
+without running the slow matrix. Re-running a completed root verifies every
+artifact byte count, SHA-256, and content schema before returning success.
+The declared source commit must be the current full `git rev-parse HEAD`, and
+the release checkout must be clean, so a bundle cannot claim provenance for
+uncommitted runtime code.
+
+The fixed plan contains the eight required soak cases in frozen order (five
+7-day seeds and three 30-day seeds), plus canonical seed `12345` repeat,
+chunk-1, and chunk-7 runs. The soak 7-day/chunk-60 run is reused as canonical
+chunk-60, for eleven production simulations total. Every completed job is
+immediately streamed through production checkpoint-patch replay. That replay
+checks final public state, the SIM ledger projection, ordered authority log,
+invariants, source immutability, and every persisted six-hour checkpoint in a
+single pass without duplicating the run directory.
+
+The external layout is:
+
+```text
+<external-root>/
+  producer-state.json
+  bundle-manifest.json
+  artifacts/
+    authority-evidence.json
+    behavior-matrix-report.json
+    soak-7-day-report.json
+    soak-30-day-report.json
+    replay-report.json
+    pathology-report.json
+    performance-report.json
+  runs/<stable-job-id>/attempt_0001/
+    summary.json
+    initial_checkpoint.json
+    final_checkpoint.json
+    checkpoints/checkpoint_*.json
+    authority.jsonl
+    transactions.jsonl
+    decisions.jsonl
+    actions.jsonl
+    events.jsonl
+    dialogues.jsonl
+```
+
+The seven report schemas are, respectively,
+`stwm.simulation.m3-authority-evidence/v1`,
+`stwm.simulation.m3-behavior-coverage/v1`, two instances of
+`stwm.simulation.m3-soak-report/v1`,
+`stwm.simulation.m3-replay-report/v1`,
+`stwm.simulation.m3-pathology-report/v1`, and
+`stwm.simulation.m3-performance-report/v1`. The manifest records relative
+paths, UTF-8 byte counts, SHA-256 digests, redaction, and schemas for direct QA
+descriptor consumption. `authority-evidence.json` exposes a
+`qa_matrix_projection` for SIM-complete matrices and separate evidence refs;
+it does not create QA gates/findings/summary.
+
+The producer explicitly does **not** emit
+`stwm.qa.m3-acceptance-evidence/v1` or Unity registry, presentation, debug,
+EditMode, PlayMode, live-smoke, or batchmode facts. In particular,
+`behavior_coverage[].unity_presentation` is Unity-owned. The slow soak also
+does not relabel fast targeted-fixture assertions as runtime facts, so the
+eight SIM targeted probe booleans remain owned by the fast targeted fixture
+lane and are reported as unavailable here. QA must combine those owner
+artifacts; filling either gap with a constant would be false evidence.
+The same boundary applies to the negative `unknown_share_rejected` probe and
+the forced JointAction cancel/fail/timeout release probes: ordinary soak
+success cannot truthfully stand in for those targeted paths.
+
+The independent one-day production observation for this increment completed
+in `7.682316s`, peaked at `51,593,216` bytes RSS, used `38 MiB` on disk, and
+passed all five persisted-checkpoint, final-state, ledger, authority-log, and
+source-mutation replay checks. A linear 146 simulated-day projection for the
+eleven serial runs is about `18m42s` of simulation; allowing streaming replay,
+analysis, process startup, and filesystem variance gives a practical MacBook
+Air estimate of `25-30 minutes`. The same disk sample projects roughly
+`5.5 GiB`; reserve `7 GiB` externally. These are scheduling estimates, not a
+claim that the unrun full matrix passed.
 
 ## Current responsibility
 

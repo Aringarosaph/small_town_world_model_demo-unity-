@@ -10,6 +10,7 @@ from town_core.domain.state_models import WorldState
 from town_core.society.models import M3_CHECKPOINT_SCHEMA, AuthorityCheckpoint
 
 AUTHORITY_LOG_DOMAIN = b"stwm.simulation.m3-authority-log/v1\n"
+LEDGER_HASH_DOMAIN = "stwm.simulation.m3-authority-ledger/v1"
 
 
 def canonical_json(value: object) -> str:
@@ -43,6 +44,33 @@ def advance_authority_log_hash(previous_hash: str, envelope: object) -> str:
 def checkpoint_hash(checkpoint: AuthorityCheckpoint) -> str:
     payload = checkpoint.model_dump(mode="json", exclude_none=False, by_alias=True)
     return hashlib.sha256(canonical_json(payload).encode("utf-8")).hexdigest()
+
+
+def ledger_hash(checkpoint: AuthorityCheckpoint) -> str:
+    """Hash the persistent M3 ledgers independently from mutable world state."""
+
+    projection = {
+        "schema": LEDGER_HASH_DOMAIN,
+        "events": [item.model_dump(mode="json", exclude_none=False) for item in checkpoint.events],
+        "knowledge_records": {
+            key: value.model_dump(mode="json", exclude_none=False)
+            for key, value in sorted(checkpoint.knowledge_records.items())
+        },
+        "work_sessions": {
+            key: value.model_dump(mode="json", exclude_none=False)
+            for key, value in sorted(checkpoint.work_sessions.items())
+        },
+        "conversations": {
+            key: value.model_dump(mode="json", exclude_none=False)
+            for key, value in sorted(checkpoint.conversations.items())
+        },
+        "joint_actions": {
+            key: value.model_dump(mode="json", exclude_none=False)
+            for key, value in sorted(checkpoint.joint_actions.items())
+        },
+        "settlement_keys": list(checkpoint.settlement_keys),
+    }
+    return hashlib.sha256(canonical_json(projection).encode("utf-8")).hexdigest()
 
 
 def write_checkpoint(path: Path, checkpoint: AuthorityCheckpoint) -> None:

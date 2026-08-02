@@ -354,6 +354,12 @@ uv run --no-editable python -m town_core.society.m3_qa_adapter \
   --config config/v0 --output-root /tmp/stwm-m3-readiness \
   --evidence /tmp/stwm-m3-readiness/m3-simulation-readiness-evidence.json \
   --seed 12345 --days 1
+
+# 串行、可恢复地生成完整 M3 SIM release soak bundle（仅写仓库外）
+uv run --no-editable python -m town_core.society.m3_release_producer \
+  --config config/v0 --output-root /tmp/stwm-m3-release \
+  --source-commit <full-40-character-sha> \
+  --reference-machine "producer Apple-silicon MacBook Air"
 ```
 
 M3 在线会话必须协商 `0.3.0`，但冻结配置来源仍单独记为
@@ -366,6 +372,13 @@ SIM 产生的 rich 运行事实 schema 是
 `stwm.simulation.m3-readiness-evidence/v1`。它与 `check_m3 --json-output`
 拥有的 exact `stwm.qa.m3-readiness/v1` 仓库集成报告严格分离，不复制、
 生成或冒充 QA findings/summary。
+
+Release producer 只产出七个 `stwm.simulation.m3-*` SIM artifact 与
+`stwm.simulation.m3-release-bundle/v1` manifest，固定执行 5×7d + 3×30d
+seed matrix 及 canonical 1/7/60/repeat，并逐运行验证 final state、ledger、
+authority log、全部 6 小时 checkpoint 与 invariants。`--max-new-runs N`
+可用于分段调度，重跑会复用已完成 job。它不生成
+`stwm.qa.m3-acceptance-evidence/v1`，也不生成 Unity 或 QA-owned 事实。
 
 ## 仓库结构
 
