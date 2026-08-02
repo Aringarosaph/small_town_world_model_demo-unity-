@@ -45,6 +45,15 @@ contain `PENDING`, `SKIP`, `NOT_RUN`, null matrices, missing artifacts, or
 hand-edited claims in place of producer evidence. QA consumes CONTRACTS, SIM
 and UNITY facts; it does not reproduce their authority rules.
 
+The final document is composed only by
+`tools/diagnostics/assemble_m3_acceptance.py`. The assembler verifies and
+copies a real external `stwm.simulation.m3-release-bundle/v1`, a real external
+`stwm.unity.m3-partial-acceptance-evidence/v1`, and the external
+`stwm.qa.m3-readiness/v1` repository report. It never fills a missing boolean
+with a default. Default mode reports a machine-readable `PENDING`; strict
+`--require-complete` reports `FAIL`. No final directory is created until every
+input, projection, artifact hash and exact acceptance matrix validates.
+
 The SIM readiness adapter has one owner path and module CLI:
 `python/town_core/society/m3_qa_adapter.py` / `python -m
 town_core.society.m3_qa_adapter`. A `simulation/m3_qa_adapter.py` copy is
@@ -163,6 +172,78 @@ or shape requires ORCH/SIM resolution rather than QA field synthesis.
     and zero skipped tests. Remote licensed Unity CI is optional; release
     evidence is still mandatory.
 
+## Exact owner probe projections
+
+Release-soak occurrence is not targeted-probe evidence. Every targeted probe
+uses this exact record in its owning producer artifact:
+
+```json
+{
+  "status": "PASS",
+  "test_ids": ["owner/test/path::stable_test_id"],
+  "assertion_count": 1
+}
+```
+
+`status=FAIL` is a blocking producer failure. A missing record, `PENDING`,
+`SKIP` or `NOT_RUN` remains assembler `PENDING` and becomes `FAIL` under
+`--require-complete`.
+
+SIM keeps exactly seven release artifacts. Each ordered
+`behavior_matrix_report.cases[]` row retains its existing keys and supplies
+`sim_targeted_probe_results` as an exact map of these eight keys to the record
+above:
+
+```text
+legal_candidate
+illegal_candidate
+hard_cost_preview
+resolver_accept
+resolver_reject
+reservation_and_lifecycle
+allowed_effects
+authoritative_replay
+```
+
+SIM must not set the row's Unity-owned `unity_presentation`; it stays null. The
+authority artifact adds the exact four-record `qa_probe_evidence` map:
+
+```text
+knowledge_unknown_share_rejected
+joint_action_cancel_release
+joint_action_failure_release
+joint_action_timeout_release
+```
+
+Its `qa_matrix_projection` additionally includes the exact final
+`knowledge_permissions` and `joint_action` matrices. The assembler cross-checks
+`unknown_share_rejected`, `cancel_release`, `failure_release`, and
+`timeout_release` against their PASS records. Existing rulebook fixtures name
+the 22 behavior requirements but are not execution evidence. Existing tests
+cover legal candidates broadly, selected costs/rejections, unknown-share
+rejection, and JointAction cancellation; they do not yet prove all 22×8 probes
+or forced JointAction failure and timeout release as a machine-readable owner
+artifact.
+
+Unity adds one `qa_matrix_projection` object to its partial bundle with exact
+keys `unity` and `behavior_presentation`. `unity` is the exact 18-field matrix
+already frozen by the acceptance schema. `behavior_presentation` is an ordered
+22-row array with exact row keys `behavior_id`, `fixture_id`, and
+`unity_presentation`; the last value is the same PASS probe record above. No
+SIM field is copied into this Unity projection.
+
+The audited Unity delivery
+`m3-unity-partial-acceptance-evidence.json` has real hashed artifacts, 46/46
+EditMode tests and 4/4 PlayMode tests with zero skips. Its semantic scan and
+recorded/live presentation tests are useful evidence, but it has no
+`qa_matrix_projection`, no ordered 22-behavior presentation result, and no
+exact final Unity matrix. It therefore remains readable `PENDING`; those facts
+cannot be inferred from test names or aggregate counts. Sanitized NUnit output
+must remain well-formed XML; the audited delivery uses the angle-free
+`REPOSITORY_ROOT` token and matching regenerated hash/byte descriptors. QA has
+a negative regression for the invalid literal-angle form so post-export
+redaction cannot silently corrupt otherwise passing test evidence.
+
 ## External artifact contract
 
 The release JSON and all referenced files live outside the repository. Each
@@ -178,6 +259,13 @@ performance, Unity semantic coverage, debug trace, zero-skipped EditMode and
 PlayMode XML, batchmode log and repository guard report. Expected schema names
 are frozen in `tools/diagnostics/check_m3.py`. The `full_registry` descriptor
 must resolve to the same file supplied to `check_m3.py --registry`.
+
+The repository artifact is the real `stwm.qa.m3-readiness/v1` report emitted
+by `check_m3.py --json-output`; QA does not define a duplicate repository-report
+schema. In addition to its ordinary PASS findings and the one allowed
+pre-assembly `M3_ACCEPTANCE_EVIDENCE_PENDING`, it must contain a real
+`M3_M0_M2_REGRESSIONS=PASS` finding created by the final regression lane.
+Repository ancestry alone does not prove that those regressions ran.
 
 ## Fast and slow shutters
 
@@ -206,13 +294,19 @@ pytest --strict-config --strict-markers -m "m3 and m3_fast" integration_tests
 Final release after CONTRACTS/SIM/UNITY integration and the ordered soak:
 
 ```bash
+python tools/diagnostics/assemble_m3_acceptance.py \
+  --sim-bundle /absolute/external/m3/sim/bundle-manifest.json \
+  --unity-bundle /absolute/external/m3/unity/m3-unity-partial-acceptance-evidence.json \
+  --repository-report /absolute/external/m3/repository/m3-readiness.json \
+  --output-root /absolute/external/m3/final \
+  --require-complete
 STWM_M3_FULL_REGISTRY=/absolute/external/m3/full-registry.json \
-STWM_M3_QA_EVIDENCE=/absolute/external/m3/m3-acceptance-evidence.json \
+STWM_M3_QA_EVIDENCE=/absolute/external/m3/final/m3-acceptance-evidence.json \
 pytest --strict-config --strict-markers -m "m3 and m3_fast" integration_tests
 python tools/diagnostics/check_m3.py \
   --require-m3 \
   --registry /absolute/external/m3/full-registry.json \
-  --evidence /absolute/external/m3/m3-acceptance-evidence.json \
+  --evidence /absolute/external/m3/final/m3-acceptance-evidence.json \
   --json-output /absolute/external/m3/m3-readiness.json
 ```
 

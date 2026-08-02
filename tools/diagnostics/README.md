@@ -28,6 +28,29 @@ social, JointAction, replay or Unity product implementation. Ordinary CI runs
 only its fast readiness surface; fixed 7/30-day soaks remain an
 Orchestrator-ordered release action.
 
+`assemble_m3_acceptance.py` is the final owner-evidence assembler. It verifies
+the external SIM seven-artifact release bundle, Unity partial evidence bundle,
+and `check_m3.py` repository readiness report; copies only verified hashed
+artifacts to a new external directory; and then invokes the exact acceptance
+validator. It emits readable `PENDING` by default and writes nothing until all
+owner projections exist. `--require-complete` makes every missing/skip/not-run
+probe fatal.
+
+```bash
+python tools/diagnostics/assemble_m3_acceptance.py \
+  --sim-bundle /external/sim/bundle-manifest.json \
+  --unity-bundle /external/unity/m3-unity-partial-acceptance-evidence.json \
+  --repository-report /external/repository/m3-readiness.json \
+  --output-root /external/final \
+  --require-complete
+```
+
+SIM targeted behavior probes and knowledge/JointAction negative/terminal probes
+use exact `status`/`test_ids`/`assertion_count` records. Unity supplies the
+exact 18-field Unity matrix and an ordered 22-row behavior-presentation
+projection. Aggregate soak counts, fixture declarations, and test names never
+become implicit PASS values.
+
 The sole SIM readiness adapter is
 `python/town_core/society/m3_qa_adapter.py`, invoked with `python -m
 town_core.society.m3_qa_adapter`; a `simulation/` copy fails the gate. Its

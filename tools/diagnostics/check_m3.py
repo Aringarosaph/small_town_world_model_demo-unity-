@@ -238,7 +238,7 @@ ARTIFACT_SCHEMAS: Final[dict[str, tuple[set[str], str | None]]] = {
     "editmode_results": ({".xml"}, None),
     "playmode_results": ({".xml"}, None),
     "batchmode_log": ({".log", ".txt"}, None),
-    "repository_report": ({".json"}, "stwm.qa.m3-repository-report/v1"),
+    "repository_report": ({".json"}, READINESS_SCHEMA),
 }
 SOURCE_COMMIT_PATTERN: Final = re.compile(r"^[0-9a-f]{40}$")
 SHA256_PATTERN: Final = re.compile(r"^[0-9a-f]{64}$")

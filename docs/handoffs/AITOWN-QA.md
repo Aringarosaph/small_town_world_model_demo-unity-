@@ -17,6 +17,10 @@ files, generated CONTRACTS Schema, Unity product code, or `pyproject.toml`.
 - `tools/diagnostics/check_m3.py`: pending-capable readiness CLI plus strict
   external registry/evidence validator. `--require-m3` converts all pending to
   failure.
+- `tools/diagnostics/assemble_m3_acceptance.py`: atomic external-only final
+  assembler for the real SIM seven-artifact bundle, Unity partial bundle, and
+  repository readiness report. Missing owner facts remain machine-readable;
+  no boolean is synthesized.
 - exact JSON Schemas/templates for `stwm.qa.m3-readiness/v1` and
   `stwm.qa.m3-acceptance-evidence/v1`.
 - executable release, targeted 22-behavior and full-registry/capacity profiles
@@ -170,6 +174,45 @@ facts.
 6. Final acceptance runs M0/M1/M2 regressions, the M2 compatibility gate and
    `check_m3.py --require-m3 --registry ... --evidence ...`; it permits no
    pending, skip or not-run result.
+
+## M3 final evidence audit at ORCH `8c1ca9b`
+
+The SIM release producer correctly writes exactly seven artifacts and declares
+what it does not own. Its current `qa_matrix_projection` maps catalog surface,
+agent liveness, household economy, relationship summary, determinism, soak
+runs, pathology and performance. It does not map behavior targeted probes,
+the exact knowledge or JointAction matrices, Unity facts, or repository gates.
+The behavior report explicitly leaves `sim_targeted_probe_results=null`.
+
+Current tests and fixtures are insufficient final evidence: the behavior
+fixture is a requirement catalog; rulebook coverage exercises legal candidates
+for all behaviors but only selected hard costs and negative cases; the
+unknown-share test has no producer probe record; and JointAction cancellation
+release is covered while forced failure and timeout release are not. SIM must
+emit the exact probe records and projections documented in
+`docs/qa/M3_ACCEPTANCE.md`; QA will not relabel test collection or soak
+occurrence as those facts.
+
+The audited Unity partial delivery is internally useful and hashed: 46 EditMode
+and four PlayMode cases pass with zero skips, and the full-town registry and
+semantic reports are present. It still lacks the exact 18-field Unity matrix
+and ordered 22-behavior presentation projection, so aggregate tests cannot be
+mapped to final acceptance. Its recorded/live cases do not independently prove
+every frozen Unity boolean. During the audit UNITY refreshed both NUnit files
+to use the XML-safe angle-free `REPOSITORY_ROOT` token and regenerated their
+hash/byte descriptors; all seven required Unity artifacts now pass QA format,
+redaction and digest checks. The assembler regression still rejects the
+literal-angle form so future sanitization cannot corrupt XML.
+
+The final assembler requires component and repository `source_commit` values
+to agree, exact artifact digests, all owner projections, and a repository
+finding `M3_M0_M2_REGRESSIONS=PASS`. The present repository report is otherwise
+clean at 17 PASS/one expected acceptance PENDING, but it does not prove that
+regression lane. The current Unity partial was produced from
+`bbb88fb0ef8498c30b8711ee44b705bdedb404fa`, not the audited repository report
+commit, and must be regenerated on the final release source together with its
+projection. These are deliberate blockers, not fields for the assembler to
+guess.
 
 ## M3 current integration-aware state
 
