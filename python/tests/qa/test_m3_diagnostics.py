@@ -383,6 +383,36 @@ def test_integrated_authoritative_semantic_manifest_shape_and_loader_pass() -> N
     assert [(finding.status, finding.code) for finding in findings] == [(Status.PASS, "M3_SHARED_SEMANTIC_MANIFEST")]
 
 
+def test_integrated_society_m3_adapter_source_and_cli_seam_pass() -> None:
+    root = find_repository_root(Path(__file__))
+    if not (root / m3_diagnostics.SIM_QA_ADAPTER).is_file():
+        pytest.skip("SIM society M3 QA adapter is not integrated in this checkout")
+
+    finding = m3_diagnostics._check_sim_qa_adapter(root, require_m3=False)
+
+    assert (finding.status, finding.code, finding.path) == (
+        Status.PASS,
+        "M3_SIM_QA_ADAPTER",
+        "python/town_core/society/m3_qa_adapter.py",
+    )
+    assert not (root / m3_diagnostics.LEGACY_SIM_QA_ADAPTER).exists()
+
+
+def test_sim_m3_adapter_rejects_simulation_path_copy(tmp_path: Path) -> None:
+    canonical = tmp_path / m3_diagnostics.SIM_QA_ADAPTER
+    legacy = tmp_path / m3_diagnostics.LEGACY_SIM_QA_ADAPTER
+    canonical.parent.mkdir(parents=True)
+    legacy.parent.mkdir(parents=True)
+    canonical.write_text("society owner", encoding="utf-8")
+    legacy.write_text("forbidden compatibility copy", encoding="utf-8")
+
+    finding = m3_diagnostics._check_sim_qa_adapter(tmp_path, require_m3=False)
+
+    assert finding.status is Status.FAIL
+    assert finding.code == "M3_SIM_QA_ADAPTER_INVALID"
+    assert finding.path == "python/town_core/simulation/m3_qa_adapter.py"
+
+
 def test_integrated_unity_functional_graybox_uses_only_repository_yaml() -> None:
     root = find_repository_root(Path(__file__))
     if not (root / m3_diagnostics.UNITY_FUNCTIONAL_GRAYBOX_BUILDER).is_file():

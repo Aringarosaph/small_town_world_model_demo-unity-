@@ -66,7 +66,19 @@ ruleset or fabricates Python/Unity PASS evidence.
 
 ### SIM
 
-Provide the SIM-owned `python/town_core/simulation/m3_qa_adapter.py` and real
+The sole SIM-owned adapter is
+`python/town_core/society/m3_qa_adapter.py`, executable as:
+
+```bash
+python -m town_core.society.m3_qa_adapter \
+  --config config/v0 \
+  --output-root /absolute/external/m3-readiness \
+  --evidence /absolute/external/m3-readiness/evidence.json
+```
+
+`python/town_core/simulation/m3_qa_adapter.py` is a forbidden compatibility
+copy. The society adapter must consume production catalog/society/bridge entry
+points and keep all output external. Release integration also requires real
 external artifacts with these schema identities:
 
 ```text
@@ -86,6 +98,24 @@ summaries, determinism/checkpoint facts, exact 5×7-day plus 3×30-day soak rows
 pathology and reference performance. Every soak row carries final-state,
 ledger, and authority-log hashes plus equal replay hashes. Do not make QA import
 product internals to recompute a PASS.
+
+#### Readiness schema audit at SIM `bea0d07`
+
+The adapter source seam is integrated, but its emitted document is **not** the
+exact `stwm.qa.m3-readiness/v1` document accepted by QA despite declaring that
+same schema identity. Both documents share only `schema` and `project_name`.
+
+- QA additionally requires `profile`, `source_commit`, `accepted_m2_commit`,
+  `m3_entry_commit`, `catalog_protocol_version`,
+  `negotiated_protocol_version`, `findings`, and `summary`.
+- SIM instead emits `generated_at_utc`, `scenario`, `protocol`, `runs`,
+  `determinism`, `replay`, `checkpoint_resume`, `economy`, `bridge`,
+  `soak_plan`, `cli_contract`, and `passed`.
+
+Therefore the SIM document must not be passed to
+`validate_readiness_document` or substituted for `check_m3.py --json-output`.
+ORCH/SIM must either give the producer document a distinct reviewed schema
+identity or make it conform exactly; QA does not synthesize the missing fields.
 
 ### UNITY
 
@@ -164,12 +194,13 @@ branch.
 Focused M3 Ruff/format and strict Mypy pass. The combined M2/M3 validator suite
 on the frozen QA branch has 44 passes and three intentional upstream-absence
 skips. Default `check_m3` is 11 PASS/7 PENDING/0 FAIL; strict mode is 11 PASS/0
-PENDING/7 FAIL. Against the ORCH snapshot containing real CONTRACTS 0.3, Unity
-foundation, and M3 SIM runtime, the focused suite is 46 passes/one acceptance
-skip and default `check_m3` is 14 PASS/4 PENDING/0 FAIL. Its remaining findings
-are the SIM QA adapter, final Unity acceptance exporter, external full registry,
-and external acceptance evidence; CONTRACTS and the Unity functional-greybox
-direct-YAML seam pass. The frozen entry's broader `mypy --strict tools/diagnostics
+PENDING/7 FAIL. Against ORCH `bea0d07`, containing real CONTRACTS 0.3, Unity,
+M3 society runtime, and the society-owned QA adapter, focused adapter/QA tests
+are 26 passes/one acceptance skip and default `check_m3` is 15 PASS/3
+PENDING/0 FAIL. Its remaining findings are the final Unity acceptance exporter,
+external full registry, and external acceptance evidence; CONTRACTS, SIM adapter
+source/CLI, and the Unity functional-greybox direct-YAML seam pass. The frozen
+entry's broader `mypy --strict tools/diagnostics
 python/tests/qa integration_tests` also traverses SIM-owned
 `python/town_core/simulation/engine.py` and reports two existing explicit-export
 errors for `NeedValues` and `MoodValues`; QA did not modify that product file.

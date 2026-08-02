@@ -28,6 +28,13 @@ social, JointAction, replay or Unity product implementation. Ordinary CI runs
 only its fast readiness surface; fixed 7/30-day soaks remain an
 Orchestrator-ordered release action.
 
+The sole SIM readiness adapter is
+`python/town_core/society/m3_qa_adapter.py`, invoked with `python -m
+town_core.society.m3_qa_adapter`; a `simulation/` copy fails the gate. Its
+current producer-oriented output at SIM `bea0d07` is not key-compatible with
+QA's exact `stwm.qa.m3-readiness/v1` report and may not replace
+`check_m3.py --json-output` until ORCH/SIM resolves the schema identity.
+
 `check_m2.py` is the M2 functional gray-box gate. It checks the accepted M1
 ancestor, protocol `0.2.0` target fixtures, direction/cancellation/reconnect
 rules, the ADR-0009 scoped asset profile, Unity generated-file policy and

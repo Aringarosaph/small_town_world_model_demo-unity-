@@ -45,6 +45,14 @@ contain `PENDING`, `SKIP`, `NOT_RUN`, null matrices, missing artifacts, or
 hand-edited claims in place of producer evidence. QA consumes CONTRACTS, SIM
 and UNITY facts; it does not reproduce their authority rules.
 
+The SIM readiness adapter has one owner path and module CLI:
+`python/town_core/society/m3_qa_adapter.py` / `python -m
+town_core.society.m3_qa_adapter`. A `simulation/m3_qa_adapter.py` copy is
+blocking. At SIM `bea0d07`, the adapter's producer document declares
+`stwm.qa.m3-readiness/v1` but does not have the exact QA readiness keys; it must
+not replace the report produced by `check_m3.py --json-output`. Schema identity
+or shape requires ORCH/SIM resolution rather than QA field synthesis.
+
 ## Blocking acceptance matrix
 
 ### Contract and catalog surface

@@ -84,7 +84,8 @@ EVIDENCE_JSON_SCHEMA: Final = Path("docs/qa/M3_ACCEPTANCE_EVIDENCE.schema.json")
 M3_BASELINE: Final = Path("docs/orchestration/M3_EXECUTION_BASELINE.md")
 M3_ADR: Final = Path("docs/adr/0011-m3-society-authority-and-protocol-v030.md")
 SEMANTIC_MANIFEST: Final = Path("config/v0/semantic_instances.yaml")
-SIM_QA_ADAPTER: Final = Path("python/town_core/simulation/m3_qa_adapter.py")
+SIM_QA_ADAPTER: Final = Path("python/town_core/society/m3_qa_adapter.py")
+LEGACY_SIM_QA_ADAPTER: Final = Path("python/town_core/simulation/m3_qa_adapter.py")
 UNITY_EVIDENCE_EXPORTER: Final = Path("unity/Assets/AITown/Editor/M3AcceptanceEvidenceExporter.cs")
 UNITY_READINESS_EXPORTER: Final = Path("unity/Assets/AITown/Editor/M3ReadinessEvidenceExporter.cs")
 UNITY_FUNCTIONAL_GRAYBOX_BUILDER: Final = Path("unity/Assets/AITown/Editor/M3FunctionalGrayboxBuilder.cs")
@@ -1200,16 +1201,85 @@ def _find_unity_instance_manifest_copies(root: Path) -> list[str]:
     )
 
 
+def _check_sim_qa_adapter(root: Path, require_m3: bool) -> Finding:
+    path = root / SIM_QA_ADAPTER
+    legacy_path = root / LEGACY_SIM_QA_ADAPTER
+    if not path.is_file():
+        if legacy_path.is_file():
+            return _fail(
+                check="m3.upstream",
+                code="M3_SIM_QA_ADAPTER_INVALID",
+                message="M3 QA adapter exists only under the rejected simulation compatibility path",
+                owner=Owner.SIM,
+                remediation=f"Keep the sole adapter at {SIM_QA_ADAPTER} and remove {LEGACY_SIM_QA_ADAPTER}.",
+                path=LEGACY_SIM_QA_ADAPTER.as_posix(),
+            )
+        return _pending(
+            check="m3.upstream",
+            code="M3_SIM_QA_ADAPTER_PENDING",
+            message="SIM M3 society authority/readiness adapter is not integrated",
+            owner=Owner.SIM,
+            require_m3=require_m3,
+            remediation=(
+                f"Implement {SIM_QA_ADAPTER} with the executable python -m town_core.society.m3_qa_adapter CLI seam."
+            ),
+            path=SIM_QA_ADAPTER.as_posix(),
+        )
+    try:
+        source = path.read_text(encoding="utf-8")
+    except OSError as exc:
+        return _fail(
+            check="m3.upstream",
+            code="M3_SIM_QA_ADAPTER_INVALID",
+            message=str(exc),
+            owner=Owner.SIM,
+            remediation="Restore the readable society-owned M3 QA adapter.",
+            path=SIM_QA_ADAPTER.as_posix(),
+        )
+    if legacy_path.is_file():
+        return _fail(
+            check="m3.upstream",
+            code="M3_SIM_QA_ADAPTER_INVALID",
+            message="both society and simulation M3 QA adapter copies exist",
+            owner=Owner.SIM,
+            remediation=f"Delete {LEGACY_SIM_QA_ADAPTER}; society is the sole owner path.",
+            path=LEGACY_SIM_QA_ADAPTER.as_posix(),
+        )
+    required_tokens = (
+        "from town_core.bridge.m3_runtime import M3BridgeRuntime",
+        "from town_core.catalogs import load_catalog, load_m3_catalogs",
+        "from town_core.society.run import run_society",
+        "def _ensure_external(",
+        "def generate_evidence(",
+        'parser.add_argument("--config"',
+        'parser.add_argument("--output-root"',
+        'parser.add_argument("--evidence"',
+        "def main(",
+        'if __name__ == "__main__":',
+        "raise SystemExit(main())",
+    )
+    missing = [token for token in required_tokens if token not in source]
+    if missing:
+        return _fail(
+            check="m3.upstream",
+            code="M3_SIM_QA_ADAPTER_INVALID",
+            message=f"society M3 QA adapter omits required production/CLI seams: {missing}",
+            owner=Owner.SIM,
+            remediation="Restore the production-backed external-evidence module CLI; do not add a QA ruleset.",
+            path=SIM_QA_ADAPTER.as_posix(),
+        )
+    return _pass(
+        check="m3.upstream",
+        code="M3_SIM_QA_ADAPTER",
+        message="SIM society M3 authority/readiness adapter source and module CLI seam are integrated",
+        owner=Owner.SIM,
+        path=SIM_QA_ADAPTER.as_posix(),
+    )
+
+
 def check_upstream_adapters(root: Path, require_m3: bool) -> list[Finding]:
-    findings: list[Finding] = []
+    findings = [_check_sim_qa_adapter(root, require_m3)]
     for path, code, owner, message, remediation in (
-        (
-            SIM_QA_ADAPTER,
-            "M3_SIM_QA_ADAPTER",
-            Owner.SIM,
-            "SIM M3 authority/readiness adapter is integrated",
-            "Implement the SIM-owned adapter that emits real authority/soak/replay facts without QA domain rules.",
-        ),
         (
             UNITY_EVIDENCE_EXPORTER,
             "M3_UNITY_EVIDENCE_EXPORTER",
