@@ -100,7 +100,7 @@ M0 已冻结以下内容规模：
 | Python 版本 | `3.12.x` |
 | 冻结配置目录的来源协议版本 | `0.1.0` |
 | M2 在线协商协议版本 | `0.2.0` |
-| M3 在线协商协议版本 | `0.3.0`（正在实现） |
+| M3 在线协商协议版本 | `0.3.0` |
 
 22 种行为覆盖基本生活、工作、消费、休闲和有限社会互动。V0 不允许模型自由创造新行为。
 
@@ -331,6 +331,35 @@ Unity 批处理导入、EditMode/PlayMode、真实 server smoke 和最终外置�
 命令见 [`docs/unity/README.md`](docs/unity/README.md)。严格验收规则见
 [`docs/qa/M2_ACCEPTANCE.md`](docs/qa/M2_ACCEPTANCE.md)。测试 XML、日志、SIM
 证据和最终 bundle 必须保存在仓库外，不能提交 Unity `Library/` 或许可数据。
+
+### M3 十 NPC 权威社会与 0.3 Bridge
+
+M3 的 Python 入口与 M1/M2 并存，不改变已验收的单 NPC 路径：
+
+```bash
+# 运行 10 NPC 规则社会（每 6 小时写 AuthorityCheckpoint）
+uv run --no-editable python -m town_core.cli run-society \
+  --config config/v0 --days 1 --seed 12345 --chunk-minutes 60
+
+# 从权威 patch 日志重放，不重算候选或 Utility
+uv run --no-editable python -m town_core.cli replay-society \
+  --run runs/<m3_run_id> --output-root /tmp/stwm-m3-replay
+
+# 启动仅 loopback 的 M3_FULL protocol 0.3 server
+uv run --no-editable python -m town_core.bridge.m3_server \
+  --config config/v0 --seed 12345 --host 127.0.0.1 --port 8765 --path /town
+
+# 顺序生成一日 determinism/replay/resume/economy/Bridge readiness 证据
+uv run --no-editable python -m town_core.society.m3_qa_adapter \
+  --config config/v0 --output-root /tmp/stwm-m3-readiness \
+  --evidence /tmp/stwm-m3-readiness/m3-readiness.json --seed 12345 --days 1
+```
+
+M3 在线会话必须协商 `0.3.0`，但冻结配置来源仍单独记为
+`0.1.0`。`M3_FULL` registry 精确覆盖共享 74-instance manifest；
+fresh snapshot 的 `active_presentations` 与权威 active action 完全对齐，
+`client_ready` 前时钟必须保持关闭。外置 readiness 证据只运行短矩阵；
+7/30 日固定种子 slow soak 由 ORCH/QA 在 MacBook Air 上单实例顺序调度。
 
 ## 仓库结构
 

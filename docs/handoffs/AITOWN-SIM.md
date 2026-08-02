@@ -1,4 +1,4 @@
-# AITOWN-SIM M2 Python Bridge Handoff
+# AITOWN-SIM Python Authority Handoff
 
 ## M3 society authority increment (2026-08-03)
 
@@ -50,8 +50,59 @@ before separately scheduled replay/evidence work. This is a projection, not a
 substitute for the ORCH/QA-coordinated fixed 30-day soak; no long soak was run
 concurrently on the MacBook Air.
 
-The remaining M3 SIM work after this authority increment is protocol `0.3.0`
-Bridge presentation/gating plus the external readiness/evidence adapter.
+### Protocol 0.3 M3_FULL bridge
+
+The additive `town_core.bridge.m3_runtime`, `m3_session`, and `m3_server`
+entry points negotiate only active protocol `0.3.0`; catalog provenance remains
+`0.1.0`, and the accepted M2 `0.2.0` runtime is unchanged. The M3 registry is a
+blocking exact-ID/slot/capability/animation check over the shared 74-instance
+manifest. Because the frozen registry envelope has no component booleans, the
+complete NpcView set is the Unity-side local attestation for prop, facing,
+controller, and NavMesh checks.
+
+Each connection has a monotonically increasing generation. Registry acceptance
+emits a fresh full snapshot containing one `active_presentation` per active
+action; authority advancement remains gated until that generation applies the
+snapshot and sends `client_ready`. Reconnect invalidates the old generation.
+Output includes all affected agent field-mask deltas (including explicit null
+clears), household deltas, directed relationship deltas, events, Chinese
+background dialogue, and at most 12 Top-K rows with at most two Resolver
+attempts. Participant presentations contain stable roles, object/slot bindings,
+social facing targets, animation/prop semantics, and conversation identity.
+
+In `UNITY_LIVE`, every moving participant must report arrival. A JointAction
+leaves `TRAVELING` only after the complete participant barrier; a failure,
+typed cancellation, or bounded timeout terminates the whole action and releases
+all participant/location/object/resource reservations in one transaction.
+Same-message duplicates are no-ops, conflicting reuse is a protocol error, and
+rejected stale/future/obsolete inputs only diagnose/resync. A real local RFC
+6455 protocol-0.3 handshake test passed.
+
+### M3 readiness evidence and CLI
+
+The additive CLI commands are:
+
+```text
+python -m town_core.cli run-society --config config/v0 --days 1 --seed 12345 --chunk-minutes 60
+python -m town_core.cli replay-society --run <m3-run> --output-root <external-root>
+python -m town_core.society.m3_qa_adapter --config config/v0 --output-root <external-root> --evidence <external-root>/m3-readiness.json
+```
+
+The adapter writes UTF-8 `stwm.qa.m3-readiness/v1` evidence outside the
+repository. It invokes production run/replay/Bridge paths for the canonical
+one-day baseline/repeat/chunk-7/chunk-60 matrix, checkpoint-360 resume, exact
+four-household economy reconstruction, pathology/performance metrics, fresh
+snapshot/ready/reconnect observations, and machine-readable CLI failures. It
+records the fixed 7/30-day seed plan but deliberately does not claim or launch
+the ORCH/QA-scheduled slow soak.
+
+The accepted adapter run on the same Apple arm64 host passed. The four final
+state/checkpoint/transaction-chain/authority-log hashes matched; replay and
+checkpoint resume matched; all household equations matched. Its baseline wall
+time was `7.543836` seconds with peak process RSS `57,688,064` bytes, tick p99
+`12.412417` ms, and decision-batch p95 `0.451833` ms. A 30x wall-time projection
+is `226.31508` seconds (`3m46.3s`); this remains a projection, not slow-soak
+evidence.
 
 ## Current responsibility
 

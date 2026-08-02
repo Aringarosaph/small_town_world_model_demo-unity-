@@ -10,6 +10,9 @@ from pathlib import Path
 from town_core.catalogs import CatalogValidationError, load_catalog, load_m3_catalogs, m3_catalog_hash
 from town_core.replay import replay_run
 from town_core.simulation.run import run_headless
+from town_core.society.checkpoint import load_checkpoint
+from town_core.society.replay import replay_society_run
+from town_core.society.run import run_society
 
 
 def _build_parser() -> argparse.ArgumentParser:
@@ -30,6 +33,20 @@ def _build_parser() -> argparse.ArgumentParser:
     replay = subparsers.add_parser("replay", help="apply committed authority transactions and verify final hash")
     replay.add_argument("--run", required=True, type=Path, help="source run directory")
     replay.add_argument("--output-root", type=Path, help="new replay-run parent directory")
+    society = subparsers.add_parser("run-society", help="run the deterministic ten-NPC M3 society")
+    society.add_argument("--config", required=True, help="path to config/v0")
+    society.add_argument("--days", type=int, default=1, help="scenario end in complete game days")
+    society.add_argument("--seed", type=int, default=12345, help="non-negative deterministic world seed")
+    society.add_argument("--out", type=Path, help="exact new M3 run directory")
+    society.add_argument("--output-root", type=Path, default=Path("runs"), help="generated run parent")
+    society.add_argument("--chunk-minutes", type=int, default=1, help="driver chunk; authority ticks stay 1 minute")
+    society.add_argument("--resume-checkpoint", type=Path, help="SIM-owned six-hour M3 checkpoint")
+    society_replay = subparsers.add_parser(
+        "replay-society", help="replay M3 authority patches without policy recomputation"
+    )
+    society_replay.add_argument("--run", required=True, type=Path, help="source M3 run directory")
+    society_replay.add_argument("--output-root", type=Path, help="new replay-run parent directory")
+    society_replay.add_argument("--from-checkpoint", type=Path, help="resume replay from a six-hour checkpoint")
     return parser
 
 
@@ -78,6 +95,50 @@ def main(argv: Sequence[str] | None = None) -> int:
     if args.command == "replay":
         try:
             summary = replay_run(args.run, output_root=args.output_root)
+        except (OSError, TypeError, ValueError, KeyError, RuntimeError) as exc:
+            print(
+                json.dumps(
+                    {"completed": False, "error_type": type(exc).__name__, "error": str(exc)},
+                    ensure_ascii=False,
+                    sort_keys=True,
+                )
+            )
+            return 1
+        print(json.dumps(summary, ensure_ascii=False, sort_keys=True))
+        return 0 if summary["match"] else 1
+    if args.command == "run-society":
+        try:
+            catalog = load_catalog(args.config)
+            m3_catalogs = load_m3_catalogs(args.config, catalog=catalog)
+            checkpoint = load_checkpoint(args.resume_checkpoint) if args.resume_checkpoint else None
+            summary = run_society(
+                catalog,
+                m3_catalogs,
+                days=args.days,
+                seed=args.seed,
+                output_root=args.output_root,
+                run_path=args.out,
+                chunk_minutes=args.chunk_minutes,
+                resume_checkpoint=checkpoint,
+            )
+        except (CatalogValidationError, OSError, TypeError, ValueError, KeyError, RuntimeError) as exc:
+            print(
+                json.dumps(
+                    {"completed": False, "error_type": type(exc).__name__, "error": str(exc)},
+                    ensure_ascii=False,
+                    sort_keys=True,
+                )
+            )
+            return 1
+        print(json.dumps(summary, ensure_ascii=False, sort_keys=True))
+        return 0
+    if args.command == "replay-society":
+        try:
+            summary = replay_society_run(
+                args.run,
+                output_root=args.output_root,
+                from_checkpoint=args.from_checkpoint,
+            )
         except (OSError, TypeError, ValueError, KeyError, RuntimeError) as exc:
             print(
                 json.dumps(
