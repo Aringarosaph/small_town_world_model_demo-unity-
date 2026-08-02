@@ -36,7 +36,7 @@ from town_core.domain.state_models import (
     WorldState,
 )
 from town_core.simulation.clock import RuntimeMode, accept_advanced_game_minute
-from town_core.society.checkpoint import advance_authority_log_hash, knowledge_key
+from town_core.society.checkpoint import advance_authority_log_hash, knowledge_key, validate_checkpoint_structure
 from town_core.society.invariants import assert_society_invariants, assert_society_transition
 from town_core.society.models import (
     ActionRuntimeRecord,
@@ -341,7 +341,7 @@ class SocietyEngine:
             committed_without_chain=committed_without_chain,
             changes=context.changes,
         )
-        committed = AuthorityCheckpoint.model_validate(committed.model_dump(mode="json", exclude_none=False))
+        committed = validate_checkpoint_structure(committed)
         if advances_time:
             assert_society_transition(previous, committed)
         else:
@@ -394,11 +394,11 @@ class SocietyEngine:
                 "authority_log_hash": authority_log_hash,
             }
         )
-        # `committed` was fully normalized above before the transaction and
-        # authority hashes were derived. The only updates since then are this
-        # internally generated non-negative count and SHA-256 digest; another
-        # whole-checkpoint JSON round-trip would revalidate immutable ledger
-        # history on every tick without adding an authority boundary.
+        # `committed` passed the complete outer checkpoint schema above before
+        # the authority hashes were derived. Its nested values are frozen,
+        # already-validated ContractModel instances and both per-tick authority
+        # invariant passes remain. The only later updates are this internally
+        # generated non-negative count and SHA-256 digest.
         assert_society_invariants(
             committed,
             self.catalog,

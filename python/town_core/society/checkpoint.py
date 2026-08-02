@@ -34,11 +34,31 @@ def initial_authority_log_hash() -> str:
 def advance_authority_log_hash(previous_hash: str, envelope: object) -> str:
     """Append one canonical envelope to a checkpoint-persistable hash chain."""
 
+    canonical = canonical_json(envelope).encode("utf-8")
+    return advance_authority_log_hash_from_canonical_bytes(previous_hash, canonical)
+
+
+def advance_authority_log_hash_from_canonical_bytes(previous_hash: str, canonical: bytes) -> str:
+    """Advance the authority chain from the exact bytes persisted to JSONL."""
+
     if len(previous_hash) != 64:
         raise ValueError("M3 authority hash cursor must be a SHA-256 hex digest")
-    canonical = canonical_json(envelope).encode("utf-8")
     material = bytes.fromhex(previous_hash) + len(canonical).to_bytes(8, "big") + canonical
     return hashlib.sha256(material).hexdigest()
+
+
+def validate_checkpoint_structure(checkpoint: AuthorityCheckpoint) -> AuthorityCheckpoint:
+    """Validate the complete outer checkpoint while retaining frozen model instances.
+
+    Every nested authority record enters the engine as a validated frozen
+    ``ContractModel``. Reusing those instances avoids repeatedly serializing
+    and rebuilding the entire immutable ledger history. Container shapes,
+    scalar cursors, hashes, and newly introduced nested values are still
+    validated by the complete ``AuthorityCheckpoint`` schema each tick.
+    """
+
+    values = {name: getattr(checkpoint, name) for name in AuthorityCheckpoint.model_fields}
+    return AuthorityCheckpoint.model_validate(values)
 
 
 def checkpoint_hash(checkpoint: AuthorityCheckpoint) -> str:

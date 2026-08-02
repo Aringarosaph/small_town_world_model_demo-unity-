@@ -294,6 +294,46 @@ The observed 7-day result gives a simple 30-day projection of `475.073237s`
 wall improvement rather than claiming a memory reduction. This remains a
 projection until the ORCH-scheduled 30-day matrix runs.
 
+### M3 streaming authority serialization follow-up
+
+The integrated RC release run exposed a second growth-sensitive path at 30
+days. `SocietyRunWriter.append` canonicalized every authority envelope three
+times: once for its resumable hash, once for `authority.jsonl`, and once for the
+kind-specific JSONL. The writer now canonicalizes each envelope exactly once,
+advances the hash from those exact UTF-8 bytes, and writes the same byte object
+plus LF to both files. Per-append binary streams are owned by an `ExitStack`, so
+normal and exceptional exits close every opened authority/kind stream. The
+existing `StreamingAuthorityHasher.append(record)` API remains compatible.
+
+Same-checkpoint profiling showed that writer-only reuse was necessary but not
+sufficient: minute 33840-34560 improved from `22.539669s` to `20.919113s`.
+After that change the writer occupied only `0.395s` in the 12-hour profile;
+complete historical checkpoint `model_dump` and `model_validate` consumed
+`8.375s` and `7.945s`. The engine had been serializing and reconstructing every
+unchanged event/knowledge/work/conversation record each tick solely to validate
+the outer checkpoint.
+
+The engine now validates the complete `AuthorityCheckpoint` outer schema,
+containers, scalar cursors, hashes, and newly introduced values while retaining
+the already-validated frozen nested `ContractModel` instances. Both per-tick
+society invariant passes and transition invariant remain unchanged. Unit tests
+compare this reference-preserving result against the prior full JSON
+normalization, including the complete JSON projection and checkpoint hash, and
+prove that an invalid outer authority cursor is still rejected. The same late
+12-hour window then completed in `4.167428s` with identical final/checkpoint,
+ledger, transaction-chain, and authority-log hashes.
+
+The final seed-`12345`, chunk-`60` 7-day production benchmark completed in
+`16.620429s`, versus the preserved RC baseline `60.994849s` (`72.75%` faster),
+with the same 27,363 authority records. All six JSONL byte counts and SHA-256
+digests match the RC files exactly; initial/final checkpoint files and every
+periodic checkpoint are also byte-identical. Production replay matched all 29
+checkpoints with zero mismatch or source mutation. A linear 30-day projection
+is `71.23041s`. A deliberately conservative bound scales the measured day-24
+late-window rate by `30/24` and applies that projected maximum rate to all 30
+days: `312.5571s`, leaving `65.27%` below 900 seconds. This remains a projection;
+the ORCH release producer owns the final full 30-day measurement.
+
 The independent one-day production observation for this increment completed
 in `7.682316s`, peaked at `51,593,216` bytes RSS, used `38 MiB` on disk, and
 passed all five persisted-checkpoint, final-state, ledger, authority-log, and

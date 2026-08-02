@@ -8,15 +8,17 @@ import resource
 import time
 import uuid
 from collections import Counter
+from contextlib import ExitStack
 from datetime import UTC, datetime
 from pathlib import Path
+from typing import BinaryIO
 
 from town_core.catalogs import m3_catalog_hash
 from town_core.domain.config_models import CatalogBundle
 from town_core.domain.m3_catalog_models import M3Catalogs
 from town_core.simulation.initialization import state_hash
 from town_core.society.checkpoint import (
-    advance_authority_log_hash,
+    advance_authority_log_hash_from_canonical_bytes,
     canonical_json,
     checkpoint_hash,
     initial_authority_log_hash,
@@ -29,6 +31,13 @@ from town_core.society.invariants import assert_society_invariants
 from town_core.society.models import M3_RUN_SCHEMA, AuthorityCheckpoint, SocietyAdvanceResult
 
 CHECKPOINT_INTERVAL_MINUTES = 360
+AUTHORITY_KIND_FILENAMES = {
+    "decision": "decisions.jsonl",
+    "action": "actions.jsonl",
+    "transaction": "transactions.jsonl",
+    "event": "events.jsonl",
+    "dialogue": "dialogues.jsonl",
+}
 
 
 def _utc_now() -> str:
@@ -42,13 +51,21 @@ def _write_json(path: Path, value: object) -> None:
     )
 
 
-def _append_jsonl(path: Path, values: list[dict[str, object]]) -> None:
-    if not values:
+def _append_serialized_authority_records(run_path: Path, records: list[tuple[str, bytes]]) -> None:
+    """Append the exact same canonical line bytes to authority and kind logs."""
+
+    if not records:
         return
-    with path.open("a", encoding="utf-8") as stream:
-        for value in values:
-            stream.write(canonical_json(value))
-            stream.write("\n")
+    with ExitStack() as stack:
+        authority_stream = stack.enter_context((run_path / "authority.jsonl").open("ab"))
+        kind_streams: dict[str, BinaryIO] = {}
+        for kind, line in records:
+            stream = kind_streams.get(kind)
+            if stream is None:
+                stream = stack.enter_context((run_path / AUTHORITY_KIND_FILENAMES[kind]).open("ab"))
+                kind_streams[kind] = stream
+            authority_stream.write(line)
+            stream.write(line)
 
 
 class StreamingAuthorityHasher:
@@ -61,9 +78,15 @@ class StreamingAuthorityHasher:
         self.count = initial_count
 
     def append(self, record: dict[str, object]) -> None:
+        canonical = canonical_json(record).encode("utf-8")
+        self.append_canonical(record, canonical)
+
+    def append_canonical(self, record: dict[str, object], canonical: bytes) -> None:
+        """Advance from canonical bytes already produced for persistent output."""
+
         if record.get("sequence") != self.count + 1:
             raise ValueError("M3 authority record sequence does not follow the checkpoint cursor")
-        self._digest = advance_authority_log_hash(self._digest, record)
+        self._digest = advance_authority_log_hash_from_canonical_bytes(self._digest, canonical)
         self.count += 1
 
     @property
@@ -139,27 +162,15 @@ class SocietyRunWriter:
         checkpoints.mkdir()
         write_checkpoint(run_path / "initial_checkpoint.json", initial)
         write_checkpoint(checkpoints / "checkpoint_00000000.json", initial)
-        for filename in (
-            "authority.jsonl",
-            "decisions.jsonl",
-            "actions.jsonl",
-            "transactions.jsonl",
-            "events.jsonl",
-            "dialogues.jsonl",
-        ):
+        for filename in ("authority.jsonl", *AUTHORITY_KIND_FILENAMES.values()):
             (run_path / filename).touch()
 
     def append(self, result: SocietyAdvanceResult) -> None:
-        by_kind: dict[str, list[dict[str, object]]] = {
-            "decision": [],
-            "action": [],
-            "transaction": [],
-            "event": [],
-            "dialogue": [],
-        }
-        envelopes: list[dict[str, object]] = []
+        serialized_records: list[tuple[str, bytes]] = []
         for record in result.authority_records:
             kind = str(record["kind"])
+            if kind not in AUTHORITY_KIND_FILENAMES:
+                raise ValueError(f"unsupported M3 authority record kind: {kind}")
             payload = record["payload"]
             if not isinstance(payload, dict):
                 raise TypeError("M3 authority record payload must be an object")
@@ -170,9 +181,9 @@ class SocietyRunWriter:
                 "kind": kind,
                 "payload": payload,
             }
-            self.hasher.append(envelope)
-            envelopes.append(envelope)
-            by_kind[kind].append(envelope)
+            canonical = canonical_json(envelope).encode("utf-8")
+            self.hasher.append_canonical(envelope, canonical)
+            serialized_records.append((kind, canonical + b"\n"))
             if kind == "decision":
                 self.decision_count += 1
                 self.behavior_counts[str(payload["selected_behavior_id"])] += 1
@@ -180,10 +191,7 @@ class SocietyRunWriter:
                 self.action_ids.add(str(payload["action_id"]))
             elif kind == "event":
                 self.event_counts[str(payload["event_type"])] += 1
-        _append_jsonl(self.run_path / "authority.jsonl", envelopes)
-        for kind, records in by_kind.items():
-            filename = "dialogues.jsonl" if kind == "dialogue" else f"{kind}s.jsonl"
-            _append_jsonl(self.run_path / filename, records)
+        _append_serialized_authority_records(self.run_path, serialized_records)
         if self.hasher.count != result.authority_record_count or self.hasher.hexdigest != result.authority_log_hash:
             raise RuntimeError("M3 writer authority cursor diverged from the production engine")
 
