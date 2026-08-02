@@ -56,6 +56,23 @@ namespace STWM.AITown.Editor
         private const string LiveCase = "Live030PythonBridgeCompletesFullRegistrySnapshotTopKAndReconnectWhenEnabled";
         private const string JointCase = "ExplicitJointPresentationBindingsClaimStableDistinctSlotsAndFacing";
         private const string ClearCase = "Recorded030HandshakeRebindsSnapshotThenClearsAndReleasesJointPresentation";
+        private const string StaleCase = "Stale030DeltaIsRejectedWithoutPresentationMutation";
+        private const string JointTerminalCase = "RecordedJointPresentationCancelAndFailReleaseClaims";
+        private const string FullTownCase = "FullTownFixtureLoadsWithStrictSemanticAndRouteCoverage";
+        private const string ExplicitNullCase = "ExplicitNullDeltaClearsEveryNullableNpcPresentationCache";
+        private const string StructuredExamplesCase = "FrozenStructuredActionAndReconnectExamplesValidate";
+        private const string TopKCase = "FrozenTopKExampleEnforcesSelectedAcceptedTuple";
+        private const string ReadOnlyDebugCase = "PropPresenterAndTenNpcSelectorRemainReadOnlyPresentationState";
+        private const string AtomicClaimCase = "ActionPresentationGroupSortsParticipantsAndClaimsDistinctSlotsAtomically";
+        private const string ConflictingClaimCase = "ConflictingParticipantBindingRollsBackWholeLocalClaimSet";
+        private const string BehaviorPresentationCasePrefix = "BehaviorPresentation_";
+        private static readonly string[] BehaviorIds =
+        {
+            "idle", "sleep", "eat_at_home", "shower", "watch_tv", "relax_at_home",
+            "work_shift", "take_break", "buy_groceries", "eat_at_cafe", "drink_at_bar",
+            "walk_in_park", "sit_in_park", "greet", "chat", "joke", "compliment",
+            "share_event", "invite_join", "apologize", "confront", "end_conversation"
+        };
         private static readonly Regex CommitPattern = new Regex("^[0-9a-f]{40}$", RegexOptions.CultureInvariant);
         private static readonly Regex UnixUserRootPattern = new Regex(@"/Users/[^/\s]+", RegexOptions.CultureInvariant);
         private static readonly Regex WindowsUserRootPattern = new Regex(@"[A-Za-z]:\\Users\\[^\\\s]+", RegexOptions.CultureInvariant);
@@ -118,7 +135,9 @@ namespace STWM.AITown.Editor
             ValidateLiveRegistry(liveRegistry);
             ValidateLiveDebugTrace(liveDebugTracePath);
             var editSummary = ValidateTestResults(editModePath, Array.Empty<string>());
-            var playSummary = ValidateTestResults(playModePath, new[] { LiveCase, JointCase, ClearCase });
+            var playSummary = ValidateTestResults(
+                playModePath,
+                new[] { LiveCase, JointCase, ClearCase, StaleCase, JointTerminalCase, FullTownCase });
 
             M3FunctionalGrayboxBuilder.BuildAndSave();
             var manifest = M3SemanticManifestDocument.LoadDefault();
@@ -138,14 +157,26 @@ namespace STWM.AITown.Editor
             var sanitizedEditPath = Path.Combine(unityDirectory, "editmode-results.xml");
             var sanitizedPlayPath = Path.Combine(unityDirectory, "playmode-results.xml");
             var sanitizedLogPath = Path.Combine(unityDirectory, "unity-batchmode.log");
-            WriteJson(registryReportPath, CreateRegistryReport(scan, manifest, routeReport));
-            WriteJson(semanticReportPath, CreateSemanticCoverage(scan, manifest, routeReport));
+            var registryReport = CreateRegistryReport(scan, manifest, routeReport);
+            var semanticReport = CreateSemanticCoverage(
+                scan,
+                manifest,
+                routeReport,
+                playSummary.RequiredCases.Count == 6);
+            WriteJson(registryReportPath, registryReport);
+            WriteJson(semanticReportPath, semanticReport);
             editSummary = CopySanitizedXmlTestResults(editModePath, sanitizedEditPath, Array.Empty<string>());
             playSummary = CopySanitizedXmlTestResults(
                 playModePath,
                 sanitizedPlayPath,
-                new[] { LiveCase, JointCase, ClearCase });
+                new[] { LiveCase, JointCase, ClearCase, StaleCase, JointTerminalCase, FullTownCase });
             CopySanitizedText(batchLogPath, sanitizedLogPath);
+            var qaMatrixProjection = CreateQaMatrixProjection(
+                semanticReport,
+                sanitizedEditPath,
+                sanitizedPlayPath,
+                editSummary,
+                playSummary);
 
             var artifacts = new JObject
             {
@@ -184,6 +215,7 @@ namespace STWM.AITown.Editor
                     ["final_release"] = Gate("PENDING", "orchestrator", "PASS-only stwm.qa.m3-acceptance-evidence/v1 cannot be emitted before the complete producer artifact set exists.")
                 },
                 ["unity_test_summary"] = JObject.FromObject(new { editmode = editSummary, playmode = playSummary }),
+                ["qa_matrix_projection"] = qaMatrixProjection,
                 ["artifacts"] = artifacts,
                 ["pending_reasons"] = new JArray(
                     "M3_7_DAY_SLOW_SOAK_NOT_SUPPLIED",
@@ -303,6 +335,122 @@ namespace STWM.AITown.Editor
             return summary;
         }
 
+        public static JObject CreateQaMatrixProjection(
+            JObject semanticReport,
+            string editModePath,
+            string playModePath,
+            M3PartialTestSummary editSummary,
+            M3PartialTestSummary playSummary)
+        {
+            if (semanticReport == null)
+            {
+                throw new ArgumentNullException(nameof(semanticReport));
+            }
+            if (editSummary == null || playSummary == null)
+            {
+                throw new ArgumentNullException(editSummary == null ? nameof(editSummary) : nameof(playSummary));
+            }
+
+            RequireString(semanticReport, "schema", SemanticCoverageSchema, "Unity semantic coverage");
+            RequireString(semanticReport, "status", "PASS", "Unity semantic coverage");
+            RequireString(semanticReport, "profile", "M3_FULL", "Unity semantic coverage");
+            RequireInteger(semanticReport, "npc_views", 10, "Unity semantic coverage");
+            RequireInteger(semanticReport, "locations", 8, "Unity semantic coverage");
+            RequireInteger(semanticReport, "object_types", 15, "Unity semantic coverage");
+            RequireInteger(semanticReport, "interaction_slots", 105, "Unity semantic coverage");
+            RequireInteger(semanticReport, "route_errors", 0, "Unity semantic coverage");
+            if (semanticReport.Value<int?>("route_count").GetValueOrDefault() <= 0)
+            {
+                throw new InvalidDataException("Unity semantic coverage has no validated NavMesh routes.");
+            }
+
+            var allAnimationsMapped = RequireExactStringSet(
+                semanticReport["required_animation_semantics"] as JArray,
+                semanticReport["mapped_animation_semantics"] as JArray,
+                14,
+                "animation semantics");
+            var allPropsMapped = RequireExactStringSet(
+                semanticReport["required_prop_semantics"] as JArray,
+                semanticReport["mapped_prop_semantics"] as JArray,
+                4,
+                "prop semantics");
+            var allFacingSupported = RequireExactStringSet(
+                semanticReport["facing_behavior_ids"] as JArray,
+                semanticReport["mapped_facing_behavior_ids"] as JArray,
+                8,
+                "facing behaviors");
+            RequireTrue(
+                semanticReport,
+                "structured_joint_clear_reconnect_covered_by_playmode",
+                "Unity semantic coverage");
+
+            var editDocument = LoadPassingTestDocument(editModePath, editSummary, "EditMode");
+            var playDocument = LoadPassingTestDocument(playModePath, playSummary, "PlayMode");
+            var explicitNullClearing = RequirePassedCase(editDocument, ExplicitNullCase, "EditMode") != null;
+            var structuredExamples = RequirePassedCase(editDocument, StructuredExamplesCase, "EditMode") != null;
+            var topK = RequirePassedCase(editDocument, TopKCase, "EditMode") != null;
+            var debugReadOnly = RequirePassedCase(editDocument, ReadOnlyDebugCase, "EditMode") != null;
+            var atomicClaims = RequirePassedCase(editDocument, AtomicClaimCase, "EditMode") != null;
+            var conflictingClaimRollback = RequirePassedCase(editDocument, ConflictingClaimCase, "EditMode") != null;
+            var live = RequirePassedCase(playDocument, LiveCase, "PlayMode") != null;
+            var jointSlotsAndFacing = RequirePassedCase(playDocument, JointCase, "PlayMode") != null;
+            var snapshotClearRebind = RequirePassedCase(playDocument, ClearCase, "PlayMode") != null;
+            var staleVersionRejection = RequirePassedCase(playDocument, StaleCase, "PlayMode") != null;
+            var jointTerminalRelease = RequirePassedCase(playDocument, JointTerminalCase, "PlayMode") != null;
+            var fullTown = RequirePassedCase(playDocument, FullTownCase, "PlayMode") != null;
+
+            var behaviorPresentation = new JArray();
+            foreach (var behaviorId in BehaviorIds)
+            {
+                var test = RequirePassedCase(
+                    editDocument,
+                    BehaviorPresentationCasePrefix + behaviorId,
+                    "EditMode");
+                var fullName = test.GetAttribute("fullname");
+                if (string.IsNullOrWhiteSpace(fullName))
+                {
+                    throw new InvalidDataException($"Behavior presentation test {behaviorId} has no stable fullname.");
+                }
+                behaviorPresentation.Add(new JObject
+                {
+                    ["behavior_id"] = behaviorId,
+                    ["fixture_id"] = "m3_behavior_" + behaviorId,
+                    ["unity_presentation"] = new JObject
+                    {
+                        ["status"] = "PASS",
+                        ["test_ids"] = new JArray("unity/editmode::" + fullName),
+                        ["assertion_count"] = 1
+                    }
+                });
+            }
+
+            return new JObject
+            {
+                ["unity"] = new JObject
+                {
+                    ["npc_views"] = semanticReport.Value<int>("npc_views"),
+                    ["locations"] = semanticReport.Value<int>("locations"),
+                    ["object_types"] = semanticReport.Value<int>("object_types"),
+                    ["all_animation_semantics_mapped"] = allAnimationsMapped,
+                    ["all_props_mapped"] = allPropsMapped,
+                    ["all_facing_behaviors_supported"] = allFacingSupported,
+                    ["all_required_slots_navmesh_reachable"] = fullTown,
+                    ["complete_snapshot_replacement"] = snapshotClearRebind && structuredExamples,
+                    ["explicit_null_clearing"] = explicitNullClearing && snapshotClearRebind,
+                    ["active_action_rebind"] = snapshotClearRebind && structuredExamples,
+                    ["stale_version_rejection"] = staleVersionRejection,
+                    ["duplicate_slot_claim_count"] = atomicClaims && conflictingClaimRollback && jointSlotsAndFacing ? 0 : -1,
+                    ["joint_start_phase_cancel_fail_reconnect"] = jointSlotsAndFacing && snapshotClearRebind && jointTerminalRelease,
+                    ["debug_ui_read_only"] = debugReadOnly,
+                    ["debug_ui_complete_trace"] = topK && snapshotClearRebind && live,
+                    ["live_smoke_protocol_version"] = live ? TownProtocol.M3Version : string.Empty,
+                    ["editmode_skipped"] = editSummary.Skipped,
+                    ["playmode_skipped"] = playSummary.Skipped
+                },
+                ["behavior_presentation"] = behaviorPresentation
+            };
+        }
+
         private static void ValidateLiveRegistry(JObject registry)
         {
             RequireString(registry, "protocol_version", TownProtocol.M3Version, "live registry");
@@ -383,8 +531,22 @@ namespace STWM.AITown.Editor
         private static JObject CreateSemanticCoverage(
             TownAssetRegistryScan scan,
             M3SemanticManifestDocument manifest,
-            M3RouteValidationReport routeReport)
+            M3RouteValidationReport routeReport,
+            bool structuredPlayModeCasesPassed)
         {
+            var views = TownSceneAssetRegistry.FindNpcViews();
+            var mappedProps = views
+                .Where(item => item?.PropPresenter != null)
+                .SelectMany(item => item.PropPresenter.SupportedSemantics)
+                .Select(item => item.ToString())
+                .Distinct(StringComparer.Ordinal)
+                .OrderBy(item => item, StringComparer.Ordinal)
+                .ToArray();
+            var mappedFacing = manifest.FacingBehaviorIds
+                .Where(behaviorId => views.All(item => item?.SocialFacingController != null
+                                                 && item.SocialFacingController.SupportsBehavior(behaviorId)))
+                .OrderBy(item => item, StringComparer.Ordinal)
+                .ToArray();
             return new JObject
             {
                 ["schema"] = SemanticCoverageSchema,
@@ -398,11 +560,73 @@ namespace STWM.AITown.Editor
                 ["required_animation_semantics"] = JArray.FromObject(manifest.RequiredAnimationSemantics),
                 ["mapped_animation_semantics"] = JArray.FromObject(scan.Payload.MappedAnimationSemantics),
                 ["required_prop_semantics"] = JArray.FromObject(manifest.RequiredPropSemantics),
+                ["mapped_prop_semantics"] = JArray.FromObject(mappedProps),
                 ["facing_behavior_ids"] = JArray.FromObject(manifest.FacingBehaviorIds),
+                ["mapped_facing_behavior_ids"] = JArray.FromObject(mappedFacing),
                 ["route_count"] = routeReport.RouteCount,
                 ["route_errors"] = routeReport.Issues.Count(item => item.Severity == "ERROR"),
-                ["structured_joint_clear_reconnect_covered_by_playmode"] = true
+                ["structured_joint_clear_reconnect_covered_by_playmode"] = structuredPlayModeCasesPassed
             };
+        }
+
+        private static XmlDocument LoadPassingTestDocument(
+            string path,
+            M3PartialTestSummary expected,
+            string label)
+        {
+            var observed = ValidateTestResults(path, Array.Empty<string>());
+            if (observed.Total != expected.Total
+                || observed.Passed != expected.Passed
+                || observed.Failed != expected.Failed
+                || observed.Skipped != expected.Skipped
+                || observed.Inconclusive != expected.Inconclusive)
+            {
+                throw new InvalidDataException($"{label} XML changed after its zero-skip summary was captured.");
+            }
+            var document = new XmlDocument();
+            document.Load(path);
+            return document;
+        }
+
+        private static XmlElement RequirePassedCase(XmlDocument document, string caseName, string label)
+        {
+            var matches = document.SelectNodes("//test-case")?
+                .Cast<XmlElement>()
+                .Where(item => string.Equals(item.GetAttribute("name"), caseName, StringComparison.Ordinal))
+                .ToArray() ?? Array.Empty<XmlElement>();
+            if (matches.Length != 1
+                || !string.Equals(matches[0].GetAttribute("result"), "Passed", StringComparison.Ordinal))
+            {
+                throw new InvalidDataException(
+                    $"{label} evidence requires exactly one passed test-case named {caseName}; observed {matches.Length}.");
+            }
+            return matches[0];
+        }
+
+        private static bool RequireExactStringSet(
+            JArray required,
+            JArray mapped,
+            int expectedCount,
+            string label)
+        {
+            if (required == null || mapped == null)
+            {
+                throw new InvalidDataException($"Unity semantic coverage is missing {label} arrays.");
+            }
+            var requiredValues = required.Values<string>().ToArray();
+            var mappedValues = mapped.Values<string>().ToArray();
+            if (requiredValues.Length != expectedCount
+                || mappedValues.Length != expectedCount
+                || requiredValues.Any(string.IsNullOrWhiteSpace)
+                || mappedValues.Any(string.IsNullOrWhiteSpace)
+                || requiredValues.Distinct(StringComparer.Ordinal).Count() != expectedCount
+                || mappedValues.Distinct(StringComparer.Ordinal).Count() != expectedCount
+                || !new HashSet<string>(requiredValues, StringComparer.Ordinal)
+                    .SetEquals(mappedValues))
+            {
+                throw new InvalidDataException($"Unity semantic coverage does not exactly map all {expectedCount} {label}.");
+            }
+            return true;
         }
 
         private static JObject Gate(string status, string evidenceSource, string details)

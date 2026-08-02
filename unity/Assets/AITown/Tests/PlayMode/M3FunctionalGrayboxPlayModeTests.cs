@@ -130,6 +130,72 @@ namespace STWM.AITown.Tests.PlayMode
         }
 
         [UnityTest]
+        public IEnumerator Stale030DeltaIsRejectedWithoutPresentationMutation()
+        {
+            yield return SceneManager.LoadSceneAsync("M3FunctionalGraybox", LoadSceneMode.Single);
+            var bridge = UnityEngine.Object.FindFirstObjectByType<TownBridgeClient>();
+            Assert.That(bridge, Is.Not.Null);
+            CompleteRecordedHandshake(bridge);
+
+            var view = TownSceneAssetRegistry.FindNpcView("npc_01");
+            Assert.That(view.CurrentActionId, Is.EqualTo("action_00000301"));
+            Assert.That(bridge.LastAppliedStateVersion, Is.EqualTo(42));
+            var staleClear = Envelope(
+                "msg_000307",
+                "agent_state_delta",
+                41,
+                "action_00000301",
+                new JObject
+                {
+                    ["agent_id"] = "npc_01",
+                    ["current_action_id"] = JValue.CreateNull(),
+                    ["field_mask"] = new JArray("current_action_id")
+                });
+
+            Assert.That(bridge.ProcessInboundJson(staleClear), Is.False);
+            Assert.That(view.CurrentActionId, Is.EqualTo("action_00000301"));
+            Assert.That(bridge.LastAppliedStateVersion, Is.EqualTo(42));
+            Assert.That(bridge.ActivePresentationGroupCount, Is.EqualTo(1));
+        }
+
+        [UnityTest]
+        public IEnumerator RecordedJointPresentationCancelAndFailReleaseClaims()
+        {
+            yield return SceneManager.LoadSceneAsync("M3FunctionalGraybox", LoadSceneMode.Single);
+            var bridge = UnityEngine.Object.FindFirstObjectByType<TownBridgeClient>();
+            Assert.That(bridge, Is.Not.Null);
+            CompleteRecordedHandshake(bridge);
+
+            Assert.That(bridge.ActivePresentationGroupCount, Is.EqualTo(1));
+            Assert.That(bridge.ProcessInboundJson(Envelope(
+                "msg_000308",
+                "action_cancelled",
+                43,
+                "action_00000301",
+                new JObject { ["action_id"] = "action_00000301", ["reason"] = "RECORDED_QA_CANCEL" })), Is.True);
+            Assert.That(bridge.ActivePresentationGroupCount, Is.Zero);
+            Assert.That(TownSceneAssetRegistry.FindObject("park_conversation_01").InteractionSlots
+                .All(item => item.LocalPresentationClaimId == null), Is.True);
+
+            Assert.That(bridge.ProcessInboundJson(JointActionStartedEnvelope(
+                "action_00000302",
+                "msg_000309",
+                44)), Is.True);
+            Assert.That(bridge.ActivePresentationGroupCount, Is.EqualTo(1));
+            Assert.That(TownSceneAssetRegistry.FindObject("park_conversation_01").InteractionSlots
+                .Count(item => item.LocalPresentationClaimId != null), Is.EqualTo(2));
+            Assert.That(bridge.ProcessInboundJson(Envelope(
+                "msg_000310",
+                "action_phase_changed",
+                45,
+                "action_00000302",
+                new JObject { ["action_id"] = "action_00000302", ["phase"] = "FAILED" })), Is.True);
+            Assert.That(bridge.ActivePresentationGroupCount, Is.Zero);
+            Assert.That(TownSceneAssetRegistry.FindObject("park_conversation_01").InteractionSlots
+                .All(item => item.LocalPresentationClaimId == null), Is.True);
+        }
+
+        [UnityTest]
         public IEnumerator Live030PythonBridgeCompletesFullRegistrySnapshotTopKAndReconnectWhenEnabled()
         {
             if (!string.Equals(Environment.GetEnvironmentVariable("STWM_M3_LIVE_BRIDGE"), "1", StringComparison.Ordinal))
@@ -250,6 +316,31 @@ namespace STWM.AITown.Tests.PlayMode
                 };
                 File.WriteAllText(tracePath, record.ToString(Newtonsoft.Json.Formatting.None) + Environment.NewLine);
             }
+        }
+
+        private static void CompleteRecordedHandshake(TownBridgeClient bridge)
+        {
+            bridge.BeginRecordedReplaySession("msg_000301", "msg_000399");
+            Assert.That(bridge.ProcessInboundJson(ReadRepositoryFile("protocol/examples/server-hello-v030.json")), Is.True);
+            Assert.That(bridge.ProcessInboundJson(Envelope(
+                "msg_000398",
+                "asset_registry_result",
+                0,
+                "msg_000399",
+                new JObject { ["accepted"] = true, ["issues"] = new JArray() })), Is.True);
+            Assert.That(bridge.ProcessInboundJson(
+                ReadRepositoryFile("protocol/examples/reconnect-world-snapshot-v030.json")), Is.True);
+            Assert.That(bridge.ConnectionState, Is.EqualTo(BridgeConnectionState.Ready));
+        }
+
+        private static string JointActionStartedEnvelope(string actionId, string messageId, long stateVersion)
+        {
+            var envelope = JObject.Parse(ReadRepositoryFile("protocol/examples/action-started-v030.json"));
+            envelope["message_id"] = messageId;
+            envelope["state_version"] = stateVersion;
+            envelope["correlation_id"] = actionId;
+            envelope["payload"]["action_id"] = actionId;
+            return envelope.ToString(Newtonsoft.Json.Formatting.None);
         }
 
         private static string ReadRepositoryFile(string relativePath)

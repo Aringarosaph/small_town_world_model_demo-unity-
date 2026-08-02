@@ -116,14 +116,15 @@ STWM_M3_LIVE_DEBUG_TRACE_OUTPUT=/absolute/external/m3/unity/live-debug-trace.jso
   -logFile /tmp/stwm-m3-live-playmode.log
 ```
 
-Against a freshly started canonical-seed server, all four M3 cases must pass
+Against a freshly started canonical-seed server, all six M3 cases must pass
 with zero skip. The live
 case verifies 0.3 hello, server acceptance of the complete `M3_FULL` registry,
 fresh snapshot/Ready, structured action and Top-K messages, strict decode with
 no bridge errors, then destroys the first client and completes a fresh second
-ClientWebSocket handshake/snapshot/Ready. The other three cases cover the
-authoritative YAML/route surface and deterministic JointAction/facing/slot/
-explicit-clear presentation fixtures. Without a production server the live
+ClientWebSocket handshake/snapshot/Ready. The other five cases cover the
+authoritative YAML/route surface, deterministic JointAction/facing/slot/
+explicit-clear presentation fixtures, stale-version rejection without
+presentation mutation, and cancellation/failure claim release. Without a production server the live
 case is explicitly ignored and cannot be used as acceptance evidence.
 
 The SIM-owned rich readiness document has the distinct exact schema
@@ -161,8 +162,18 @@ truthful Unity partial bundle with:
 
 The exporter requires external non-dangling SIM/registry/trace inputs, exact
 producer identity/version/bridge observations, `passed=true`, the frozen seed
-lists, zero-failure/zero-skip XML, and all named live/JointAction/clear cases.
-It parses Unity XML before and after sanitization, rewrites attribute/text
+lists, zero-failure/zero-skip XML, and all named live/JointAction/clear/stale/
+terminal cases. It also requires one real passed
+`BehaviorPresentation_<behavior_id>` EditMode case for each frozen behavior;
+each fixture reads `config/v0/behaviors.yaml` and exercises the declared
+animation list, prop, facing, and structured `NpcView` path. The resulting
+partial document adds exact `qa_matrix_projection` keys `unity` and
+`behavior_presentation`, with the frozen 18-field Unity matrix and ordered
+22-row probe records tied to stable NUnit fullnames. These records are never
+inferred from aggregate test totals. `-m3SourceCommit` remains an external
+40-hex RC input and is not hardcoded in C#.
+
+The exporter parses Unity XML before and after sanitization, rewrites attribute/text
 machine paths through the XML DOM with markup-safe `REPOSITORY_ROOT` and
 `USER_HOME` placeholders, reruns zero-skip/required-case validation on the
 written file, hashes every retained artifact, and writes

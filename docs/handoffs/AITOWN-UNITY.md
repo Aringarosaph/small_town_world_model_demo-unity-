@@ -13,9 +13,33 @@ values, writes through `XmlWriter`, then reparses and reruns zero-skip plus
 required-case validation before creating any artifact descriptor. A malformed
 literal-angle-bracket attribute is a blocking `XmlException` test case.
 
-The corrected final bundle is generated at
-`/tmp/stwm-m3-unity-delivery-xmlfix.zKSD7B`; it supersedes the original
-`/tmp/stwm-m3-unity-delivery.9ylDR4` bundle for QA assembly.
+The markup-safe correction was first reproduced at
+`/tmp/stwm-m3-unity-delivery-xmlfix.zKSD7B`; it superseded the original
+`/tmp/stwm-m3-unity-delivery.9ylDR4` bundle. The owner-projection bundle below
+retains the same correction and is the current QA assembly input.
+
+### Exact Unity owner projection
+
+The partial bundle now includes exactly one `qa_matrix_projection` with only
+`unity` and `behavior_presentation`. The first object is the frozen 18-field
+Unity matrix. It is emitted only after the strict scene/route report, real live
+0.3 artifacts, zero-skip XML, and named snapshot/null-clear/stale/JointAction/
+Top-K/read-only-debug cases all validate. The ordered 22 presentation rows are
+not inferred from aggregate counts: each row is backed by its own passed
+`BehaviorPresentation_<behavior_id>` NUnit case and records that real stable
+EditMode fullname in `test_ids`.
+
+Those 22 parameterized fixtures read the authoritative
+`config/v0/behaviors.yaml` row, compare its complete animation list, prop and
+facing requirement, then exercise the actual fallback animation driver, prop
+presenter, facing controller and structured `NpcView` presentation path. The
+exporter rejects a missing, duplicate or non-passing per-behavior result. The
+`source_commit` remains a required batch argument for ORCH's later unified RC
+SHA; no current branch SHA is compiled into the exporter.
+
+The current projection bundle is
+`/tmp/stwm-m3-unity-delivery-projection.glKIIR`. It remains truthfully
+`PENDING` only for the separately owned 7/30-day soak/final assembly inputs.
 
 ### Production 0.3 interoperability and evidence (current)
 
@@ -65,13 +89,13 @@ Current validation:
 
 | Check | Result | External evidence |
 | --- | --- | --- |
-| real SIM one-day readiness input | PASS, schema `stwm.simulation.m3-readiness-evidence/v1`, `passed=true`, slow soak explicitly false | `/tmp/stwm-m3-unity-delivery.9ylDR4/m3-simulation-readiness-evidence.json` |
-| combined EditMode | PASS, 46/46, skipped 0 | `/tmp/stwm-m3-editmode-final.xml` |
+| real SIM one-day readiness input | PASS, schema `stwm.simulation.m3-readiness-evidence/v1`, `passed=true`, slow soak explicitly false | `/tmp/stwm-m3-unity-delivery-projection.glKIIR/m3-simulation-readiness-evidence.json` |
+| combined EditMode | PASS, 72/72, skipped 0; exact 22 per-behavior cases | `/tmp/stwm-m3-projection-editmode.xml` |
 | SIM M3 bridge/wire regression | PASS, 11/11 | `uv run --frozen --extra test pytest python/tests/bridge/test_m3_bridge.py -q` |
-| strengthened production live PlayMode | PASS, 4/4, skipped 0, strict decode errors 0; real first/second ClientWebSocket sessions | `/tmp/stwm-m3-live-final.xml`, `/tmp/stwm-m3-live-final.log` |
+| strengthened production live PlayMode | PASS, 6/6, skipped 0, strict decode errors 0; real first/second ClientWebSocket sessions plus stale and Joint cancel/fail probes | `/tmp/stwm-m3-projection-playmode.xml`, `/tmp/stwm-m3-projection-playmode.log` |
 | combined M2/M3 default PlayMode regression | PASS, 6/6 executable cases; only the two environment-gated live cases explicitly ignored | `/tmp/stwm-m3-playmode-regression.xml` |
-| live registry/debug inputs | PASS, accepted 0.3 registry 8/10/15/105/14 and real Top-K JSONL | `/tmp/stwm-m3-unity-delivery.9ylDR4/unity/live-full-registry.json`, `/tmp/stwm-m3-unity-delivery.9ylDR4/unity/live-debug-trace.jsonl` |
-| partial acceptance bundle | valid hashed/sanitized artifact references; overall truthfully PENDING because 7/30 slow-soak producer artifacts are absent | `/tmp/stwm-m3-unity-delivery.9ylDR4/m3-unity-partial-acceptance-evidence.json` |
+| live registry/debug inputs | PASS, accepted 0.3 registry 8/10/15/105/14 and real Top-K JSONL | `/tmp/stwm-m3-unity-delivery-projection.glKIIR/unity/live-full-registry.json`, `/tmp/stwm-m3-unity-delivery-projection.glKIIR/unity/live-debug-trace.jsonl` |
+| partial acceptance bundle | exact ORCH `2e22a98` Unity loader accepts all artifacts, 18-field matrix and 22 ordered probes with no errors/PENDING; overall bundle truthfully PENDING only because 7/30 slow-soak producer artifacts are absent | `/tmp/stwm-m3-unity-delivery-projection.glKIIR/m3-unity-partial-acceptance-evidence.json` |
 
 ## M3 A/B and CONTRACTS consumption history
 

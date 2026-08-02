@@ -1,7 +1,11 @@
+using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
+using System.Text.RegularExpressions;
 using NUnit.Framework;
 using STWM.AITown.Animation;
+using STWM.AITown.Bridge;
 using STWM.AITown.Debugging;
 using STWM.AITown.NPC;
 using STWM.AITown.Semantic;
@@ -20,7 +24,7 @@ namespace STWM.AITown.Tests.EditMode
             {
                 if (root != null)
                 {
-                    Object.DestroyImmediate(root);
+                    UnityEngine.Object.DestroyImmediate(root);
                 }
             }
 
@@ -86,6 +90,114 @@ namespace STWM.AITown.Tests.EditMode
             Assert.That(panel.SelectAgent("npc_07"), Is.True);
             Assert.That(panel.SelectedAgentId, Is.EqualTo("npc_07"));
             Assert.That(panel.SelectAgent("npc_99"), Is.False);
+        }
+
+        [TestCase("idle", "IDLE", "", false, TestName = "BehaviorPresentation_idle")]
+        [TestCase("sleep", "SLEEP", "", false, TestName = "BehaviorPresentation_sleep")]
+        [TestCase("eat_at_home", "EAT", "MEAL", false, TestName = "BehaviorPresentation_eat_at_home")]
+        [TestCase("shower", "SHOWER_HIDDEN", "", false, TestName = "BehaviorPresentation_shower")]
+        [TestCase("watch_tv", "SIT", "", false, TestName = "BehaviorPresentation_watch_tv")]
+        [TestCase("relax_at_home", "SIT", "", false, TestName = "BehaviorPresentation_relax_at_home")]
+        [TestCase("work_shift", "WORK_DESK,WORK_STANDING,WORK_WORKSHOP", "", false, TestName = "BehaviorPresentation_work_shift")]
+        [TestCase("take_break", "SIT", "", false, TestName = "BehaviorPresentation_take_break")]
+        [TestCase("buy_groceries", "WALK,CARRY_GROCERY", "GROCERY_BAG", false, TestName = "BehaviorPresentation_buy_groceries")]
+        [TestCase("eat_at_cafe", "EAT", "MEAL", false, TestName = "BehaviorPresentation_eat_at_cafe")]
+        [TestCase("drink_at_bar", "DRINK", "DRINK", false, TestName = "BehaviorPresentation_drink_at_bar")]
+        [TestCase("walk_in_park", "WALK", "", false, TestName = "BehaviorPresentation_walk_in_park")]
+        [TestCase("sit_in_park", "SIT", "", false, TestName = "BehaviorPresentation_sit_in_park")]
+        [TestCase("greet", "TALK_NEUTRAL", "", true, TestName = "BehaviorPresentation_greet")]
+        [TestCase("chat", "TALK_NEUTRAL", "", true, TestName = "BehaviorPresentation_chat")]
+        [TestCase("joke", "TALK_POSITIVE", "", true, TestName = "BehaviorPresentation_joke")]
+        [TestCase("compliment", "TALK_POSITIVE", "", true, TestName = "BehaviorPresentation_compliment")]
+        [TestCase("share_event", "TALK_NEUTRAL", "EVENT_ICON", true, TestName = "BehaviorPresentation_share_event")]
+        [TestCase("invite_join", "TALK_NEUTRAL", "", true, TestName = "BehaviorPresentation_invite_join")]
+        [TestCase("apologize", "TALK_POSITIVE,TALK_NEUTRAL", "", true, TestName = "BehaviorPresentation_apologize")]
+        [TestCase("confront", "TALK_NEGATIVE", "", true, TestName = "BehaviorPresentation_confront")]
+        [TestCase("end_conversation", "IDLE", "", false, TestName = "BehaviorPresentation_end_conversation")]
+        public void BehaviorPresentationMatchesAuthoritativeCatalog(
+            string behaviorId,
+            string expectedAnimationSemantics,
+            string expectedPropSemantic,
+            bool expectedFacing)
+        {
+            var catalog = File.ReadAllText(Path.GetFullPath(
+                Path.Combine(Application.dataPath, "..", "..", "config/v0/behaviors.yaml")));
+            var behavior = Regex.Match(
+                catalog,
+                "(?ms)^  - behavior_id: " + Regex.Escape(behaviorId)
+                + @"\r?\n(?<body>.*?)(?=^  - behavior_id: |\z)");
+            Assert.That(behavior.Success, Is.True, $"Missing authoritative behavior {behaviorId}.");
+            var unity = Regex.Match(
+                behavior.Groups["body"].Value,
+                @"(?m)^    unity: \{animation_semantics: \[(?<animations>[^\]]+)\], requires_facing: (?<facing>true|false), prop_semantic: (?<prop>[A-Z_]+|null)\}$");
+            Assert.That(unity.Success, Is.True, $"Missing Unity presentation row for {behaviorId}.");
+
+            var expectedAnimations = expectedAnimationSemantics.Split(',');
+            var catalogAnimations = unity.Groups["animations"].Value
+                .Split(',')
+                .Select(item => item.Trim())
+                .ToArray();
+            CollectionAssert.AreEqual(expectedAnimations, catalogAnimations);
+            Assert.That(unity.Groups["facing"].Value, Is.EqualTo(expectedFacing ? "true" : "false"));
+            Assert.That(
+                unity.Groups["prop"].Value,
+                Is.EqualTo(string.IsNullOrEmpty(expectedPropSemantic) ? "null" : expectedPropSemantic));
+
+            var root = Track(new GameObject("behavior-presentation-" + behaviorId));
+            var target = Track(new GameObject("behavior-facing-target-" + behaviorId));
+            var animationDriver = root.AddComponent<NpcAnimationDriver>();
+            animationDriver.ConfigureFallbackMappings(
+                Enum.GetValues(typeof(AnimationSemantic)).Cast<AnimationSemantic>().ToArray());
+            var propPresenter = root.AddComponent<NpcPropPresenter>();
+            propPresenter.ConfigureMappings(
+                Enum.GetValues(typeof(PropSemantic))
+                    .Cast<PropSemantic>()
+                    .Select(item => new PropSemanticMapping { semantic = item })
+                    .ToArray());
+            var facing = root.AddComponent<SocialFacingController>();
+            facing.ConfigureSupportedBehaviors(new[]
+            {
+                "greet", "chat", "joke", "compliment", "share_event", "invite_join", "apologize", "confront"
+            });
+            var view = root.AddComponent<NpcView>();
+            view.Configure("npc_01", null, animationDriver, null, propPresenter, facing);
+
+            foreach (var semanticName in catalogAnimations)
+            {
+                Assert.That(Enum.TryParse(semanticName, out AnimationSemantic semantic), Is.True);
+                Assert.That(animationDriver.IsMapped(semantic), Is.True);
+                Assert.That(animationDriver.Play(semantic, "action_direct_" + behaviorId, false), Is.True);
+                Assert.That(animationDriver.CurrentSemantic, Is.EqualTo(semantic));
+            }
+
+            var primaryParticipant = new ActionPresentationParticipant
+            {
+                AgentId = "npc_01",
+                Role = ActionPresentationRole.ACTOR,
+                AnimationSemantic = catalogAnimations[0],
+                PropSemantic = string.IsNullOrEmpty(expectedPropSemantic) ? null : expectedPropSemantic
+            };
+            var group = new ActionPresentationGroup("action_" + behaviorId, new[] { primaryParticipant });
+            var action = new ActionStartedV030Payload
+            {
+                ActionId = group.ActionId,
+                BehaviorId = behaviorId,
+                DestinationLocationId = "park"
+            };
+            view.BeginActionV030(action, primaryParticipant, group, "PERFORMING");
+            Assert.That(view.CurrentBehaviorId, Is.EqualTo(behaviorId));
+            Assert.That(view.CurrentPhase, Is.EqualTo("PERFORMING"));
+            Assert.That(animationDriver.CurrentSemantic.ToString(), Is.EqualTo(catalogAnimations[0]));
+            Assert.That(
+                propPresenter.CurrentSemantic?.ToString(),
+                Is.EqualTo(string.IsNullOrEmpty(expectedPropSemantic) ? null : expectedPropSemantic));
+
+            Assert.That(facing.SupportsBehavior(behaviorId), Is.EqualTo(expectedFacing));
+            Assert.That(
+                facing.BeginAuthoritativeFacing(behaviorId, group.ActionId, target.transform),
+                Is.EqualTo(expectedFacing));
+            Assert.That(facing.FacingTarget, Is.EqualTo(expectedFacing ? target.transform : null));
+            facing.Clear(group.ActionId);
         }
 
         private SemanticObject CreateTwoSlotObject()

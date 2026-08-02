@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Linq;
 using Newtonsoft.Json.Linq;
 using NUnit.Framework;
 using STWM.AITown.Editor;
@@ -122,6 +123,134 @@ namespace STWM.AITown.Tests.EditMode
                     destination,
                     Array.Empty<string>()));
             Assert.That(File.Exists(destination), Is.False);
+        }
+
+        [Test]
+        public void QaProjectionUsesExactPassedCasesForFrozenUnityAndBehaviorMatrices()
+        {
+            var editCases = ProjectionEditCases();
+            var playCases = ProjectionPlayCases();
+            var editPath = WriteXml(editCases.Length, editCases.Length, 0, 0, 0, editCases);
+            var playPath = WriteXml(playCases.Length, playCases.Length, 0, 0, 0, playCases);
+            var editSummary = M3AcceptanceEvidenceExporter.ValidateTestResults(editPath, Array.Empty<string>());
+            var playSummary = M3AcceptanceEvidenceExporter.ValidateTestResults(playPath, Array.Empty<string>());
+
+            var projection = M3AcceptanceEvidenceExporter.CreateQaMatrixProjection(
+                MinimalSemanticCoverage(),
+                editPath,
+                playPath,
+                editSummary,
+                playSummary);
+
+            CollectionAssert.AreEquivalent(
+                new[] { "unity", "behavior_presentation" },
+                projection.Properties().Select(item => item.Name));
+            var unity = (JObject)projection["unity"];
+            Assert.That(unity.Properties().Count(), Is.EqualTo(18));
+            Assert.That(unity.Value<int>("npc_views"), Is.EqualTo(10));
+            Assert.That(unity.Value<int>("duplicate_slot_claim_count"), Is.Zero);
+            Assert.That(unity.Value<string>("live_smoke_protocol_version"), Is.EqualTo("0.3.0"));
+            var rows = (JArray)projection["behavior_presentation"];
+            CollectionAssert.AreEqual(BehaviorIds, rows.Select(item => item.Value<string>("behavior_id")));
+            foreach (var row in rows.Children<JObject>())
+            {
+                CollectionAssert.AreEquivalent(
+                    new[] { "behavior_id", "fixture_id", "unity_presentation" },
+                    row.Properties().Select(item => item.Name));
+                var behaviorId = row.Value<string>("behavior_id");
+                Assert.That(row.Value<string>("fixture_id"), Is.EqualTo("m3_behavior_" + behaviorId));
+                var probe = (JObject)row["unity_presentation"];
+                CollectionAssert.AreEquivalent(
+                    new[] { "status", "test_ids", "assertion_count" },
+                    probe.Properties().Select(item => item.Name));
+                Assert.That(probe.Value<string>("status"), Is.EqualTo("PASS"));
+                Assert.That(probe.Value<int>("assertion_count"), Is.GreaterThan(0));
+                Assert.That(
+                    probe["test_ids"].Single().Value<string>(),
+                    Does.EndWith("BehaviorPresentation_" + behaviorId));
+            }
+        }
+
+        [Test]
+        public void QaProjectionRejectsMissingPerBehaviorPresentationResult()
+        {
+            var editCases = ProjectionEditCases()
+                .Where(item => item != "BehaviorPresentation_confront")
+                .ToArray();
+            var playCases = ProjectionPlayCases();
+            var editPath = WriteXml(editCases.Length, editCases.Length, 0, 0, 0, editCases);
+            var playPath = WriteXml(playCases.Length, playCases.Length, 0, 0, 0, playCases);
+
+            Assert.Throws<InvalidDataException>(() => M3AcceptanceEvidenceExporter.CreateQaMatrixProjection(
+                MinimalSemanticCoverage(),
+                editPath,
+                playPath,
+                M3AcceptanceEvidenceExporter.ValidateTestResults(editPath, Array.Empty<string>()),
+                M3AcceptanceEvidenceExporter.ValidateTestResults(playPath, Array.Empty<string>())));
+        }
+
+        private static readonly string[] BehaviorIds =
+        {
+            "idle", "sleep", "eat_at_home", "shower", "watch_tv", "relax_at_home",
+            "work_shift", "take_break", "buy_groceries", "eat_at_cafe", "drink_at_bar",
+            "walk_in_park", "sit_in_park", "greet", "chat", "joke", "compliment",
+            "share_event", "invite_join", "apologize", "confront", "end_conversation"
+        };
+
+        private static string[] ProjectionEditCases()
+        {
+            return new[]
+            {
+                "ExplicitNullDeltaClearsEveryNullableNpcPresentationCache",
+                "FrozenStructuredActionAndReconnectExamplesValidate",
+                "FrozenTopKExampleEnforcesSelectedAcceptedTuple",
+                "PropPresenterAndTenNpcSelectorRemainReadOnlyPresentationState",
+                "ActionPresentationGroupSortsParticipantsAndClaimsDistinctSlotsAtomically",
+                "ConflictingParticipantBindingRollsBackWholeLocalClaimSet"
+            }.Concat(BehaviorIds.Select(item => "BehaviorPresentation_" + item)).ToArray();
+        }
+
+        private static string[] ProjectionPlayCases()
+        {
+            return new[]
+            {
+                "Live030PythonBridgeCompletesFullRegistrySnapshotTopKAndReconnectWhenEnabled",
+                "ExplicitJointPresentationBindingsClaimStableDistinctSlotsAndFacing",
+                "Recorded030HandshakeRebindsSnapshotThenClearsAndReleasesJointPresentation",
+                "Stale030DeltaIsRejectedWithoutPresentationMutation",
+                "RecordedJointPresentationCancelAndFailReleaseClaims",
+                "FullTownFixtureLoadsWithStrictSemanticAndRouteCoverage"
+            };
+        }
+
+        private static JObject MinimalSemanticCoverage()
+        {
+            var animations = new JArray(
+                "IDLE", "SLEEP", "EAT", "SHOWER_HIDDEN", "SIT", "WORK_DESK", "WORK_STANDING",
+                "WORK_WORKSHOP", "DRINK", "WALK", "TALK_NEUTRAL", "TALK_POSITIVE", "TALK_NEGATIVE",
+                "CARRY_GROCERY");
+            var props = new JArray("MEAL", "GROCERY_BAG", "DRINK", "EVENT_ICON");
+            var facing = new JArray(
+                "greet", "chat", "joke", "compliment", "share_event", "invite_join", "apologize", "confront");
+            return new JObject
+            {
+                ["schema"] = "stwm.unity.m3-semantic-coverage/v1",
+                ["status"] = "PASS",
+                ["profile"] = "M3_FULL",
+                ["npc_views"] = 10,
+                ["locations"] = 8,
+                ["object_types"] = 15,
+                ["interaction_slots"] = 105,
+                ["required_animation_semantics"] = animations,
+                ["mapped_animation_semantics"] = animations.DeepClone(),
+                ["required_prop_semantics"] = props,
+                ["mapped_prop_semantics"] = props.DeepClone(),
+                ["facing_behavior_ids"] = facing,
+                ["mapped_facing_behavior_ids"] = facing.DeepClone(),
+                ["route_count"] = 840,
+                ["route_errors"] = 0,
+                ["structured_joint_clear_reconnect_covered_by_playmode"] = true
+            };
         }
 
         private string WriteXml(
