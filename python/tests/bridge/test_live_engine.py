@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from town_core.domain.config_models import CatalogBundle
-from town_core.domain.enums import ActionPhase, MovementFailureReason
+from town_core.domain.enums import ActionPhase, MovementCancellationReason, MovementFailureReason
 from town_core.domain.state_models import ActionState
 from town_core.simulation.clock import RuntimeMode
 from town_core.simulation.engine import SimulationEngine
@@ -131,3 +131,28 @@ def test_python_timeout_is_deterministic_and_does_not_wait_for_animation(catalog
 
     assert len(terminal_records) == 1
     assert terminal_records[0]["failure_reason"] == "TIMEOUT"
+
+
+def test_stale_but_exact_cancellation_commits_once_without_resource_settlement(catalog: CatalogBundle) -> None:
+    engine, action = _engine_at_travel(catalog)
+    reported_version = engine.state.state_version
+    engine.advance_to(engine.state.game_minute + 1)
+    before_minute = engine.state.game_minute
+    before_version = engine.state.state_version
+    before_household = engine.state.households["household_a"]
+
+    result = engine.report_movement_cancelled(
+        action_id=action.action_id,
+        agent_id="npc_01",
+        expected_state_version=reported_version,
+        reason=MovementCancellationReason.NAVIGATION_STOPPED,
+    )
+
+    assert engine.state.game_minute == before_minute
+    assert engine.state.state_version == before_version + 1
+    assert engine.state.households["household_a"] == before_household
+    assert engine.state.agents["npc_01"].current_location_id == "home_a"
+    assert engine.state.agents["npc_01"].current_action_id is None
+    assert all(action.action_id not in obj.occupied_slots.values() for obj in engine.state.objects.values())
+    assert result.actions[-1]["phase"] == "CANCELLED"
+    assert result.actions[-1]["failure_reason"] == "NAVIGATION_STOPPED"

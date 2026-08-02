@@ -8,17 +8,21 @@ import json
 from collections.abc import AsyncIterator, Sequence
 from contextlib import asynccontextmanager, suppress
 from pathlib import Path
-from typing import Any
 
+from pydantic import TypeAdapter
 from websockets.asyncio.server import Server, ServerConnection, serve
 from websockets.exceptions import ConnectionClosed
 
 from town_core.bridge.runtime import BridgeRuntime
 from town_core.bridge.session import BridgeProtocolError
 from town_core.catalogs import load_catalog
+from town_core.domain.enums import PROTOCOL_VERSION
+from town_core.domain.protocol_models import ProtocolMessage, PythonToUnityMessage
 from town_core.simulation.clock import RuntimeMode
 from town_core.simulation.engine import SimulationEngine
 from town_core.simulation.initialization import build_initial_world_state
+
+_PYTHON_TO_UNITY_ADAPTER: TypeAdapter[PythonToUnityMessage] = TypeAdapter(PythonToUnityMessage)
 
 
 class BridgeWebSocketServer:
@@ -104,6 +108,7 @@ class BridgeWebSocketServer:
                     "detail": exc.message,
                     "generation": session.generation,
                     "state_version": self.runtime.engine.state.state_version,
+                    "resync_required": exc.resync_required,
                 }
             )
             await connection.close(1002, str(exc)[:120])
@@ -119,13 +124,14 @@ class BridgeWebSocketServer:
         self,
         connection: ServerConnection,
         generation: int,
-        messages: Sequence[Any],
+        messages: Sequence[ProtocolMessage],
     ) -> None:
         if not self.runtime.is_current_generation(generation):
             return
         async with self._send_lock:
             for message in messages:
-                await connection.send(message.model_dump_json(exclude_none=False))
+                outbound = _PYTHON_TO_UNITY_ADAPTER.validate_python(message)
+                await connection.send(outbound.model_dump_json(exclude_none=False))
 
     async def _clock_loop(self) -> None:
         while True:
@@ -196,6 +202,8 @@ async def _run(args: argparse.Namespace) -> None:
                     "port": server.bound_port,
                     "path": server.path,
                     "agent": args.agent,
+                    "catalog_protocol_version": catalog.world.protocol_version,
+                    "active_m2_protocol_version": PROTOCOL_VERSION,
                 },
                 ensure_ascii=False,
                 sort_keys=True,

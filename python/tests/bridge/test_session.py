@@ -5,16 +5,26 @@ from typing import Any, cast
 import pytest
 from town_core.bridge.runtime import BridgeRuntime
 from town_core.bridge.session import BridgeProtocolError, SessionPhase
-from town_core.domain.enums import PROTOCOL_VERSION, MessageType, MovementFailureReason
+from town_core.domain.enums import (
+    PROTOCOL_VERSION,
+    MessageType,
+    MovementCancellationReason,
+    MovementFailureReason,
+)
 from town_core.domain.protocol_models import (
+    ActionCancelledMessage,
+    ActionCancelledPayload,
     ActionPhaseChangedMessage,
     MovementArrivedMessage,
     MovementArrivedPayload,
+    MovementCancelledMessage,
+    MovementCancelledPayload,
     MovementFailedMessage,
     MovementFailedPayload,
     PresentationCompletedMessage,
     PresentationCompletedPayload,
     ProtocolMessage,
+    ServerHelloMessage,
     WorldSnapshotMessage,
 )
 from town_core.simulation.initialization import state_hash
@@ -71,6 +81,35 @@ def test_handshake_registry_snapshot_and_client_ready_gate(runtime: BridgeRuntim
     assert ready_outputs[0].message_type is MessageType.SIMULATION_CLOCK_UPDATED
     assert runtime.ready
     assert session.phase is SessionPhase.READY
+    evidence = runtime.evidence()["sessions"][0]
+    assert evidence["catalog_protocol_version"] == "0.1.0"
+    assert evidence["negotiated_protocol_version"] == "0.2.0"
+    assert evidence["snapshot_state_version"] == snapshot.state_version
+    assert evidence["ready_acknowledged"] is True
+
+
+def test_bootstrap_decodes_legacy_envelope_but_m2_negotiates_v020(runtime: BridgeRuntime) -> None:
+    session = runtime.open_session()
+    hello = client_hello(runtime).model_dump(mode="json")
+    hello["protocol_version"] = "0.1.0"
+    hello["payload"]["supported_protocol_versions"] = ["0.2.0", "0.1.0"]
+
+    outputs = session.receive_json(hello)
+
+    response = outputs[0]
+    assert isinstance(response, ServerHelloMessage)
+    assert response.protocol_version == "0.2.0"
+    assert response.payload.accepted_protocol_version == "0.2.0"
+
+
+def test_legacy_only_client_cannot_enter_active_m2_session(runtime: BridgeRuntime) -> None:
+    session = runtime.open_session()
+    hello = client_hello(runtime).model_dump(mode="json")
+    hello["protocol_version"] = "0.1.0"
+    hello["payload"]["supported_protocol_versions"] = ["0.1.0"]
+
+    with pytest.raises(BridgeProtocolError, match="M2_PROTOCOL_NEGOTIATION_FAILED"):
+        session.receive_json(hello)
 
 
 def test_message_id_content_mismatch_is_protocol_error(runtime: BridgeRuntime) -> None:
@@ -114,6 +153,12 @@ def test_arrival_is_exactly_once_and_invalid_late_report_resyncs(runtime: Bridge
     assert session.receive_json(report.model_dump(mode="json")) == ()
     assert state_hash(runtime.engine.state) == after_first
 
+    late = report.model_copy(update={"message_id": "msg_20000002", "state_version": before_version})
+    resync = session.receive_json(late.model_dump(mode="json"))
+    assert len(resync) == 1
+    assert resync[0].message_type is MessageType.WORLD_SNAPSHOT
+    assert state_hash(runtime.engine.state) == after_first
+
 
 def test_failure_report_is_authoritative_and_duplicate_is_noop(runtime: BridgeRuntime) -> None:
     session = complete_handshake(runtime)
@@ -142,11 +187,108 @@ def test_failure_report_is_authoritative_and_duplicate_is_noop(runtime: BridgeRu
     assert session.receive_json(report.model_dump(mode="json")) == ()
     assert state_hash(runtime.engine.state) == after_first
 
-    late = report.model_copy(update={"message_id": "msg_20000002", "state_version": before_version})
+
+def test_typed_cancellation_is_exactly_once_and_emits_authority_outcome(runtime: BridgeRuntime) -> None:
+    session = complete_handshake(runtime)
+    action_id, _ = _traveling_action(runtime)
+    reported_version = runtime.engine.state.state_version
+    runtime.advance_one_minute()
+    before_version = runtime.engine.state.state_version
+    before_minute = runtime.engine.state.game_minute
+    before_resources = runtime.engine.state.households["household_a"]
+    report = MovementCancelledMessage(
+        protocol_version=cast(Any, PROTOCOL_VERSION),
+        message_id="msg_22000001",
+        message_type=MessageType.MOVEMENT_CANCELLED,
+        sent_at_utc=FIXED_NOW,
+        world_id=runtime.world_id,
+        state_version=reported_version,
+        correlation_id=action_id,
+        payload=MovementCancelledPayload(
+            action_id=action_id,
+            agent_id="npc_01",
+            reason=MovementCancellationReason.NAVIGATION_STOPPED,
+        ),
+    )
+
+    future = report.model_copy(
+        update={"message_id": "msg_22000009", "state_version": runtime.engine.state.state_version + 1}
+    )
+    before_future = state_hash(runtime.engine.state)
+    with pytest.raises(BridgeProtocolError, match="FUTURE_STATE_VERSION"):
+        session.receive_json(future.model_dump(mode="json"))
+    assert state_hash(runtime.engine.state) == before_future
+
+    outputs = session.receive_json(report.model_dump(mode="json"))
+    committed_hash = state_hash(runtime.engine.state)
+    assert runtime.engine.state.game_minute == before_minute
+    assert runtime.engine.state.state_version == before_version + 1
+    assert runtime.engine.state.households["household_a"] == before_resources
+    assert runtime.engine.state.agents["npc_01"].current_action_id is None
+    cancellation = next(item for item in outputs if isinstance(item, ActionCancelledMessage))
+    assert cancellation.correlation_id == action_id
+    assert cancellation.payload.reason == MovementCancellationReason.NAVIGATION_STOPPED.value
+
+    assert session.receive_json(report.model_dump(mode="json")) == ()
+    assert state_hash(runtime.engine.state) == committed_hash
+
+    conflicting = report.model_copy(
+        update={"payload": report.payload.model_copy(update={"reason": MovementCancellationReason.CLIENT_SHUTDOWN})}
+    )
+    with pytest.raises(BridgeProtocolError, match="MESSAGE_ID_CONTENT_MISMATCH"):
+        session.receive_json(conflicting.model_dump(mode="json"))
+    assert state_hash(runtime.engine.state) == committed_hash
+
+    late = report.model_copy(update={"message_id": "msg_22000002"})
     resync = session.receive_json(late.model_dump(mode="json"))
-    assert len(resync) == 1
     assert resync[0].message_type is MessageType.WORLD_SNAPSHOT
-    assert state_hash(runtime.engine.state) == after_first
+    assert state_hash(runtime.engine.state) == committed_hash
+
+
+def test_python_authority_message_is_rejected_on_unity_ingress(runtime: BridgeRuntime) -> None:
+    session = complete_handshake(runtime)
+    action_id, _ = _traveling_action(runtime)
+    before = state_hash(runtime.engine.state)
+    wrong_direction = ActionCancelledMessage(
+        protocol_version=cast(Any, PROTOCOL_VERSION),
+        message_id="msg_23000001",
+        message_type=MessageType.ACTION_CANCELLED,
+        sent_at_utc=FIXED_NOW,
+        world_id=runtime.world_id,
+        state_version=runtime.engine.state.state_version,
+        correlation_id=action_id,
+        payload=ActionCancelledPayload(action_id=action_id, reason="NAVIGATION_STOPPED"),
+    )
+
+    with pytest.raises(BridgeProtocolError, match="INVALID_UNITY_TO_PYTHON_ENVELOPE"):
+        session.receive_json(wrong_direction.model_dump(mode="json"))
+    assert state_hash(runtime.engine.state) == before
+
+
+def test_obsolete_generation_cancellation_cannot_mutate_authority(runtime: BridgeRuntime) -> None:
+    old_session = complete_handshake(runtime)
+    action_id, _ = _traveling_action(runtime)
+    report = MovementCancelledMessage(
+        protocol_version=cast(Any, PROTOCOL_VERSION),
+        message_id="msg_24000001",
+        message_type=MessageType.MOVEMENT_CANCELLED,
+        sent_at_utc=FIXED_NOW,
+        world_id=runtime.world_id,
+        state_version=runtime.engine.state.state_version,
+        correlation_id=action_id,
+        payload=MovementCancelledPayload(
+            action_id=action_id,
+            agent_id="npc_01",
+            reason=MovementCancellationReason.SCENE_UNLOADED,
+        ),
+    )
+    before = state_hash(runtime.engine.state)
+    runtime.open_session()
+
+    with pytest.raises(BridgeProtocolError, match="OBSOLETE_CONNECTION_GENERATION") as caught:
+        old_session.receive_json(report.model_dump(mode="json"))
+    assert caught.value.resync_required is True
+    assert state_hash(runtime.engine.state) == before
 
 
 def test_reconnect_invalidates_old_generation_and_sends_fresh_snapshot(runtime: BridgeRuntime) -> None:

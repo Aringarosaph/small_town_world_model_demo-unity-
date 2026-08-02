@@ -25,6 +25,7 @@ from town_core.domain.enums import (
     EventWitnessScope,
     KnowledgeAcquisitionType,
     MoodAxis,
+    MovementCancellationReason,
     MovementFailureReason,
     NeedName,
     ProposalResult,
@@ -231,16 +232,39 @@ class SimulationEngine:
         self._fail_traveling_action(context, context.action_runtimes[runtime.action_id], reason)
         return self._commit_live_input(context)
 
+    def report_movement_cancelled(
+        self,
+        *,
+        action_id: str,
+        agent_id: str,
+        expected_state_version: int,
+        reason: MovementCancellationReason,
+    ) -> AdvanceResult:
+        """Commit one typed Unity cancellation report as a Python authority decision."""
+
+        runtime, _ = self._validate_live_movement_report(
+            action_id=action_id,
+            agent_id=agent_id,
+            expected_state_version=expected_state_version,
+            allow_stale_version=True,
+        )
+        context = _TickContext(self, self.state.game_minute)
+        self._cancel_traveling_action(context, context.action_runtimes[runtime.action_id], reason)
+        return self._commit_live_input(context)
+
     def _validate_live_movement_report(
         self,
         *,
         action_id: str,
         agent_id: str,
         expected_state_version: int,
+        allow_stale_version: bool = False,
     ) -> tuple[_ActionRuntime, ActionState]:
         if self.runtime_mode is not RuntimeMode.UNITY_LIVE:
             raise ValueError("movement reports are accepted only in UNITY_LIVE mode")
-        if expected_state_version != self.state.state_version:
+        if expected_state_version > self.state.state_version:
+            raise ValueError("movement report state_version is from the future")
+        if not allow_stale_version and expected_state_version != self.state.state_version:
             raise ValueError("movement report state_version is stale")
         if agent_id != self.active_agent_id:
             raise ValueError("movement report agent is not the active M2 agent")
@@ -476,6 +500,34 @@ class SimulationEngine:
         )
         context.recent_behavior = action.behavior_id
         context.changes.append(f"movement_failed:{runtime.action_id}:{reason.value}")
+
+    def _cancel_traveling_action(
+        self,
+        context: _TickContext,
+        runtime: _ActionRuntime,
+        reason: MovementCancellationReason,
+    ) -> None:
+        action = context.active_actions[runtime.action_id]
+        if action.phase is not ActionPhase.TRAVELING:
+            raise ValueError("only a traveling action can be cancelled by a movement report")
+        self._release_reservations(context, runtime)
+        self._record_action_phase(context, action, ActionPhase.CANCELLED, failure_reason=reason.value)
+        context.active_actions.pop(runtime.action_id)
+        context.action_runtimes.pop(runtime.action_id)
+        origin = context.locations[runtime.origin_location_id]
+        context.locations[runtime.origin_location_id] = origin.model_copy(
+            update={"current_agent_ids": sorted({*origin.current_agent_ids, self.active_agent_id})}
+        )
+        agent = context.agents[self.active_agent_id]
+        context.agents[self.active_agent_id] = agent.model_copy(
+            update={
+                "current_location_id": runtime.origin_location_id,
+                "current_action_id": None,
+                "decision_due_at": context.minute,
+            }
+        )
+        context.recent_behavior = action.behavior_id
+        context.changes.append(f"movement_cancelled:{runtime.action_id}:{reason.value}")
 
     def _start_performing(self, context: _TickContext, runtime: _ActionRuntime) -> None:
         self._set_action_phase(context, runtime.action_id, ActionPhase.PERFORMING)

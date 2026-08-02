@@ -16,9 +16,12 @@ from town_core.domain.enums import (
     BehaviorId,
     CapabilityTag,
     MessageType,
+    MovementCancellationReason,
     MovementFailureReason,
 )
 from town_core.domain.protocol_models import (
+    ActionCancelledMessage,
+    ActionCancelledPayload,
     ActionPhaseChangedMessage,
     ActionPhaseChangedPayload,
     ActionStartedMessage,
@@ -65,6 +68,7 @@ class BridgeRuntime:
         self.paused = False
         self.diagnostics: list[dict[str, Any]] = []
         self._presented_action_ids: set[str] = set()
+        self.session_evidence: dict[int, dict[str, Any]] = {}
 
     @property
     def world_id(self) -> str:
@@ -84,6 +88,16 @@ class BridgeRuntime:
         with self._lock:
             self._generation += 1
             self._ready_generation = None
+            self.session_evidence[self._generation] = {
+                "generation": self._generation,
+                "catalog_protocol_version": self.catalog.world.protocol_version,
+                "negotiated_protocol_version": None,
+                "registry_message_id": None,
+                "snapshot_state_version": None,
+                "client_ready_state_version": None,
+                "ready_acknowledged": False,
+                "disconnected": False,
+            }
             return BridgeSession(self, generation=self._generation)
 
     def is_current_generation(self, generation: int) -> bool:
@@ -93,10 +107,30 @@ class BridgeRuntime:
         if not self.is_current_generation(generation):
             raise ValueError("obsolete connection generation cannot become ready")
         self._ready_generation = generation
+        self.session_evidence[generation]["ready_acknowledged"] = True
+        self.session_evidence[generation]["client_ready_state_version"] = self.engine.state.state_version
 
     def disconnect(self, generation: int) -> None:
         if self.is_current_generation(generation):
             self._ready_generation = None
+        if generation in self.session_evidence:
+            self.session_evidence[generation]["disconnected"] = True
+
+    def record_negotiated_protocol(self, generation: int, version: str) -> None:
+        self.session_evidence[generation]["negotiated_protocol_version"] = version
+
+    def record_snapshot_evidence(self, generation: int, registry_message_id: str, state_version: int) -> None:
+        evidence = self.session_evidence[generation]
+        evidence["registry_message_id"] = registry_message_id
+        evidence["snapshot_state_version"] = state_version
+
+    def evidence(self) -> dict[str, Any]:
+        return {
+            "schema": "stwm.bridge.m2-session-evidence/v1",
+            "project_name": "Small Town World Model（STWM）",
+            "active_generation": self._generation,
+            "sessions": [dict(self.session_evidence[key]) for key in sorted(self.session_evidence)],
+        }
 
     def next_message_id(self) -> str:
         with self._lock:
@@ -198,6 +232,28 @@ class BridgeRuntime:
                 return self._diagnose_and_resync("MOVEMENT_FAILED_REJECTED", str(exc), action_id)
             return self._messages_for_result(result, include_clock=False)
 
+    def movement_cancelled(
+        self,
+        *,
+        generation: int,
+        action_id: str,
+        agent_id: str,
+        state_version: int,
+        reason: MovementCancellationReason,
+    ) -> tuple[ProtocolMessage, ...]:
+        with self._lock:
+            self._require_current_ready(generation)
+            try:
+                result = self.engine.report_movement_cancelled(
+                    action_id=action_id,
+                    agent_id=agent_id,
+                    expected_state_version=state_version,
+                    reason=reason,
+                )
+            except ValueError as exc:
+                return self._diagnose_and_resync("MOVEMENT_CANCELLED_REJECTED", str(exc), action_id)
+            return self._messages_for_result(result, include_clock=False)
+
     def presentation_completed(
         self,
         *,
@@ -275,6 +331,23 @@ class BridgeRuntime:
                             ),
                         )
                     )
+                continue
+            if phase is ActionPhase.CANCELLED:
+                reason = record.get("failure_reason")
+                if not isinstance(reason, str) or not reason:
+                    raise ValueError("authority cancellation is missing its typed reason")
+                messages.append(
+                    ActionCancelledMessage(
+                        protocol_version=cast(Any, PROTOCOL_VERSION),
+                        message_id=self.next_message_id(),
+                        message_type=MessageType.ACTION_CANCELLED,
+                        sent_at_utc=self._now(),
+                        world_id=self.world_id,
+                        state_version=state_version,
+                        correlation_id=action_id,
+                        payload=ActionCancelledPayload(action_id=action_id, reason=reason),
+                    )
+                )
                 continue
             messages.append(
                 ActionPhaseChangedMessage(

@@ -13,8 +13,13 @@ all accepted `docs/adr/` records, `docs/handoffs/AITOWN-CONTRACTS.md`, the froze
 `config/v0`, `protocol/`, existing domain DTOs, and
 `docs/orchestration/M1_EXECUTION_BASELINE.md`, ADR-0009, and
 `docs/orchestration/M2_EXECUTION_BASELINE.md`. The M2 baseline commit `0a4caa1`
-was cherry-picked onto the M2 SIM branch; frozen M0 domain/protocol files were
-not edited by SIM.
+was cherry-picked onto the M2 SIM branch. The CONTRACTS-owned ADR-0010 and
+protocol `0.2.0` implementation from commit `392f941` were then consumed without
+SIM editing or locally guessing frozen domain/protocol DTOs. Its additive
+formatting follow-up `247711a` was also cherry-picked before the final focused
+gate, followed by the CONTRACTS final re-freeze manifest `38e11ae` (57 strict
+paths; manifest SHA-256
+`cb5edafca43373a549a238038f03581734b31729b18b085234fe0e7b38366c6e`).
 
 ## M2 completed on the Python side
 
@@ -24,6 +29,14 @@ not edited by SIM.
 - Added the ordered handshake state machine and message idempotency. Repeating
   the same `message_id` with identical content is safe; reusing it for different
   content is a protocol error.
+- The catalog remains frozen with source protocol `0.1.0`, while every active M2
+  online session negotiates `0.2.0`. Runtime session evidence records
+  `catalog_protocol_version` and `negotiated_protocol_version` separately so a
+  catalog validation result cannot be mistaken for a live negotiation result.
+- Live ingress and egress are checked against the normative direction schemas.
+  A Python→Unity message on Unity ingress, or a Unity→Python message on Python
+  egress, is rejected rather than accepted through a broader compatibility
+  union.
 - Each socket obtains a monotonically increasing connection generation. A new
   connection immediately makes all older transports obsolete. Old-generation
   and late inputs cannot mutate authority.
@@ -52,6 +65,20 @@ not edited by SIM.
   reservation owned by that action, restores the authoritative origin location,
   increments `state_version`, and never settles needs, money, wages, or events.
   Python also has a deterministic bounded `TIMEOUT` fallback.
+- A valid typed `movement_cancelled` report is checked against world, action,
+  agent, current connection generation, `TRAVELING` phase, and authority version.
+  Python records the cancellation at its own current `game_minute`, commits one
+  `CANCELLED` transaction, releases only that Action's reservations, restores
+  its origin location, increments `state_version`, and emits `action_cancelled`.
+  A stale version is accepted only while all current action identity and phase
+  checks still match; a future version is rejected.
+- Repeating the same cancellation message and content is a no-op. Reusing its
+  message ID with different content is a protocol error. Unknown, terminal,
+  or otherwise invalid current-generation reports produce a diagnostic and
+  fresh snapshot without mutating authority or any other Action. An obsolete
+  generation produces a resync-required protocol diagnostic and is closed so it
+  cannot receive or mutate authority; the client must reconnect for the fresh
+  handshake/registry/snapshot sequence.
 - `presentation_completed` is diagnostic only. Missing animation completion
   never blocks hard-state settlement; this is the bounded presentation fallback
   frozen by Orchestrator.
@@ -183,11 +210,18 @@ The final gate uses Python 3.12, full Pytest, Ruff lint/format, strict Mypy, M0
 freeze diagnostics, the production three-day CLI/replay, and the QA-owned
 `check_m1.py --require-sim` contract.
 
-M2 adds deterministic unit/integration coverage for registry success/failure,
-handshake ordering, incompatible versions, message-ID idempotency, the
-`client_ready` gate, authoritative arrival/failure and TIMEOUT, resource
-non-mutation, fresh reconnect snapshots, obsolete generations, and a real
-loopback WebSocket handshake.
+M2 adds 19 deterministic bridge unit/integration tests for registry
+success/failure, `0.2.0` negotiation, direction enforcement, handshake ordering,
+message-ID idempotency, the `client_ready` gate, authoritative
+arrival/failure/cancellation and TIMEOUT, reservation/resource boundaries, fresh
+reconnect snapshots, obsolete generations, evidence version separation, and a
+real loopback WebSocket handshake. The consumed CONTRACTS change adds 21 focused
+protocol `0.2.0` and artifact tests.
+
+The post-`247711a` focused gate passed with Python 3.12: Ruff format check over
+101 files, Ruff lint, strict Mypy over 62 source files, all 21 protocol
+`0.2.0`/artifact tests, and all 19 M2 Bridge tests including the real loopback
+WebSocket handshake.
 
 ## Known limitations and forbidden scope
 
@@ -207,11 +241,12 @@ loopback WebSocket handshake.
   re-running policy. Integrity is protected by per-transaction hashes, final
   state equality, and the decisions/actions/transactions/events canonical hash.
 
-## Blocking dependencies
+## Integration sequencing
 
-The M2 cancellation implementation waits only for the CONTRACTS-owned protocol
-0.2.0/ADR-0010 commit authorized by Orchestrator. SIM will consume its typed
-Unity→Python `movement_cancelled` payload and implement the already-frozen
-generation/action/agent/phase/state-version validation, exactly-once authority
-cancellation transaction, reservation release, and `action_cancelled` output.
-SIM has not edited or locally guessed the frozen DTO.
+There is no remaining SIM-side cancellation contract blocker. The typed
+`movement_cancelled` authority path consumes ADR-0010/protocol `0.2.0` as
+implemented by CONTRACTS. Its additive formatting follow-up has been consumed;
+the final re-freeze manifest has also been consumed, and SIM did not rewrite the
+frozen generator or artifacts. Per Orchestrator scheduling, the
+resource-intensive full M1 strict/three-day hash regression runs sequentially in
+the final integration gate rather than in parallel with the focused SIM gate.

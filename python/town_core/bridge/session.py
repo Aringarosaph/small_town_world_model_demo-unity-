@@ -10,13 +10,14 @@ from typing import Any, cast
 from pydantic import TypeAdapter, ValidationError
 
 from town_core.bridge.registry import M2ScopedAssetRegistryValidator
-from town_core.domain.enums import PROTOCOL_VERSION, MessageType
+from town_core.domain.enums import PROTOCOL_VERSION, SUPPORTED_PROTOCOL_VERSIONS, MessageType
 from town_core.domain.protocol_models import (
     AssetRegistryMessage,
     AssetRegistryResultMessage,
     ClientHelloMessage,
     ClientReadyMessage,
     MovementArrivedMessage,
+    MovementCancelledMessage,
     MovementFailedMessage,
     PauseRequestMessage,
     PresentationCompletedMessage,
@@ -24,9 +25,11 @@ from town_core.domain.protocol_models import (
     ServerHelloMessage,
     ServerHelloPayload,
     SetTimeScaleRequestMessage,
+    UnityToPythonMessage,
+    select_m2_protocol_version,
 )
 
-_PROTOCOL_ADAPTER: TypeAdapter[ProtocolMessage] = TypeAdapter(ProtocolMessage)
+_UNITY_TO_PYTHON_ADAPTER: TypeAdapter[UnityToPythonMessage] = TypeAdapter(UnityToPythonMessage)
 
 
 class SessionPhase(StrEnum):
@@ -57,6 +60,7 @@ class BridgeSession:
         self.accepted_registry_message_id: str | None = None
         self.snapshot_state_version: int | None = None
         self.last_client_state_version = 0
+        self.negotiated_protocol_version: str | None = None
         self._seen: dict[str, tuple[str, tuple[ProtocolMessage, ...]]] = {}
 
     def receive_json(self, raw: str | bytes | dict[str, Any]) -> tuple[ProtocolMessage, ...]:
@@ -97,8 +101,14 @@ class BridgeSession:
     def _dispatch(self, message: ProtocolMessage) -> tuple[tuple[ProtocolMessage, ...], bool]:
         if isinstance(message, ClientHelloMessage):
             self._require_phase(SessionPhase.AWAITING_CLIENT_HELLO)
+            try:
+                selected_version = select_m2_protocol_version(message.payload.supported_protocol_versions)
+            except ValueError as exc:
+                raise BridgeProtocolError("M2_PROTOCOL_NEGOTIATION_FAILED", str(exc)) from exc
+            self.negotiated_protocol_version = selected_version
+            self.runtime.record_negotiated_protocol(self.generation, selected_version)
             hello_response = ServerHelloMessage(
-                protocol_version=cast(Any, PROTOCOL_VERSION),
+                protocol_version=selected_version,
                 message_id=self.runtime.next_message_id(),
                 message_type=MessageType.SERVER_HELLO,
                 sent_at_utc=self.runtime._now(),
@@ -107,7 +117,7 @@ class BridgeSession:
                 correlation_id=message.message_id,
                 payload=ServerHelloPayload(
                     server_name="python_town_core",
-                    accepted_protocol_version=cast(Any, PROTOCOL_VERSION),
+                    accepted_protocol_version=selected_version,
                     config_version="v0",
                     schema_version="v0.1",
                 ),
@@ -137,6 +147,7 @@ class BridgeSession:
             snapshot = self.runtime.snapshot_message(correlation_id=message.message_id)
             self.accepted_registry_message_id = message.message_id
             self.snapshot_state_version = snapshot.state_version
+            self.runtime.record_snapshot_evidence(self.generation, message.message_id, snapshot.state_version)
             self.phase = SessionPhase.AWAITING_CLIENT_READY
             return (registry_response, snapshot), True
 
@@ -176,6 +187,18 @@ class BridgeSession:
                 ),
                 False,
             )
+        if isinstance(message, MovementCancelledMessage):
+            cancelled_payload = message.payload
+            return (
+                self.runtime.movement_cancelled(
+                    generation=self.generation,
+                    action_id=cancelled_payload.action_id,
+                    agent_id=cancelled_payload.agent_id,
+                    state_version=message.state_version,
+                    reason=cancelled_payload.reason,
+                ),
+                False,
+            )
         if isinstance(message, PresentationCompletedMessage):
             presentation_payload = message.payload
             return (
@@ -212,18 +235,19 @@ class BridgeSession:
             raise BridgeProtocolError("INVALID_ENVELOPE", "message root must be an object")
         return document
 
-    @staticmethod
-    def _validate(document: dict[str, Any]) -> ProtocolMessage:
+    def _validate(self, document: dict[str, Any]) -> UnityToPythonMessage:
         supplied_version = document.get("protocol_version")
-        if supplied_version != PROTOCOL_VERSION:
+        is_bootstrap = document.get("message_type") == MessageType.CLIENT_HELLO.value
+        accepted_versions = SUPPORTED_PROTOCOL_VERSIONS if is_bootstrap else (self.negotiated_protocol_version,)
+        if supplied_version not in accepted_versions:
             raise BridgeProtocolError(
                 "INCOMPATIBLE_PROTOCOL_VERSION",
-                f"server requires {PROTOCOL_VERSION}, received {supplied_version!r}",
+                f"session accepts {accepted_versions}, received {supplied_version!r}",
             )
         try:
-            return _PROTOCOL_ADAPTER.validate_python(document)
+            return _UNITY_TO_PYTHON_ADAPTER.validate_python(document)
         except ValidationError as exc:
-            raise BridgeProtocolError("INVALID_PROTOCOL_ENVELOPE", str(exc)) from exc
+            raise BridgeProtocolError("INVALID_UNITY_TO_PYTHON_ENVELOPE", str(exc)) from exc
 
     @staticmethod
     def _fingerprint(document: dict[str, Any]) -> str:

@@ -95,7 +95,8 @@ M0 已冻结以下内容规模：
 | 关系预测方向 | 只预测 Target -> Actor 的关系变化 |
 | Unity 版本 | `6000.4.2f1` |
 | Python 版本 | `3.12.x` |
-| 协议版本 | `0.1.0` |
+| 冻结配置目录的来源协议版本 | `0.1.0` |
+| M2 在线协商协议版本 | `0.2.0` |
 
 22 种行为覆盖基本生活、工作、消费、休闲和有限社会互动。V0 不允许模型自由创造新行为。
 
@@ -193,6 +194,9 @@ uv run --no-editable python -m town_core.cli \
 }
 ```
 
+这里的 `protocol_version: 0.1.0` 是 `config/v0` 冻结目录的来源版本，不能
+替代在线连接协商结果；M2 Bridge 的活动会话只协商 `0.2.0`。
+
 ### 5. 运行完整仓库验收
 
 ```bash
@@ -266,6 +270,13 @@ asset_registry_result -> world_snapshot -> client_ready`。新连接会废止旧
 connection generation，重走完整握手并下发当前权威全量快照；
 `client_ready` 前模拟时钟不会恢复。Unity 的导航和表现回报只能触发
 Python 验证后的 Action phase 事务，不能直接结算需求、资源、工资或事件。
+
+M2 在线连接使用 `0.2.0`，并按方向校验 Python→Unity 与 Unity→Python
+消息。合法的 typed `movement_cancelled` 由 Python 以自己的游戏分钟提交
+权威取消事务、释放该 Action 的预约并下发 `action_cancelled`；重复同一内容
+是 no-op，冲突、未知、已终态、未来版本或旧 connection generation 只产生
+诊断和全量重同步，不得改变其他 Action。Bridge 会话证据分别记录冻结目录
+来源版本 `0.1.0` 与实际协商版本 `0.2.0`。
 
 ## 仓库结构
 
