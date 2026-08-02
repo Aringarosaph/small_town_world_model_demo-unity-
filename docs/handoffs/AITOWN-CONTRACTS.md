@@ -66,6 +66,44 @@ The M2 contract adds:
 provenance value. Bridge negotiation must read `protocol/version.json` and the
 selected session version, never that catalog field.
 
+### M2 validation
+
+Final formatted content was validated with Python `3.12.11`:
+
+```bash
+python -m town_core.cli validate-config --config config/v0
+# valid; catalog provenance protocol_version=0.1.0
+
+pytest -q python/tests/contracts
+# 31 passed
+
+pytest -q python/tests integration_tests/test_m0_acceptance.py
+# 77 passed
+
+pytest -q integration_tests/test_m1_headless.py
+# 4 passed
+
+pytest -q integration_tests/test_m1_acceptance.py
+# 1 passed in 75.71s using the unchanged default 180s gate
+
+ruff format --check .
+# 90 files already formatted
+
+ruff check .
+# All checks passed
+
+mypy
+# Success: no issues found in 51 source files
+
+python tools/diagnostics/check_m0.py
+# pass=58 pending=0 fail=0; 57 frozen files verified
+```
+
+The protocol feature commit is `392f941`; the additive formatting/content
+follow-up is `247711a`. The M2 re-freeze manifest uses the full `247711a` commit
+as both its top-level source and `refreeze.source_content_commit`; it does not
+point at the pre-format feature commit.
+
 ## Current responsibility
 
 Own the frozen configuration, domain Schema, Python/Unity protocol, catalog
@@ -252,24 +290,22 @@ python3.12 -m venv .venv
 
 ## Pending decisions
 
-- Orchestrator should confirm the unprefixed behavior-ID resolution above when
-  reconciling main's ADRs.
-- Simulation Core and Unity Bridge should agree whether the initial
-  `world_snapshot` transports the full `WorldState` every time or uses a later
-  protocol-minor partial snapshot optimization. V0 currently defines the full form.
+None within the active M2 contract. Any post-M2 partial-snapshot optimization
+requires a later protocol/version ADR; ADR-0010 requires a full snapshot for M2
+reconnect.
 - Concrete Unity object instance counts and animation mappings must be supplied by
   the scene asset registry and validated against the frozen behavior requirements.
 
 ## Next recommended task
 
-Simulation Core can implement M1 against `CatalogBundle`, `WorldState`,
-`CandidateAction`, `OutcomePrediction`, `ActionProposal`, `ResolvedAction`, and
-`StateTransaction`, limited to Idle, Sleep, EatAtHome, and WorkShift. Unity Bridge
-can independently consume `protocol/jsonschema/protocol-message.schema.json` and
-the committed examples for its Mock handshake/registry work.
+SIM and UNITY should consume the direction-specific `0.2.0` schemas and implement
+the ADR-0010 runtime rules. QA should add the cancellation/version/generation
+fixtures listed above and require separate catalog and negotiated protocol fields
+in M2 evidence.
 
 ## Blocking dependencies
 
-No blocker remains for M0 contract delivery. Downstream implementation should
-not rename IDs, add axes, add route fields, broaden event visibility, or change
-relationship direction without an ADR and version bump.
+No blocker remains for M0 or the M2 contract delivery. Downstream implementation
+should not rename IDs, add axes, add route fields, broaden event visibility,
+change relationship direction, or reinterpret cancellation authority without an
+ADR and version bump.

@@ -52,7 +52,8 @@ with an M0 artifact are frozen inputs to that work.
 ## M2 protocol integration record
 
 - M2 functional-greybox and scoped-registry baseline: ADR-0009 / `0a4caa1`
-- Movement cancellation and protocol `0.2.0`: ADR-0010
+- Movement cancellation and protocol `0.2.0`: ADR-0010 / `392f941`
+- Additive formatted source consumed by the re-freeze: `247711a`
 - Active M2 acceptance version: exactly `0.2.0`
 - Legacy compatibility: `0.1.0` bootstrap/decode tests only; no cancellation gate
 - Heartbeat: WebSocket ping/pong; no JSON message

@@ -1,8 +1,25 @@
 {
   "schema": "aitown.qa.m0-freeze/v1",
-  "source_commit": "9bc20517932265d43a030f833bfd9918f025e512",
-  "approved_by": "AITOWN-ORCH",
-  "approved_at_utc": "2026-08-01T21:39:12Z",
+  "source_commit": "247711a79a77453219000714a321568f7b473282",
+  "approved_by": "AITOWN-ORCH / ADR-0010",
+  "approved_at_utc": "2026-08-02T11:45:22Z",
+  "refreeze": {
+    "milestone": "M2",
+    "adr": "docs/adr/0010-m2-movement-cancellation-and-protocol-v020.md",
+    "decision_authority": "AITOWN-ORCH task 019fbea0-12dc-7dd2-a52e-732d8dac0ce8",
+    "protocol_feature_commit": "392f94143cc3abeb1e8d14c2a1cc885e5f5da40c",
+    "source_content_commit": "247711a79a77453219000714a321568f7b473282",
+    "reason": "Add direction-safe Unity movement cancellation reporting and protocol 0.2.0",
+    "previous_freeze": {
+      "source_commit": "9bc20517932265d43a030f833bfd9918f025e512",
+      "protocol_version": "0.1.0",
+      "manifest_sha256": "ab2babea6531820b21ffb49ea641245a2e9b3921b2993f9dccc472679ae9d9d0",
+      "protocol_version_document_sha256": "b5507204297bda6a5331773951b35327f15204535d9f5a6c1f6010d36a3386b2"
+    },
+    "catalog_protocol_version": "0.1.0",
+    "negotiated_protocol_version": "0.2.0",
+    "unchanged_appendix_d_items_inherited_from_previous_approval": true
+  },
   "checklist": {
     "npc_ids_10": true,
     "household_ids_4": true,
@@ -83,12 +100,32 @@
       "sha256": "0baeb678590f5e8dd533d8d769868f4a096df963f84491ea326d82ae10221391"
     },
     {
+      "path": "protocol/examples/action-cancelled.json",
+      "sha256": "25cea30c86d3736e9aa5aeafb7c5fdb902b99907443e9ebe3fb487259c9b426b"
+    },
+    {
       "path": "protocol/examples/action-started.json",
-      "sha256": "bbcd7308911f0c52e2ebd915fb7887f864ffd26ee0dd1ac40b555e151d607033"
+      "sha256": "d909a545c5cf7916bb6d2489a9af2a967b35310eaebe6eb456fcfb48ed38969a"
+    },
+    {
+      "path": "protocol/examples/asset-registry-result.json",
+      "sha256": "d9dec9bf7737f16ab0cad9ec4ff03238b05b79ec0de6fdc947d96472df3104ca"
+    },
+    {
+      "path": "protocol/examples/asset-registry.json",
+      "sha256": "e7901032c78c9ae153fe5e4e7ac10668e22515fb18733d82efd75be90c54c3eb"
+    },
+    {
+      "path": "protocol/examples/client-hello-v010-compat.json",
+      "sha256": "b3f36d055ae7a200ac9f88b4e0bf43c312cb3a41d48244888f15c5ba6d08b184"
     },
     {
       "path": "protocol/examples/client-hello.json",
-      "sha256": "3655024e505d8b297843d4c1695365e18a7c4623e300f792a359dc0bc1017317"
+      "sha256": "449547d7d4d2b7089e557bb51adf619843443c64d51109c4b85bd76cf97c9219"
+    },
+    {
+      "path": "protocol/examples/client-ready.json",
+      "sha256": "ac4d6135662200f4bdb83888483203841bc423e64e47b903c970a7139fb02884"
     },
     {
       "path": "protocol/examples/joint-action.json",
@@ -96,7 +133,15 @@
     },
     {
       "path": "protocol/examples/movement-arrived.json",
-      "sha256": "d83b1bbe00b35714ad5753e8eab0382db6eefc1644a3cc16691b0d760140908e"
+      "sha256": "85dc9043cae0f711dbe1b12e76e02491ca360a235433157d2f2e5b417705562b"
+    },
+    {
+      "path": "protocol/examples/movement-cancelled.json",
+      "sha256": "e84166a5a92f98736ea11591923d79c45e5a703360674d22c586386c6a64af93"
+    },
+    {
+      "path": "protocol/examples/movement-failed.json",
+      "sha256": "e326d52dda11be82492f111958b1724af72d3266738dbed014eef998ec2e82f9"
     },
     {
       "path": "protocol/examples/outcome-prediction.json",
@@ -112,55 +157,83 @@
     },
     {
       "path": "protocol/examples/player-utterance.json",
-      "sha256": "397d2f57c610ccef62fbde45130e99d0b2ec6206b7086b36ca527fc7d7305963"
+      "sha256": "fa9a5f5e7f963a148322fb93b3fd0cde0a32e02fa5de43efd5d8ccf4c4113170"
+    },
+    {
+      "path": "protocol/examples/presentation-completed.json",
+      "sha256": "d8669d552cfb7bedcee0efe65d58c1d3be33704718849e8fc0a4e8345025d033"
+    },
+    {
+      "path": "protocol/examples/reconnect-world-snapshot.json",
+      "sha256": "99dc91b6b7af77c5d1713e804a9d85e427001b2ca59498ba1158b6fa380a95f3"
+    },
+    {
+      "path": "protocol/examples/server-hello.json",
+      "sha256": "b512b45f1961d557a0495a2a8aeb7c534e29966969db0a26bfb35d9834e42fba"
     },
     {
       "path": "protocol/jsonschema/candidate-action.schema.json",
-      "sha256": "904669cae21cc885cefba7f701e13654cf74d7abb06eabe54bffd74f71054618"
+      "sha256": "c7ea2a72bbe808ba38aff9fc79a76811bcd9e309cb76bd358d88fc389d71d553"
     },
     {
       "path": "protocol/jsonschema/catalog-bundle.schema.json",
-      "sha256": "ff78d164e11f3ba214d3cb3ae4170e49ded2243f517b8edca350fcfe48593a47"
+      "sha256": "53eb7c412ac6a382ece23637a44b26fad13b8cebca8dfa5c7dca7d9d655a210f"
+    },
+    {
+      "path": "protocol/jsonschema/client-hello-bootstrap.schema.json",
+      "sha256": "b5bb306cd0f851bbdbffded3897a96701554722e5bab560469bac9bc76eb1443"
     },
     {
       "path": "protocol/jsonschema/joint-action.schema.json",
-      "sha256": "9d9272d5901d58ba5e66840561813855661e8dc725b8edf1f0a74e0596f3ed27"
+      "sha256": "3419ad6be461d0c80f1221f215ac9dcc3aa2e2fbf7d3d07e46f08adb1d784b59"
     },
     {
       "path": "protocol/jsonschema/outcome-prediction.schema.json",
-      "sha256": "6e4b6feb38ad371fd9d0cf272ecce01a05cc5e20f63a4e596c2875adb4d84b4c"
+      "sha256": "d5b4cafc7e60bf832626b6a146ec58b3e7d67ff7913203fb8da0c6b446b12327"
     },
     {
       "path": "protocol/jsonschema/perception-snapshot.schema.json",
-      "sha256": "254ae492ba909a60d14d7ee55dddf70d053f66050a6e6ed7109a0d2ca528d5ed"
+      "sha256": "fb36d57362705b4d5b94cf7ff88d5282d8e2d22e559131b8480a8193799a25b4"
     },
     {
       "path": "protocol/jsonschema/player-speech-parse.schema.json",
-      "sha256": "3e170d1b9b9637886eae14569e92b3773f6f303a882d19d3d459a8b5bb8c3afd"
+      "sha256": "48ded8cfa3790e58808533f7ec1d3446cf54e8338ecdef4f13f789a3c38bc506"
+    },
+    {
+      "path": "protocol/jsonschema/protocol-message-v010-compat.schema.json",
+      "sha256": "1173356b9b4307bf6833cf18bc6646135bd0e5f471505cb3637e298cd846e157"
     },
     {
       "path": "protocol/jsonschema/protocol-message.schema.json",
-      "sha256": "fdff89738e2e169ded59badca4671cfc0effd6b2783d9677b125aea2d80ce492"
+      "sha256": "8b64494760914c2bb78cfdf056bea632e9d0e961addfb17ac78ee7329cf0c0b0"
+    },
+    {
+      "path": "protocol/jsonschema/python-to-unity-message.schema.json",
+      "sha256": "ae46b63e75c5cefd872d48862223bafdd17bc67260a81ef9d55a35e1102e8447"
     },
     {
       "path": "protocol/jsonschema/speech-plan.schema.json",
-      "sha256": "85f1abe75322b16ee3f786a645f7698ba666ae29adfa1a5d3d7b435b01661de5"
+      "sha256": "61b2c7e6f11f6ae73492f5934dbca297b25e2f73b22e527beffcf98db9ab69c8"
     },
     {
       "path": "protocol/jsonschema/state-transaction.schema.json",
-      "sha256": "22359f24e1499203ec40cc48d0edef3639023fb1a5bd83d8d0dfb424cb9744de"
+      "sha256": "75617a0a2e4f174fe1b5fb4da3511e8e63164e730ea974fbe8bc5880891ca40f"
+    },
+    {
+      "path": "protocol/jsonschema/unity-to-python-message.schema.json",
+      "sha256": "d12a6e3c687eca42bd2fa2e26e0a524e470f2daa3f0084a88352384607dd4cd0"
     },
     {
       "path": "protocol/jsonschema/world-state.schema.json",
-      "sha256": "16855afb24b8135edd38538fa0252667488fa24b4026ff49ef208d3e3b061479"
+      "sha256": "2adc28fcbe4d13ff29fb2713e97d032bf96c95e18d6a384487d0e61129bb79dc"
     },
     {
       "path": "protocol/version.json",
-      "sha256": "b5507204297bda6a5331773951b35327f15204535d9f5a6c1f6010d36a3386b2"
+      "sha256": "0608bd8e3c93cd6bb26dfc15ab9a1c3502ebd7cf08c993ff9ce333c9e75c9672"
     },
     {
       "path": "python/town_core/domain/__init__.py",
-      "sha256": "a3f735d14ce981e0eeed82fe69218e7db4a020548971a7699f9744706079251c"
+      "sha256": "f61fcad1537f818078db5e00c296cd2222727c50f377f194d3506c77b07fbd90"
     },
     {
       "path": "python/town_core/domain/base.py",
@@ -180,7 +253,7 @@
     },
     {
       "path": "python/town_core/domain/enums.py",
-      "sha256": "50cd67efae83aaa1602a89e2c839c84d634ee22f05aa139a4eb228add1e69233"
+      "sha256": "98768362e21f7f03fa18307fc93bad15913591b51ce4916b297582ce52fd7a29"
     },
     {
       "path": "python/town_core/domain/identifiers.py",
@@ -188,11 +261,11 @@
     },
     {
       "path": "python/town_core/domain/protocol_models.py",
-      "sha256": "ad90ca2e7eed1d4f594fdf86f5c4016ab9eab550b5845166be9274d9f4feed8c"
+      "sha256": "a31bd1ae8d353835af322a0f6021c230f7507b78bd8601a8593d519bcc8263a0"
     },
     {
       "path": "python/town_core/domain/schema_artifacts.py",
-      "sha256": "8b3fe3e9f16708be8ec005f889454a58f25323683b07f77bc564d701209ddf2e"
+      "sha256": "484d5a0126ab2093e6e36192655f83051cf0be2cfde5a3119e1eca77461be757"
     },
     {
       "path": "python/town_core/domain/state_models.py",
