@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import argparse
 import hashlib
+import importlib
 import json
 import re
 import subprocess
@@ -85,7 +86,10 @@ M3_ADR: Final = Path("docs/adr/0011-m3-society-authority-and-protocol-v030.md")
 SEMANTIC_MANIFEST: Final = Path("config/v0/semantic_instances.yaml")
 SIM_QA_ADAPTER: Final = Path("python/town_core/simulation/m3_qa_adapter.py")
 UNITY_EVIDENCE_EXPORTER: Final = Path("unity/Assets/AITown/Editor/M3AcceptanceEvidenceExporter.cs")
-UNITY_FULL_TOWN_BUILDER: Final = Path("unity/Assets/AITown/Editor/M3FullTownFixtureBuilder.cs")
+UNITY_READINESS_EXPORTER: Final = Path("unity/Assets/AITown/Editor/M3ReadinessEvidenceExporter.cs")
+UNITY_FUNCTIONAL_GRAYBOX_BUILDER: Final = Path("unity/Assets/AITown/Editor/M3FunctionalGrayboxBuilder.cs")
+UNITY_RESOURCE_MANIFEST: Final = Path("unity/Assets/AITown/Resources/M3FunctionalGrayboxManifest.json")
+UNITY_SEMANTIC_MANIFEST_LOADER: Final = Path("unity/Assets/AITown/Scripts/Semantic/M3SemanticManifest.cs")
 
 AGENT_IDS: Final = tuple(f"npc_{index:02d}" for index in range(1, 11))
 HOUSEHOLD_IDS: Final = ("household_a", "household_b", "household_c", "household_d")
@@ -771,12 +775,16 @@ def _validate_m3_protocol_version_policy(version: Mapping[str, object]) -> None:
     if (
         active_m2 != [M2_PROTOCOL_VERSION]
         or active_m3 != [PROTOCOL_VERSION]
+        or compatibility.get("current") != PROTOCOL_VERSION
         or not isinstance(bootstrap, list)
         or bootstrap[:2] != [PROTOCOL_VERSION, M2_PROTOCOL_VERSION]
+        or compatibility.get("movement_cancelled_versions") != [PROTOCOL_VERSION, M2_PROTOCOL_VERSION]
+        or compatibility.get("m2_compatibility_artifacts_immutable") is not True
     ):
         raise DiagnosticError(
             "protocol/version.json must declare active_m2_acceptance_versions=['0.2.0'], "
-            "active_m3_acceptance_versions=['0.3.0'], and prefer 0.3.0 before 0.2.0"
+            "active_m3_acceptance_versions=['0.3.0'], current=0.3.0, movement cancellation "
+            "versions [0.3.0, 0.2.0], immutable M2 artifacts, and prefer 0.3.0 before 0.2.0"
         )
 
 
@@ -842,24 +850,54 @@ def check_protocol_contract(root: Path, require_m3: bool) -> list[Finding]:
         if document.get("protocol_version") == PROTOCOL_VERSION and isinstance(document.get("message_type"), str):
             examples[cast(str, document["message_type"])] = document
     missing_examples = sorted(required_message_types - set(examples))
-    schema_text = "\n".join(
-        path.read_text(encoding="utf-8")
-        for path in (
-            root / "protocol/jsonschema/protocol-message.schema.json",
-            root / "protocol/jsonschema/python-to-unity-message.schema.json",
-        )
-        if path.is_file()
-    )
-    schema_missing = [
-        token for token in (PROTOCOL_VERSION, "household_state_delta", "field_mask") if token not in schema_text
-    ]
+    schema_paths = {
+        "generic": root / "protocol/jsonschema/protocol-message-v030.schema.json",
+        "python": root / "protocol/jsonschema/python-to-unity-message-v030.schema.json",
+        "unity": root / "protocol/jsonschema/unity-to-python-message-v030.schema.json",
+    }
+    missing_schema_files = [path.name for path in schema_paths.values() if not path.is_file()]
+    schema_problem: str | None = None
+    if not missing_schema_files:
+        try:
+            schemas = {name: _read_json(path) for name, path in schema_paths.items()}
+            mappings = {
+                name: _mapping(
+                    _mapping(document.get("discriminator"), f"{name} schema discriminator").get("mapping"),
+                    f"{name} schema discriminator mapping",
+                )
+                for name, document in schemas.items()
+            }
+            expected_ids = {
+                "generic": "urn:ai-town:protocol:0.3.0:protocol-message-v030",
+                "python": "urn:ai-town:protocol:0.3.0:python-to-unity-message-v030",
+                "unity": "urn:ai-town:protocol:0.3.0:unity-to-python-message-v030",
+            }
+            if any(schemas[name].get("$id") != schema_id for name, schema_id in expected_ids.items()):
+                raise DiagnosticError("protocol 0.3 schema IDs differ from the versioned ADR-0011 paths")
+            generic_required = required_message_types | {"movement_cancelled"}
+            python_required = required_message_types
+            unity_required = {"asset_registry", "movement_arrived", "movement_failed", "movement_cancelled"}
+            if not generic_required.issubset(mappings["generic"]):
+                raise DiagnosticError("generic 0.3 discriminator omits required M3 messages")
+            if not python_required.issubset(mappings["python"]) or "movement_cancelled" in mappings["python"]:
+                raise DiagnosticError("Python-to-Unity 0.3 direction mapping is invalid")
+            if not unity_required.issubset(mappings["unity"]) or python_required & set(mappings["unity"]):
+                raise DiagnosticError("Unity-to-Python 0.3 direction mapping is invalid")
+            python_schema_text = json.dumps(schemas["python"], separators=(",", ":"))
+            for token in ("field_mask", "participants", "household_state_delta", "debug_decision_trace", "null"):
+                if token not in python_schema_text:
+                    raise DiagnosticError(f"Python-to-Unity 0.3 schema omits {token!r}")
+        except DiagnosticError as exc:
+            schema_problem = str(exc)
     problems = []
     if missing_types:
         problems.append(f"message enum missing {missing_types}")
     if missing_examples:
         problems.append(f"0.3 examples missing {missing_examples}")
-    if schema_missing:
-        problems.append(f"schema tokens missing {schema_missing}")
+    if missing_schema_files:
+        problems.append(f"versioned 0.3 schemas missing {missing_schema_files}")
+    if schema_problem:
+        problems.append(schema_problem)
     if not m2_preserved:
         problems.append("0.2.0 compatibility examples are absent")
     if problems:
@@ -898,37 +936,60 @@ def _validate_semantic_manifest_document(document: Mapping[str, object], catalog
             "schema",
             "profile",
             "catalog_protocol_version",
-            "locations",
-            "npc_views",
+            "location_ids",
+            "npc_view_ids",
             "objects",
-            "mapped_animation_semantics",
-            "mapped_prop_semantics",
+            "required_animation_semantics",
+            "required_prop_semantics",
             "facing_behavior_ids",
+            "require_entrance_slot_reachability",
         ),
         "semantic manifest",
     )
-    if document.get("schema") != "stwm.contracts.m3-semantic-instance-manifest/v1":
+    if document.get("schema") != "stwm.catalog.m3-semantic-instances/v1":
         raise DiagnosticError("shared semantic manifest schema mismatch")
     if document.get("profile") != "M3_FULL" or document.get("catalog_protocol_version") != CATALOG_PROTOCOL_VERSION:
         raise DiagnosticError("shared semantic manifest profile/provenance mismatch")
-    locations = tuple(str(item) for item in _sequence(document["locations"], "manifest locations"))
-    npc_views = tuple(str(item) for item in _sequence(document["npc_views"], "manifest npc_views"))
+    if document.get("require_entrance_slot_reachability") is not True:
+        raise DiagnosticError("shared semantic manifest must require entrance-to-slot reachability")
+    locations = tuple(str(item) for item in _sequence(document["location_ids"], "manifest location_ids"))
+    npc_views = tuple(str(item) for item in _sequence(document["npc_view_ids"], "manifest npc_view_ids"))
     if locations != LOCATION_IDS or npc_views != AGENT_IDS:
         raise DiagnosticError("manifest must contain exact ordered M3 locations and NPC views")
+    required_animations = {
+        str(item)
+        for item in _sequence(document["required_animation_semantics"], "manifest required_animation_semantics")
+    }
+    required_props = {
+        str(item) for item in _sequence(document["required_prop_semantics"], "manifest required_prop_semantics")
+    }
+    facing_behaviors = {str(item) for item in _sequence(document["facing_behavior_ids"], "manifest facing")}
     objects = _sequence(document["objects"], "manifest objects")
+    if len(objects) != 74:
+        raise DiagnosticError("authoritative M3 semantic manifest must contain exactly 74 objects")
     object_ids: set[str] = set()
     observed_types: set[str] = set()
     manifest_objects: list[Mapping[str, object]] = []
     allowed_capabilities = {
         item.object_type.value: {tag.value for tag in item.capability_tags} for item in catalog.objects.object_types
     }
+    default_slots = {item.object_type.value: item.default_slot_count for item in catalog.objects.object_types}
     for index, raw in enumerate(objects):
         item = _mapping(raw, f"manifest objects[{index}]")
-        _exact_keys(
-            item,
-            ("object_id", "object_type", "location_id", "capability_tags", "slot_count", "enabled"),
-            f"manifest objects[{index}]",
-        )
+        required_object_keys = {
+            "object_id",
+            "object_type",
+            "location_id",
+            "capability_tags",
+            "slot_count",
+            "supported_animation_semantics",
+        }
+        allowed_object_keys = {*required_object_keys, "assigned_agent_id"}
+        if not required_object_keys.issubset(item) or not set(item).issubset(allowed_object_keys):
+            raise DiagnosticError(
+                f"manifest objects[{index}] keys differ; missing={sorted(required_object_keys - set(item))}, "
+                f"extra={sorted(set(item) - allowed_object_keys)}"
+            )
         object_id = _string(item, "object_id", f"manifest objects[{index}]")
         if object_id in object_ids:
             raise DiagnosticError(f"duplicate manifest object ID {object_id}")
@@ -937,14 +998,29 @@ def _validate_semantic_manifest_document(document: Mapping[str, object], catalog
         location_id = _string(item, "location_id", f"manifest objects[{index}]")
         if object_type not in OBJECT_TYPES or location_id not in LOCATION_IDS:
             raise DiagnosticError(f"invalid manifest object {object_id}")
-        if item.get("enabled") is not True:
-            raise DiagnosticError(f"required manifest object {object_id} is disabled")
         capabilities = {
             str(tag) for tag in _sequence(item["capability_tags"], f"manifest object {object_id} capabilities")
         }
         if not capabilities or not capabilities.issubset(allowed_capabilities[object_type]):
-            raise DiagnosticError(f"manifest object {object_id} has no capabilities")
-        _manifest_slot_count(item, f"manifest object {object_id}")
+            raise DiagnosticError(f"manifest object {object_id} capabilities exceed its catalog object type")
+        if _manifest_slot_count(item, f"manifest object {object_id}") != default_slots[object_type]:
+            raise DiagnosticError(f"manifest object {object_id} must use the catalog default slot count")
+        supported_animations = tuple(
+            str(value)
+            for value in _sequence(
+                item["supported_animation_semantics"],
+                f"manifest object {object_id} supported_animation_semantics",
+            )
+        )
+        if (
+            not supported_animations
+            or len(supported_animations) != len(set(supported_animations))
+            or not set(supported_animations).issubset(required_animations)
+        ):
+            raise DiagnosticError(f"manifest object {object_id} has invalid supported animation semantics")
+        assigned_agent = item.get("assigned_agent_id")
+        if assigned_agent is not None and assigned_agent not in AGENT_IDS:
+            raise DiagnosticError(f"manifest object {object_id} references an unknown assigned agent")
         observed_types.add(object_type)
         manifest_objects.append(item)
     if observed_types != set(OBJECT_TYPES):
@@ -962,27 +1038,51 @@ def _validate_semantic_manifest_document(document: Mapping[str, object], catalog
             )
         )
 
-    def object_count(location_id: str, object_type: str) -> int:
-        return sum(
-            item["location_id"] == location_id and item["object_type"] == object_type for item in manifest_objects
-        )
-
     for household in catalog.households.households:
         home = household.home_location_id
-        residents = len(household.member_ids)
-        if capacity(home, "BED") < residents or capacity(home, "DINING_SEAT") < residents:
-            raise DiagnosticError(f"home {home} lacks one bed/dining slot per resident")
-        if capacity(home, "SOFA") < residents:
+        residents = set(household.member_ids)
+        beds = [item for item in manifest_objects if item["location_id"] == home and item["object_type"] == "BED"]
+        dining = [
+            item for item in manifest_objects if item["location_id"] == home and item["object_type"] == "DINING_SEAT"
+        ]
+        if len(beds) != len(residents) or {item.get("assigned_agent_id") for item in beds} != residents:
+            raise DiagnosticError(f"home {home} lacks exactly one assigned bed per resident")
+        if len(dining) != len(residents) or {item.get("assigned_agent_id") for item in dining} != residents:
+            raise DiagnosticError(f"home {home} lacks exactly one assigned dining seat per resident")
+        if capacity(home, "SOFA") < len(residents):
             raise DiagnosticError(f"home {home} sofa capacity is below household size")
         for object_type in ("FRIDGE", "SHOWER", "TV"):
-            if object_count(home, object_type) < 1:
+            if capacity(home, object_type) < 1:
                 raise DiagnosticError(f"home {home} lacks required {object_type}")
 
-    required_capacities = (
+    exact_workstation_capacities = (
         ("cafe_bar", "WORKSTATION", "CAFE_MORNING", 2),
         ("cafe_bar", "WORKSTATION", "CAFE_EVENING", 2),
         ("shop", "WORKSTATION", "SHOP", 2),
         ("workshop", "WORKSTATION", "WORKSHOP", 4),
+    )
+    for location_id, object_type, capability, expected in exact_workstation_capacities:
+        if capacity(location_id, object_type, capability) != expected:
+            raise DiagnosticError(f"manifest {location_id} must have exactly {expected} {capability} slots")
+    for npc in catalog.population.npcs:
+        assigned = [
+            item
+            for item in manifest_objects
+            if item["object_type"] == "WORKSTATION" and item.get("assigned_agent_id") == npc.agent_id
+        ]
+        if len(assigned) != 1:
+            raise DiagnosticError(f"manifest NPC {npc.agent_id} must have exactly one assigned workstation")
+        workstation = assigned[0]
+        capabilities = {
+            str(value) for value in _sequence(workstation["capability_tags"], f"workstation for {npc.agent_id}")
+        }
+        if (
+            workstation["location_id"] != npc.assigned_work_location_id
+            or npc.assigned_workstation_tag.value not in capabilities
+        ):
+            raise DiagnosticError(f"manifest workstation for {npc.agent_id} differs from the frozen job")
+
+    minimum_capacities: tuple[tuple[str, str, str | None, int], ...] = (
         ("shop", "SHOP_SHELF", None, 2),
         ("shop", "CHECKOUT_COUNTER", None, 1),
         ("cafe_bar", "CAFE_COUNTER", None, 1),
@@ -996,9 +1096,9 @@ def _validate_semantic_manifest_document(document: Mapping[str, object], catalog
         ("park", "LEISURE_SPOT", None, 2),
         ("park", "CONVERSATION_ANCHOR", None, 2),
     )
-    for location_id, object_type, capability, minimum in required_capacities:
-        if capacity(location_id, object_type, capability) < minimum:
-            label = capability or object_type
+    for location_id, object_type, required_capability, minimum in minimum_capacities:
+        if capacity(location_id, object_type, required_capability) < minimum:
+            label = required_capability or object_type
             raise DiagnosticError(f"manifest {location_id} capacity for {label} is below {minimum}")
     public_locations = {
         location.location_id for location in catalog.locations.locations if location.location_type.value != "HOME"
@@ -1018,15 +1118,28 @@ def _validate_semantic_manifest_document(document: Mapping[str, object], catalog
     expected_facing = {
         behavior.behavior_id for behavior in catalog.behaviors.behaviors if behavior.unity.requires_facing
     }
-    mapped_animations = {str(item) for item in _sequence(document["mapped_animation_semantics"], "manifest animations")}
-    mapped_props = {str(item) for item in _sequence(document["mapped_prop_semantics"], "manifest props")}
-    facing_behaviors = {str(item) for item in _sequence(document["facing_behavior_ids"], "manifest facing")}
-    if not expected_animations.issubset(mapped_animations):
-        raise DiagnosticError("manifest omits configured animation semantics")
-    if not expected_props.issubset(mapped_props):
-        raise DiagnosticError("manifest omits configured prop semantics")
+    instance_animations = {
+        str(value)
+        for item in manifest_objects
+        for value in _sequence(item["supported_animation_semantics"], f"manifest object {item['object_id']} animations")
+    }
+    if required_animations != expected_animations or not required_animations.issubset(instance_animations):
+        raise DiagnosticError("manifest animation coverage differs from configured behavior semantics")
+    if required_props != expected_props:
+        raise DiagnosticError("manifest prop coverage differs from the four configured semantics")
     if facing_behaviors != expected_facing:
         raise DiagnosticError("manifest facing support differs from configured behaviors")
+
+
+def _validate_authoritative_m3_loader(root: Path, catalog: CatalogBundle) -> None:
+    try:
+        module = importlib.import_module("town_core.catalogs")
+        loader = module.load_m3_catalogs
+        if not callable(loader):
+            raise TypeError("load_m3_catalogs is not callable")
+        loader(root / "config/v0", catalog=catalog)
+    except (AttributeError, CatalogValidationError, ImportError, TypeError) as exc:
+        raise DiagnosticError(f"authoritative CONTRACTS load_m3_catalogs rejected the manifest: {exc}") from exc
 
 
 def check_semantic_manifest(root: Path, require_m3: bool) -> list[Finding]:
@@ -1039,12 +1152,14 @@ def check_semantic_manifest(root: Path, require_m3: bool) -> list[Finding]:
                 message="CONTRACTS shared full-town semantic-instance manifest is not integrated",
                 owner=Owner.CONTRACTS,
                 require_m3=require_m3,
-                remediation=f"Publish {SEMANTIC_MANIFEST} using stwm.contracts.m3-semantic-instance-manifest/v1.",
+                remediation=f"Publish {SEMANTIC_MANIFEST} using stwm.catalog.m3-semantic-instances/v1 and load_m3_catalogs.",
                 path=SEMANTIC_MANIFEST.as_posix(),
             )
         ]
     try:
-        _validate_semantic_manifest_document(_read_yaml(path), load_catalog(root / "config/v0"))
+        catalog = load_catalog(root / "config/v0")
+        _validate_authoritative_m3_loader(root, catalog)
+        _validate_semantic_manifest_document(_read_yaml(path), catalog)
     except (CatalogValidationError, DiagnosticError) as exc:
         return [
             _fail(
@@ -1084,13 +1199,6 @@ def check_upstream_adapters(root: Path, require_m3: bool) -> list[Finding]:
             "Unity M3 evidence exporter is integrated",
             "Implement the Unity-owned exporter for stwm.qa.m3-acceptance-evidence/v1.",
         ),
-        (
-            UNITY_FULL_TOWN_BUILDER,
-            "M3_UNITY_FULL_TOWN_FIXTURE",
-            Owner.UNITY,
-            "Unity M3 full-town functional-greybox builder is integrated",
-            "Implement the shared-manifest-driven full-town fixture without final-art dependencies.",
-        ),
     ):
         findings.append(
             _pass(check="m3.upstream", code=code, message=message, owner=owner, path=path.as_posix())
@@ -1105,6 +1213,88 @@ def check_upstream_adapters(root: Path, require_m3: bool) -> list[Finding]:
                 path=path.as_posix(),
             )
         )
+
+    functional_graybox_paths = (
+        UNITY_FUNCTIONAL_GRAYBOX_BUILDER,
+        UNITY_READINESS_EXPORTER,
+        UNITY_RESOURCE_MANIFEST,
+        UNITY_SEMANTIC_MANIFEST_LOADER,
+    )
+    present = [path for path in functional_graybox_paths if (root / path).is_file()]
+    if not present:
+        findings.append(
+            _pending(
+                check="m3.upstream",
+                code="M3_UNITY_FUNCTIONAL_GRAYBOX_PENDING",
+                message="Unity M3 functional-greybox builder and shared-manifest Resources seam are not integrated",
+                owner=Owner.UNITY,
+                require_m3=require_m3,
+                remediation=(
+                    "Integrate M3FunctionalGrayboxBuilder, the readiness-only exporter, "
+                    "Resources/M3FunctionalGrayboxManifest.json, and M3SemanticManifestDocument.LoadDefault()."
+                ),
+                path=UNITY_FUNCTIONAL_GRAYBOX_BUILDER.as_posix(),
+            )
+        )
+    elif len(present) != len(functional_graybox_paths):
+        missing = [path.as_posix() for path in functional_graybox_paths if path not in present]
+        findings.append(
+            _fail(
+                check="m3.upstream",
+                code="M3_UNITY_FUNCTIONAL_GRAYBOX_PARTIAL",
+                message=f"Unity M3 functional-greybox surface is partial; missing {missing}",
+                owner=Owner.UNITY,
+                remediation="Integrate the complete builder/readiness exporter/Resources loader seam as one surface.",
+                path=UNITY_FUNCTIONAL_GRAYBOX_BUILDER.as_posix(),
+            )
+        )
+    else:
+        try:
+            builder_text = (root / UNITY_FUNCTIONAL_GRAYBOX_BUILDER).read_text(encoding="utf-8")
+            readiness_text = (root / UNITY_READINESS_EXPORTER).read_text(encoding="utf-8")
+            loader_text = (root / UNITY_SEMANTIC_MANIFEST_LOADER).read_text(encoding="utf-8")
+            resource_manifest = _read_json(root / UNITY_RESOURCE_MANIFEST)
+            if "M3SemanticManifestDocument.LoadDefault()" not in builder_text:
+                raise DiagnosticError("M3FunctionalGrayboxBuilder does not consume the Resources manifest loader")
+            if (
+                'ResourcePath = "M3FunctionalGrayboxManifest"' not in loader_text
+                or "Resources.Load<TextAsset>(ResourcePath)" not in loader_text
+            ):
+                raise DiagnosticError("M3SemanticManifest loader does not use the frozen Resources seam")
+            if (
+                "M3FunctionalGrayboxBuilder.BuildAndSave()" not in readiness_text
+                or "M3SemanticManifestDocument.LoadDefault()" not in readiness_text
+                or "AcceptanceEligible = false" not in readiness_text
+            ):
+                raise DiagnosticError("M3 readiness exporter is not explicitly non-acceptance builder evidence")
+            if resource_manifest.get("schema") != "stwm.unity.m3-functional-graybox-manifest/v1":
+                raise DiagnosticError("Unity Resources manifest schema is invalid")
+            if not isinstance(resource_manifest.get("shared_contract_manifest_status"), str):
+                raise DiagnosticError("Unity Resources manifest omits shared-contract consumption status")
+        except (DiagnosticError, OSError) as exc:
+            findings.append(
+                _fail(
+                    check="m3.upstream",
+                    code="M3_UNITY_FUNCTIONAL_GRAYBOX_INVALID",
+                    message=str(exc),
+                    owner=Owner.UNITY,
+                    remediation=(
+                        "Keep the real builder wired through Resources/M3FunctionalGrayboxManifest.json and "
+                        "mark M3ReadinessEvidenceExporter as non-acceptance evidence."
+                    ),
+                    path=UNITY_FUNCTIONAL_GRAYBOX_BUILDER.as_posix(),
+                )
+            )
+        else:
+            findings.append(
+                _pass(
+                    check="m3.upstream",
+                    code="M3_UNITY_FUNCTIONAL_GRAYBOX",
+                    message="Unity builder and readiness exporter consume the shared Resources manifest seam",
+                    owner=Owner.UNITY,
+                    path=UNITY_FUNCTIONAL_GRAYBOX_BUILDER.as_posix(),
+                )
+            )
     return findings
 
 
@@ -1869,8 +2059,22 @@ def check_external_registry(root: Path, registry_path: Path, require_m3: bool) -
             slots = _sequence(observed.get("interaction_slots"), f"registry {object_id} interaction_slots")
             if len(slots) < _manifest_slot_count(expected, f"manifest {object_id}"):
                 raise DiagnosticError(f"registry slot capacity is insufficient for {object_id}")
+            slot_animations = {
+                str(value)
+                for raw_slot in slots
+                for slot in (_mapping(raw_slot, f"registry {object_id} slot"),)
+                for value in _sequence(
+                    slot.get("supported_animation_semantics"),
+                    f"registry {object_id} slot supported animations",
+                )
+            }
+            expected_slot_animations = set(
+                _sequence(expected["supported_animation_semantics"], f"manifest {object_id} supported animations")
+            )
+            if not expected_slot_animations.issubset(slot_animations):
+                raise DiagnosticError(f"registry slot animation support is incomplete for {object_id}")
         animations = set(_sequence(payload.get("mapped_animation_semantics"), "registry animations"))
-        expected_animations = set(_sequence(manifest["mapped_animation_semantics"], "manifest animations"))
+        expected_animations = set(_sequence(manifest["required_animation_semantics"], "manifest animations"))
         if not expected_animations.issubset(animations):
             raise DiagnosticError("registry animation semantics are incomplete")
     except (CatalogValidationError, DiagnosticError) as exc:

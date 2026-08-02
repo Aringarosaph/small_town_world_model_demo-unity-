@@ -40,7 +40,10 @@ ruleset or fabricates Python/Unity PASS evidence.
 1. `protocol/version.json` sets repository current `protocol_version=0.3.0`,
    exact `active_m3_acceptance_versions=["0.3.0"]`, retained
    `active_m2_acceptance_versions=["0.2.0"]`, and bootstrap preference beginning
-   `["0.3.0", "0.2.0"]`.
+   `["0.3.0", "0.2.0"]`. At current 0.3 it also declares exact
+   `movement_cancelled_versions=["0.3.0", "0.2.0"]` and immutable M2
+   compatibility artifacts; the retained current-0.2 document uses exact
+   `["0.2.0"]`.
 2. Retain all M2 `0.2.0` examples, schemas, direction unions and ADR-0010
    semantics. QA's M2 gate no longer requires current=0.2, but still rejects a
    missing M2 acceptance profile, movement cancellation artifact, direction or
@@ -48,12 +51,18 @@ ruleset or fabricates Python/Unity PASS evidence.
 3. Publish version-aware 0.3 DTOs/schemas/examples for structured
    `action_started` participants, presentation-complete `world_snapshot`,
    field-mask/explicit-null `agent_state_delta`, `household_state_delta`, and
-   read-only `debug_decision_trace`.
+   read-only `debug_decision_trace`. M3 QA reads the versioned
+   `protocol-message-v030`, `python-to-unity-message-v030`, and
+   `unity-to-python-message-v030` schemas; M2 keeps validating the 0.2
+   compatibility schemas.
 4. Publish `config/v0/semantic_instances.yaml` with schema
-   `stwm.contracts.m3-semantic-instance-manifest/v1`, profile `M3_FULL`, catalog
-   provenance `0.1.0`, exact ordered 8 locations and 10 NPCs, every required
-   object/capability/slot, plus animation, prop and facing semantic mappings.
-   This is the sole instance manifest consumed by SIM and UNITY.
+   `stwm.catalog.m3-semantic-instances/v1`, profile `M3_FULL`, catalog provenance
+   `0.1.0`, exact `location_ids`/`npc_view_ids`, and object records containing
+   `supported_animation_semantics` with optional `assigned_agent_id` (never an
+   `enabled` shadow field). QA validates the exact top/object keys, all 74
+   instances, capacity, assignments, animation/prop/facing coverage, and the
+   authoritative `town_core.catalogs.load_m3_catalogs` result. This is the sole
+   instance manifest consumed by SIM and UNITY.
 
 ### SIM
 
@@ -84,11 +93,17 @@ Provide:
 
 ```text
 unity/Assets/AITown/Editor/M3AcceptanceEvidenceExporter.cs
-unity/Assets/AITown/Editor/M3FullTownFixtureBuilder.cs
+unity/Assets/AITown/Editor/M3FunctionalGrayboxBuilder.cs
+unity/Assets/AITown/Editor/M3ReadinessEvidenceExporter.cs
+unity/Assets/AITown/Resources/M3FunctionalGrayboxManifest.json
+unity/Assets/AITown/Scripts/Semantic/M3SemanticManifest.cs
 ```
 
-The builder consumes the shared manifest and exports the real protocol 0.3.0
-`M3_FULL` asset registry. The exporter produces these sanitized artifacts:
+The real builder must consume `M3SemanticManifestDocument.LoadDefault()` through
+the Resources seam. `M3ReadinessEvidenceExporter` is explicitly
+`AcceptanceEligible=false`; it proves only the builder/readiness surface and
+must not substitute for `M3AcceptanceEvidenceExporter`. The final exporter
+produces these sanitized artifacts:
 
 ```text
 stwm.unity.m3-registry-report/v1
@@ -135,7 +150,7 @@ M3_PROTOCOL_0_3_PENDING                         CONTRACTS
 M3_SHARED_SEMANTIC_MANIFEST_PENDING            CONTRACTS
 M3_SIM_QA_ADAPTER_PENDING                      SIM
 M3_UNITY_EVIDENCE_EXPORTER_PENDING             UNITY
-M3_UNITY_FULL_TOWN_FIXTURE_PENDING             UNITY
+M3_UNITY_FUNCTIONAL_GRAYBOX_PENDING            UNITY
 M3_FULL_REGISTRY_EVIDENCE_PENDING              UNITY
 M3_ACCEPTANCE_EVIDENCE_PENDING                 QA/integration
 ```
@@ -145,9 +160,14 @@ all seven are failures. No complete 7-day/30-day slow soak was run on this QA
 branch.
 
 Focused M3 Ruff/format and strict Mypy pass. The combined M2/M3 validator suite
-currently has 43 passes and one intentional upstream-absence skip. Default
-`check_m3` is 11 PASS/7 PENDING/0 FAIL; strict mode is 11 PASS/0 PENDING/7
-FAIL. The frozen entry's broader `mypy --strict tools/diagnostics
+on the frozen QA branch has 44 passes and three intentional upstream-absence
+skips. Default `check_m3` is 11 PASS/7 PENDING/0 FAIL; strict mode is 11 PASS/0
+PENDING/7 FAIL. Against the ORCH snapshot containing real CONTRACTS 0.3, Unity
+foundation, and M3 SIM runtime, the focused suite is 46 passes/one acceptance
+skip and default `check_m3` is 14 PASS/4 PENDING/0 FAIL. Its remaining findings
+are the SIM QA adapter, final Unity acceptance exporter, external full registry,
+and external acceptance evidence; CONTRACTS and the Unity functional-greybox
+Resources seam pass. The frozen entry's broader `mypy --strict tools/diagnostics
 python/tests/qa integration_tests` also traverses SIM-owned
 `python/town_core/simulation/engine.py` and reports two existing explicit-export
 errors for `NeedValues` and `MoodValues`; QA did not modify that product file.

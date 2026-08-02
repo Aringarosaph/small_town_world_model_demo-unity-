@@ -177,6 +177,9 @@ def test_m2_protocol_policy_survives_additive_m3_current_version(monkeypatch: py
     document["protocol_version"] = "0.3.0"
     compatibility["active_m3_acceptance_versions"] = ["0.3.0"]
     compatibility["bootstrap_decodable_versions"] = ["0.3.0", "0.2.0", "0.1.0"]
+    compatibility["current"] = "0.3.0"
+    compatibility["m2_compatibility_artifacts_immutable"] = True
+    compatibility["movement_cancelled_versions"] = ["0.3.0", "0.2.0"]
 
     ok, error = _validate_protocol_version_policy(document)
 
@@ -199,6 +202,23 @@ def test_m2_protocol_policy_survives_additive_m3_current_version(monkeypatch: py
     compatibility["active_m2_acceptance_versions"] = []
     ok, _ = _validate_protocol_version_policy(document)
     assert not ok
+
+
+def test_repository_version_document_matches_current_m2_compatibility_policy() -> None:
+    root = find_repository_root(Path(__file__))
+    document = _read_json(root / "protocol/version.json")
+    compatibility = cast(dict[str, object], document["compatibility"])
+
+    ok, error = _validate_protocol_version_policy(document)
+
+    assert ok, error
+    if document["protocol_version"] == "0.3.0":
+        assert compatibility["current"] == "0.3.0"
+        assert compatibility["movement_cancelled_versions"] == ["0.3.0", "0.2.0"]
+        assert compatibility["m2_compatibility_artifacts_immutable"] is True
+    else:
+        assert document["protocol_version"] == "0.2.0"
+        assert compatibility["movement_cancelled_versions"] == ["0.2.0"]
 
 
 @pytest.mark.protocol

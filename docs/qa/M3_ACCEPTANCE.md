@@ -18,9 +18,13 @@ Claim/Belief graphs, or any M4/M5/M6 feature.
 `protocol/version.json` must set current protocol to `0.3.0`, declare exactly
 `active_m3_acceptance_versions=["0.3.0"]` and retain
 `active_m2_acceptance_versions=["0.2.0"]`. Bootstrap preference begins with
-`0.3.0`, then `0.2.0`. M2 fixtures and evidence still negotiate `0.2.0`; the M2
-gate validates their schemas, examples, direction permissions, correlation and
-ADR-0010 behavior without requiring repository current to remain `0.2.0`.
+`0.3.0`, then `0.2.0`, and the current-0.3 policy declares exact
+`movement_cancelled_versions=["0.3.0", "0.2.0"]` plus immutable M2 artifacts.
+The retained current-0.2 form declares exact `["0.2.0"]`. M2 fixtures and
+evidence still negotiate `0.2.0`; the M2 gate validates their compatibility
+schemas, examples, direction permissions, correlation and ADR-0010 behavior
+without requiring repository current to remain `0.2.0`. M3 validates the
+versioned `*-v030.schema.json` protocol and direction schemas.
 
 ## Evidence contracts
 
@@ -50,9 +54,15 @@ and UNITY facts; it does not reproduce their authority rules.
    relationship edges. Needs/personality/mood/relationship dimensions remain
    5/4/2/4 and the outcome model remains heuristic.
 2. CONTRACTS publishes one versioned full-town semantic-instance manifest.
-   Headless and Unity use that same manifest. Profile `M3_FULL` treats every
-   missing location, NPC view, object type, capability, required slot,
-   animation semantic, prop semantic or facing mapping as blocking.
+   `config/v0/semantic_instances.yaml` has schema
+   `stwm.catalog.m3-semantic-instances/v1` and the exact CONTRACTS-owned key
+   shape. Object entries use `supported_animation_semantics` and optional
+   `assigned_agent_id`; they do not invent an `enabled` field. QA requires the
+   authoritative `load_m3_catalogs` loader to accept its 74 instances and
+   capacity/assignment surface. Headless and Unity use that same manifest.
+   Profile `M3_FULL` treats every missing location, NPC view, object type,
+   capability, required slot, animation semantic, prop semantic or facing
+   mapping as blocking.
 3. The exact capacity profile is executable in
    `integration_tests/fixtures/m3/full-registry-profile.json`; QA does not
    maintain a competing instance list.
@@ -128,8 +138,12 @@ and UNITY facts; it does not reproduce their authority rules.
 ### Unity semantics and explainability
 
 19. Unity presents all 10 NPCs, 8 locations, 15 object types and every behavior
-    semantic. Required animation/prop/facing mappings and NavMesh-reachable
-    slots are complete.
+    semantic. `M3FunctionalGrayboxBuilder` consumes
+    `Resources/M3FunctionalGrayboxManifest.json` through
+    `M3SemanticManifestDocument.LoadDefault()`. The separate
+    `M3ReadinessEvidenceExporter` is non-acceptance evidence; final acceptance
+    still requires `M3AcceptanceEvidenceExporter`. Required
+    animation/prop/facing mappings and NavMesh-reachable slots are complete.
 20. A fresh snapshot fully replaces presentation state; explicit null clears;
     active actions rebind; stale versions are rejected; duplicate slot claims
     are zero. Joint start/phase/cancel/fail/reconnect presentation is covered.

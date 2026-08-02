@@ -253,30 +253,52 @@ def _passing_evidence(root: Path, output: Path) -> Path:
     return evidence
 
 
+def _expected_pending_codes(root: Path) -> set[str]:
+    pending = {
+        "M3_FULL_REGISTRY_EVIDENCE_PENDING",
+        "M3_ACCEPTANCE_EVIDENCE_PENDING",
+    }
+    version = _read_json(root / "protocol/version.json")
+    if version.get("protocol_version") != "0.3.0":
+        pending.add("M3_PROTOCOL_0_3_PENDING")
+    if not (root / m3_diagnostics.SEMANTIC_MANIFEST).is_file():
+        pending.add("M3_SHARED_SEMANTIC_MANIFEST_PENDING")
+    if not (root / m3_diagnostics.SIM_QA_ADAPTER).is_file():
+        pending.add("M3_SIM_QA_ADAPTER_PENDING")
+    if not (root / m3_diagnostics.UNITY_EVIDENCE_EXPORTER).is_file():
+        pending.add("M3_UNITY_EVIDENCE_EXPORTER_PENDING")
+    if not any(
+        (root / path).is_file()
+        for path in (
+            m3_diagnostics.UNITY_FUNCTIONAL_GRAYBOX_BUILDER,
+            m3_diagnostics.UNITY_READINESS_EXPORTER,
+            m3_diagnostics.UNITY_RESOURCE_MANIFEST,
+            m3_diagnostics.UNITY_SEMANTIC_MANIFEST_LOADER,
+        )
+    ):
+        pending.add("M3_UNITY_FUNCTIONAL_GRAYBOX_PENDING")
+    return pending
+
+
 def test_default_readiness_reports_only_precise_upstream_pending() -> None:
     root = find_repository_root(Path(__file__))
 
     findings = run_checks(root)
 
     assert not [finding for finding in findings if finding.status is Status.FAIL]
-    assert {finding.code for finding in findings if finding.status is Status.PENDING} == {
-        "M3_PROTOCOL_0_3_PENDING",
-        "M3_SHARED_SEMANTIC_MANIFEST_PENDING",
-        "M3_SIM_QA_ADAPTER_PENDING",
-        "M3_UNITY_EVIDENCE_EXPORTER_PENDING",
-        "M3_UNITY_FULL_TOWN_FIXTURE_PENDING",
-        "M3_FULL_REGISTRY_EVIDENCE_PENDING",
-        "M3_ACCEPTANCE_EVIDENCE_PENDING",
-    }
+    assert {finding.code for finding in findings if finding.status is Status.PENDING} == _expected_pending_codes(root)
 
 
 def test_strict_mode_converts_every_pending_to_failure() -> None:
     root = find_repository_root(Path(__file__))
 
-    findings = run_checks(root, require_m3=True)
+    default_findings = run_checks(root)
+    strict_findings = run_checks(root, require_m3=True)
 
-    assert not [finding for finding in findings if finding.status is Status.PENDING]
-    assert len([finding for finding in findings if finding.status is Status.FAIL]) == 7
+    assert not [finding for finding in strict_findings if finding.status is Status.PENDING]
+    assert {finding.code for finding in strict_findings if finding.status is Status.FAIL} == {
+        finding.code for finding in default_findings if finding.status is Status.PENDING
+    }
 
 
 def test_readiness_document_has_exact_counted_shape() -> None:
@@ -286,7 +308,7 @@ def test_readiness_document_has_exact_counted_shape() -> None:
     validate_readiness_document(document)
 
     summary = cast(dict[str, int], document["summary"])
-    assert summary["pending"] == 7
+    assert summary["pending"] == len(_expected_pending_codes(root))
     assert summary["fail"] == 0
 
 
@@ -297,11 +319,69 @@ def test_m3_protocol_policy_requires_additive_m2_and_m3_profiles() -> None:
     document["protocol_version"] = "0.3.0"
     compatibility["active_m3_acceptance_versions"] = ["0.3.0"]
     compatibility["bootstrap_decodable_versions"] = ["0.3.0", "0.2.0", "0.1.0"]
+    compatibility["current"] = "0.3.0"
+    compatibility["movement_cancelled_versions"] = ["0.3.0", "0.2.0"]
+    compatibility["m2_compatibility_artifacts_immutable"] = True
 
     _validate_m3_protocol_version_policy(document)
     compatibility["active_m2_acceptance_versions"] = []
     with pytest.raises(M3DiagnosticError, match="active_m2_acceptance_versions"):
         _validate_m3_protocol_version_policy(document)
+
+
+def test_integrated_contracts_protocol_0_3_surface_passes() -> None:
+    root = find_repository_root(Path(__file__))
+    if _read_json(root / "protocol/version.json").get("protocol_version") != "0.3.0":
+        pytest.skip("CONTRACTS 0.3 is not integrated in this checkout")
+
+    findings = m3_diagnostics.check_protocol_contract(root, require_m3=False)
+
+    assert [(finding.status, finding.code) for finding in findings] == [(Status.PASS, "M3_PROTOCOL_0_3")]
+
+
+def test_integrated_authoritative_semantic_manifest_shape_and_loader_pass() -> None:
+    root = find_repository_root(Path(__file__))
+    path = root / m3_diagnostics.SEMANTIC_MANIFEST
+    if not path.is_file():
+        pytest.skip("CONTRACTS M3 semantic manifest is not integrated in this checkout")
+
+    document = m3_diagnostics._read_yaml(path)
+    findings = m3_diagnostics.check_semantic_manifest(root, require_m3=False)
+
+    assert set(document) == {
+        "schema",
+        "profile",
+        "catalog_protocol_version",
+        "location_ids",
+        "npc_view_ids",
+        "objects",
+        "required_animation_semantics",
+        "required_prop_semantics",
+        "facing_behavior_ids",
+        "require_entrance_slot_reachability",
+    }
+    for item in cast(list[dict[str, object]], document["objects"]):
+        assert set(item) in (
+            {
+                "object_id",
+                "object_type",
+                "location_id",
+                "capability_tags",
+                "slot_count",
+                "supported_animation_semantics",
+            },
+            {
+                "object_id",
+                "object_type",
+                "location_id",
+                "capability_tags",
+                "slot_count",
+                "supported_animation_semantics",
+                "assigned_agent_id",
+            },
+        )
+        assert "enabled" not in item
+    assert [(finding.status, finding.code) for finding in findings] == [(Status.PASS, "M3_SHARED_SEMANTIC_MANIFEST")]
 
 
 def test_complete_external_release_evidence_passes(tmp_path: Path) -> None:

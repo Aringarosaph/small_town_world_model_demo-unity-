@@ -7,6 +7,13 @@ protocol metadata, shared full-town manifest, external `M3_FULL` registry and
 owner-attributed `PENDING` in the default fast mode; partial integration is a
 failure and `--require-m3` makes all pending fatal.
 
+The CONTRACTS gate reads the versioned 0.3 generic/Python/Unity direction
+schemas and the authoritative `stwm.catalog.m3-semantic-instances/v1` manifest
+through `load_m3_catalogs`. The Unity readiness gate recognizes the real
+`M3FunctionalGrayboxBuilder` plus its Resources manifest/loader seam;
+`M3ReadinessEvidenceExporter` remains explicitly distinct from the required
+final `M3AcceptanceEvidenceExporter`.
+
 ```bash
 python tools/diagnostics/check_m3.py \
   --json-output /absolute/external/m3-readiness.json
@@ -42,7 +49,9 @@ python tools/diagnostics/check_m2.py \
 With CONTRACTS 0.2.0 integrated, protocol, direction Schema and cancellation
 checks are strict and have no pending state. ADR-0011 permits repository current
 to become 0.3.0 only while `active_m2_acceptance_versions=["0.2.0"]` and every
-0.2 artifact/direction check remains intact. Before UNITY integration the
+0.2 artifact/direction check remains intact. Current 0.3 additionally requires
+exact `movement_cancelled_versions=["0.3.0", "0.2.0"]`; the retained current-0.2
+document accepts only `["0.2.0"]`. Before UNITY integration the
 default command reports its named pending owners. The final gate adds
 `--require-m2 --evidence <external-json>`; pending is then fatal. Complete-V0
 content absent from the scoped M2 registry is emitted as `WARNING`, while

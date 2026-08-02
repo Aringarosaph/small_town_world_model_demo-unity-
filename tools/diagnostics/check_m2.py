@@ -522,13 +522,35 @@ def _validate_protocol_version_policy(version: Mapping[str, object]) -> tuple[bo
         compatibility = _mapping(version.get("compatibility"), "protocol.version.compatibility")
         frozen = _mapping(version.get("frozen_decisions"), "protocol.version.frozen_decisions")
         bootstrap_versions = compatibility.get("bootstrap_decodable_versions")
+        current_protocol = version.get("protocol_version")
+        expected_cancellation_versions = (
+            [PROTOCOL_VERSION]
+            if current_protocol == PROTOCOL_VERSION
+            else [M3_PROTOCOL_VERSION, PROTOCOL_VERSION]
+            if current_protocol == M3_PROTOCOL_VERSION
+            else None
+        )
+        immutable_m2_ok = (
+            compatibility.get("m2_compatibility_artifacts_immutable") is True
+            if current_protocol == M3_PROTOCOL_VERSION
+            else "m2_compatibility_artifacts_immutable" not in compatibility
+            or compatibility.get("m2_compatibility_artifacts_immutable") is True
+        )
+        compatibility_current_ok = (
+            compatibility.get("current") == current_protocol
+            if current_protocol == M3_PROTOCOL_VERSION
+            else compatibility.get("current") in {None, current_protocol}
+        )
         ok = (
             compatibility.get("active_m2_acceptance_versions") == [PROTOCOL_VERSION]
             and isinstance(bootstrap_versions, list)
             and PROTOCOL_VERSION in bootstrap_versions
             and "0.1.0" in bootstrap_versions
             and compatibility.get("legacy_decode_only_versions") == ["0.1.0"]
-            and compatibility.get("movement_cancelled_versions") == [PROTOCOL_VERSION]
+            and expected_cancellation_versions is not None
+            and compatibility.get("movement_cancelled_versions") == expected_cancellation_versions
+            and immutable_m2_ok
+            and compatibility_current_ok
             and frozen.get("action_cancelled_direction") == "PYTHON_TO_UNITY_AUTHORITATIVE_DECISION"
             and frozen.get("action_correlation") == "CORRELATION_ID_EQUALS_ACTION_ID"
             and frozen.get("movement_cancelled_direction") == "UNITY_TO_PYTHON_NON_AUTHORITATIVE_REPORT"
