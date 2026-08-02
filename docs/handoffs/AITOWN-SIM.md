@@ -184,14 +184,40 @@ it does not create QA gates/findings/summary.
 The producer explicitly does **not** emit
 `stwm.qa.m3-acceptance-evidence/v1` or Unity registry, presentation, debug,
 EditMode, PlayMode, live-smoke, or batchmode facts. In particular,
-`behavior_coverage[].unity_presentation` is Unity-owned. The slow soak also
-does not relabel fast targeted-fixture assertions as runtime facts, so the
-eight SIM targeted probe booleans remain owned by the fast targeted fixture
-lane and are reported as unavailable here. QA must combine those owner
-artifacts; filling either gap with a constant would be false evidence.
-The same boundary applies to the negative `unknown_share_rejected` probe and
-the forced JointAction cancel/fail/timeout release probes: ordinary soak
-success cannot truthfully stand in for those targeted paths.
+`behavior_coverage[].unity_presentation` remains null and Unity-owned. QA
+combines those owner artifacts; SIM never fills the Unity gap with a constant.
+
+### M3 exact targeted authority projection
+
+The release aggregation step now runs the production-backed
+`m3_targeted_evidence` fixture lane before writing the same seven SIM artifacts.
+For each of the 22 ordered behaviors it independently executes all eight frozen
+SIM probes: legal and illegal candidate enumeration, hard-cost preview,
+Resolver acceptance and rejection, reservation/lifecycle, allowed effects, and
+authoritative transaction replay. Each emitted PASS has a distinct executable
+pytest node ID and a positive count of assertions actually evaluated; a failed
+assertion aborts artifact generation. Release-soak occurrence remains a
+separate positive count and is not substituted for targeted coverage.
+
+The four `qa_probe_evidence` records are likewise real deterministic authority
+operations. Unknown-event sharing is rejected by the production Resolver with
+zero transactions and identical before/after checkpoint hash and version. A
+two-participant central JointAction is then independently driven through
+explicit cancellation, failure, and bounded movement timeout. These paths use
+production creation/commit/terminal transactions, prove both participant
+reservations share the central action owner, prove terminal release from action,
+JointAction, object, participant, and reservation authority, run invariants,
+and replay to the exact checkpoint/authority hashes. The supporting observations
+remain in `targeted_probe_observations`; the QA-facing record itself keeps the
+exact three keys `status`, `test_ids`, and `assertion_count`.
+
+`authority-evidence.json.qa_matrix_projection` now carries the exact
+`knowledge_permissions` and `joint_action` matrices. Positive direct,
+witnessed, told, accepted-invite, and rejected-invite coverage still comes from
+the canonical production soak; forced negative/terminal booleans cross-check
+the targeted records above. The invitation list is imported from the shared
+CONTRACTS allowlist, `player_told_record_count` and out-of-scope epistemic graph
+count remain zero, and Unity fields are neither generated nor copied.
 
 ### M3 closed-location idle fallback correction
 

@@ -379,6 +379,9 @@ seed matrix 及 canonical 1/7/60/repeat，并逐运行验证 final state、ledge
 authority log、全部 6 小时 checkpoint 与 invariants。`--max-new-runs N`
 可用于分段调度，重跑会复用已完成 job。它不生成
 `stwm.qa.m3-acceptance-evidence/v1`，也不生成 Unity 或 QA-owned 事实。
+聚合时还会真实执行 22×8 个独立 SIM targeted authority probes，以及
+unknown-share 拒绝和 JointAction cancel/failure/timeout 释放/回放探针；
+Unity presentation 仍保持 `null` 并由 Unity 证据所有者填充。
 
 ## 仓库结构
 

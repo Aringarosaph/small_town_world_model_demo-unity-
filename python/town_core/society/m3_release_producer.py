@@ -14,12 +14,15 @@ from collections import Counter
 from collections.abc import Iterator, Mapping, Sequence
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 from town_core.catalogs import load_catalog, load_m3_catalogs, m3_catalog_hash
 from town_core.domain.config_models import CatalogBundle
-from town_core.domain.enums import ActionPhase, BehaviorId, EventType
+from town_core.domain.enums import ActionPhase, BehaviorId, EventType, KnowledgeAcquisitionType, ProposalResult
+from town_core.domain.m3_catalog_models import M3Catalogs
 from town_core.society.checkpoint import load_checkpoint
+from town_core.society.m3_targeted_evidence import generate_m3_targeted_evidence
+from town_core.society.models import AuthorityCheckpoint
 from town_core.society.replay import verify_society_run
 
 PROJECT_NAME = "Small Town World Model（STWM）"
@@ -610,6 +613,10 @@ def _run_observation(catalog: CatalogBundle, run_path: Path) -> dict[str, Any]:
             "acquisition_counts": dict(acquisition_counts),
             "shared_event_count": shared_event_count,
             "shared_without_speaker_knowledge_count": shared_without_speaker_knowledge,
+            "player_told_record_count": acquisition_counts[KnowledgeAcquisitionType.PLAYER_TOLD.value],
+            "epistemic_graph_count": len(
+                {"claims", "beliefs", "epistemic_graph"}.intersection(AuthorityCheckpoint.model_fields)
+            ),
         },
         "joint": {
             "joint_action_count": len(joint_participants),
@@ -671,6 +678,7 @@ def _aggregate_artifacts(
     state: Mapping[str, Any],
     output_root: Path,
     catalog: CatalogBundle,
+    m3_catalogs: M3Catalogs,
     source_commit: str,
     reference_machine: str,
 ) -> dict[str, dict[str, Any]]:
@@ -681,6 +689,16 @@ def _aggregate_artifacts(
     }
     generated = _utc_now()
     common = {"project_name": PROJECT_NAME, "source_commit": source_commit, "generated_at_utc": generated}
+    targeted = generate_m3_targeted_evidence(catalog, m3_catalogs)
+    behavior_probe_results = cast(
+        dict[str, dict[str, dict[str, object]]],
+        targeted["behavior_probe_results"],
+    )
+    authority_probe_results = cast(dict[str, dict[str, object]], targeted["authority_probe_results"])
+    authority_probe_observations = cast(
+        dict[str, dict[str, object]],
+        targeted["authority_probe_observations"],
+    )
     catalog_surface = {
         "npcs": len(catalog.population.npcs),
         "households": len(catalog.households.households),
@@ -760,7 +778,7 @@ def _aggregate_artifacts(
             "behavior_id": behavior.value,
             "fixture_id": f"m3_behavior_{behavior.value}",
             "sim_targeted_probe_owner": "SIM_FAST_TARGETED_FIXTURES",
-            "sim_targeted_probe_results": None,
+            "sim_targeted_probe_results": behavior_probe_results[behavior.value],
             "release_soak_occurrence_count": behavior_totals[behavior.value],
             "unity_presentation": None,
             "unity_presentation_owner": "UNITY",
@@ -832,6 +850,60 @@ def _aggregate_artifacts(
         "boundary_streak_days": 7,
         "boundary_violation_count": int(pathology["relationship_boundary_violation_count"]),
     }
+    acquisition_counts = canonical_observation["knowledge"]["acquisition_counts"]
+    unknown_observation = authority_probe_observations["knowledge_unknown_share_rejected"]
+    knowledge_permissions = {
+        "direct_participant_covered": int(acquisition_counts.get("DIRECT_PARTICIPANT", 0)) > 0,
+        "witnessed_covered": int(acquisition_counts.get("WITNESSED", 0)) > 0,
+        "told_covered": int(acquisition_counts.get("TOLD", 0)) > 0,
+        "unknown_share_rejected": (
+            authority_probe_results["knowledge_unknown_share_rejected"]["status"] == "PASS"
+            and unknown_observation["result"] == ProposalResult.TARGET_UNAVAILABLE.value
+            and unknown_observation["before_checkpoint_hash"] == unknown_observation["after_checkpoint_hash"]
+        ),
+        "speaker_known_event_only": int(canonical_observation["knowledge"]["shared_without_speaker_knowledge_count"])
+        == 0,
+        "player_told_record_count": int(canonical_observation["knowledge"]["player_told_record_count"]),
+        "epistemic_graph_count": int(canonical_observation["knowledge"]["epistemic_graph_count"]),
+    }
+    joint_probe_names = (
+        "joint_action_cancel_release",
+        "joint_action_failure_release",
+        "joint_action_timeout_release",
+    )
+    joint_observations = [authority_probe_observations[name] for name in joint_probe_names]
+
+    def targeted_int(item: dict[str, object], key: str) -> int:
+        value = item[key]
+        if isinstance(value, bool) or not isinstance(value, int):
+            raise TypeError(f"targeted observation {key} must be an integer")
+        return value
+
+    joint_action = {
+        "invited_activity_ids": targeted["invited_activity_ids"],
+        "central_resolver": all(
+            item["joint_authority"] == "CENTRAL_RESOLVER"
+            and item["reservation_owner_action_ids_before"] == [item["action_id"]]
+            for item in joint_observations
+        ),
+        "acceptance_covered": int(canonical_observation["joint"]["invitation_accepted_count"]) > 0,
+        "rejection_covered": int(canonical_observation["joint"]["invitation_rejected_count"]) > 0,
+        "participant_exclusivity": all(
+            targeted_int(item, "participant_ownership_count_before") == len(cast(list[object], item["participant_ids"]))
+            for item in joint_observations
+        ),
+        "atomic_reservations": all(
+            targeted_int(item, "reservation_count_before") > 0
+            and cast(dict[str, int], item["reservation_kind_counts_before"])["PARTICIPANT"]
+            == len(cast(list[object], item["participant_ids"]))
+            for item in joint_observations
+        ),
+        "cancel_release": authority_probe_results["joint_action_cancel_release"]["status"] == "PASS",
+        "failure_release": authority_probe_results["joint_action_failure_release"]["status"] == "PASS",
+        "timeout_release": authority_probe_results["joint_action_timeout_release"]["status"] == "PASS",
+        "split_action_count": int(canonical_observation["joint"]["split_action_count"]),
+        "replay_match": all(bool(item["replay_match"]) for item in joint_observations),
+    }
     thirty_performance = [observations[str(job["job_id"])]["performance"] for job in jobs if int(job["days"]) == 30]
     performance = {
         "reference_machine": reference_machine,
@@ -870,21 +942,6 @@ def _aggregate_artifacts(
             "owner": "QA",
             "reason": "Repository integration gates are evaluated by check_m3, not by a soak run.",
         },
-        {
-            "qa_field": "behavior targeted fixture probe booleans",
-            "owner": "SIM_FAST_TARGETED_FIXTURES",
-            "reason": "The release soak records occurrences; it does not relabel test assertions as run facts.",
-        },
-        {
-            "qa_field": "matrices.knowledge_permissions.unknown_share_rejected",
-            "owner": "SIM_FAST_TARGETED_FIXTURES",
-            "reason": "Rejecting an unknown share is a targeted negative probe, not a positive soak observation.",
-        },
-        {
-            "qa_field": "matrices.joint_action.cancel_release|failure_release|timeout_release",
-            "owner": "SIM_FAST_TARGETED_FIXTURES",
-            "reason": "Forced terminal-path release coverage requires targeted JointAction probes.",
-        },
     ]
     authority = {
         "schema": ARTIFACT_SCHEMAS["authority_evidence"],
@@ -895,6 +952,8 @@ def _aggregate_artifacts(
             "agent_liveness": [liveness_by_agent[key] for key in sorted(liveness_by_agent)],
             "household_economy": canonical_observation["household_economy"],
             "relationship_summary": relationship_summary,
+            "knowledge_permissions": knowledge_permissions,
+            "joint_action": joint_action,
             "determinism": determinism,
             "soak_runs": soak_rows,
             "pathology": pathology,
@@ -915,6 +974,8 @@ def _aggregate_artifacts(
         ],
         "knowledge_observation": canonical_observation["knowledge"],
         "joint_action_observation": canonical_observation["joint"],
+        "qa_probe_evidence": authority_probe_results,
+        "targeted_probe_observations": authority_probe_observations,
         "not_produced_qa_fields": unsupported,
     }
     behavior_report = {
@@ -922,7 +983,7 @@ def _aggregate_artifacts(
         **common,
         "cases": behavior_cases,
         "all_22_observed": all(int(item["release_soak_occurrence_count"]) > 0 for item in behavior_cases),
-        "scope_note": "SIM release-soak occurrence evidence; targeted probe and Unity facts retain their owners.",
+        "scope_note": "SIM targeted authority probes plus release-soak occurrence evidence; Unity facts retain UNITY ownership.",
     }
     soak_reports = {}
     for days, name in ((7, "soak_7_day_report"), (30, "soak_30_day_report")):
@@ -1174,6 +1235,7 @@ def produce_release_evidence(
             state=state,
             output_root=output_root,
             catalog=catalog,
+            m3_catalogs=m3_catalogs,
             source_commit=source_commit,
             reference_machine=reference_machine,
         )

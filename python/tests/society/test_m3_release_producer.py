@@ -100,7 +100,13 @@ def _fake_observation(catalog: object, run_path: Path) -> dict[str, Any]:
             "untraced_delta_count": 0,
             "boundary_violation_count": 0,
         },
-        "knowledge": {"acquisition_counts": {}, "shared_event_count": 1, "shared_without_speaker_knowledge_count": 0},
+        "knowledge": {
+            "acquisition_counts": {"DIRECT_PARTICIPANT": 1, "WITNESSED": 1, "TOLD": 1},
+            "shared_event_count": 1,
+            "shared_without_speaker_knowledge_count": 0,
+            "player_told_record_count": 0,
+            "epistemic_graph_count": 0,
+        },
         "joint": {
             "joint_action_count": 1,
             "invitation_accepted_count": 1,
@@ -279,9 +285,68 @@ def test_release_producer_writes_only_seven_sim_artifacts_and_revalidates_them(
     authority = json.loads((tmp_path / bundle["artifacts"]["authority_evidence"]["path"]).read_text(encoding="utf-8"))
     assert len(authority["qa_matrix_projection"]["soak_runs"]) == 8
     assert authority["qa_matrix_projection"]["determinism"]["driver_chunks_minutes"] == [1, 7, 60]
+    assert authority["qa_matrix_projection"]["knowledge_permissions"] == {
+        "direct_participant_covered": True,
+        "witnessed_covered": True,
+        "told_covered": True,
+        "unknown_share_rejected": True,
+        "speaker_known_event_only": True,
+        "player_told_record_count": 0,
+        "epistemic_graph_count": 0,
+    }
+    assert authority["qa_matrix_projection"]["joint_action"] == {
+        "invited_activity_ids": ["watch_tv", "eat_at_cafe", "drink_at_bar", "walk_in_park", "sit_in_park"],
+        "central_resolver": True,
+        "acceptance_covered": True,
+        "rejection_covered": True,
+        "participant_exclusivity": True,
+        "atomic_reservations": True,
+        "cancel_release": True,
+        "failure_release": True,
+        "timeout_release": True,
+        "split_action_count": 0,
+        "replay_match": True,
+    }
+    assert set(authority["qa_probe_evidence"]) == {
+        "knowledge_unknown_share_rejected",
+        "joint_action_cancel_release",
+        "joint_action_failure_release",
+        "joint_action_timeout_release",
+    }
+    assert all(
+        set(record) == {"status", "test_ids", "assertion_count"}
+        and record["status"] == "PASS"
+        and record["test_ids"]
+        and record["assertion_count"] > 0
+        for record in authority["qa_probe_evidence"].values()
+    )
     unsupported = {item["qa_field"] for item in authority["not_produced_qa_fields"]}
-    assert "matrices.knowledge_permissions.unknown_share_rejected" in unsupported
-    assert "matrices.joint_action.cancel_release|failure_release|timeout_release" in unsupported
+    assert "matrices.knowledge_permissions.unknown_share_rejected" not in unsupported
+    assert "matrices.joint_action.cancel_release|failure_release|timeout_release" not in unsupported
+    behavior_path = tmp_path / bundle["artifacts"]["behavior_matrix_report"]["path"]
+    behavior = json.loads(behavior_path.read_text(encoding="utf-8"))
+    assert len(behavior["cases"]) == 22
+    assert [item["behavior_id"] for item in behavior["cases"]] == [item.value for item in BehaviorId]
+    expected_probe_keys = {
+        "legal_candidate",
+        "illegal_candidate",
+        "hard_cost_preview",
+        "resolver_accept",
+        "resolver_reject",
+        "reservation_and_lifecycle",
+        "allowed_effects",
+        "authoritative_replay",
+    }
+    assert all(set(item["sim_targeted_probe_results"]) == expected_probe_keys for item in behavior["cases"])
+    assert all(
+        set(record) == {"status", "test_ids", "assertion_count"}
+        and record["status"] == "PASS"
+        and record["test_ids"]
+        and record["assertion_count"] > 0
+        for item in behavior["cases"]
+        for record in item["sim_targeted_probe_results"].values()
+    )
+    assert all(item["unity_presentation"] is None for item in behavior["cases"])
     assert "stwm.qa.m3-acceptance-evidence/v1" not in {
         json.loads((tmp_path / descriptor["path"]).read_text(encoding="utf-8"))["schema"]
         for descriptor in bundle["artifacts"].values()
