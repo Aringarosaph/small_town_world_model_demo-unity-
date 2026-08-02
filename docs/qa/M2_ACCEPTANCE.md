@@ -42,11 +42,15 @@ Unity bridge, and Unity evidence exporter are integrated. It may contain no
    cancellation message is a non-authoritative observation and may not directly
    change action state, location, needs, resources, events, wages, or
    `state_version`.
-7. Reconnect uses a new connection generation and new message IDs, repeats the
-   full hello and registry sequence, receives a fresh snapshot no older than the
-   previous connection's last acknowledged authority version, and does not
-   resume before the new `client_ready`. Stale versions, obsolete generations,
-   and late messages are rejected with zero authority mutation.
+7. Stale handling follows two distinct ADR-0010 branches. **A:** an older
+   `movement_cancelled` on the current connection generation whose world,
+   action, agent and allowed `TRAVELING` phase match exactly is processable and
+   commits the Python cancellation transaction exactly once. **B:** a stale
+   report for a terminal/nonmatching action or an obsolete generation performs
+   zero authority transactions/mutations and triggers diagnostic resync.
+   Reconnect uses new message IDs, repeats the full hello and registry sequence,
+   receives a snapshot no older than the previous connection's last
+   acknowledged authority version, and does not resume before `client_ready`.
 8. EditMode, PlayMode, and batchmode evidence pass. Animation failure is not an
    authority settlement prerequisite, and Unity cache is never authority.
 9. M0/M1 tests, M0 freeze, M1 replay hashes, lint and type checks remain green.
@@ -66,6 +70,14 @@ reconnect observations are independently validated; prose cannot substitute
 for their exact fields. Evidence records catalog provenance as
 `catalog_protocol_version=0.1.0` and the active Bridge session separately as
 `negotiated_protocol_version=0.2.0`.
+
+The canonical A-branch transaction field is
+`cancellation.python_authority_cancel_transaction_count=1`. B is represented
+only by `stale_nonmatching_or_terminal_authority_transaction_count=0`,
+`stale_nonmatching_or_terminal_authority_mutation_count=0`, and
+`stale_nonmatching_or_terminal_diagnostic_resync=true`. The broad legacy
+`stale_state_message_authority_mutation_count` and a duplicate
+`stale_exact_current_action_transaction_count` are invalid in QA v1.
 
 ## Commands
 

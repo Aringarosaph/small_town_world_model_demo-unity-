@@ -40,8 +40,12 @@ ORCH decided ADR-0010 semantics while this work was active:
 - movement report `correlation_id` equals `action_id`;
 - identical same-`message_id` retransmission is idempotent;
 - conflicting canonical content under the same ID is rejected;
-- wrong direction, stale state, obsolete connection generation, and late old
-  transport messages produce zero authority mutation;
+- an exact-match stale cancellation on the current generation remains
+  processable and commits exactly once;
+- stale terminal/nonmatching cancellations produce zero authority
+  transaction/mutation plus diagnostic resync;
+- wrong-direction, future-version, obsolete-generation, and late old-transport
+  inputs are rejected with zero authority mutation;
 - Python performs exactly one authoritative cancellation transaction; Unity's
   report has zero direct authority mutation.
 
@@ -71,12 +75,53 @@ these checks to retain 0.1 compatibility as an accepted M2 result.
 
 ### SIM/Python bridge
 
-Expose production-bridge test observations for message acceptance/rejection,
-before/after state hash and version, committed transaction count, dedupe versus
-same-ID conflict, and connection generation. The adapter must drive existing
-authority transitions and must not reproduce domain rules. Cancellation must
-prove exactly one Python transaction and zero mutation for duplicate,
-conflicting, stale, wrong-generation and late messages.
+ORCH commit `7e11d24` integrates the SIM artifact
+`stwm.bridge.m2-authority-evidence/v1`. QA consumes its scalar observations and
+the `stale_exact_current_action` / `stale_nonmatching_or_terminal` probes; it
+does not infer or reproduce simulation rules.
+
+The final `stwm.qa.m2-acceptance-evidence/v1` cancellation object has **exactly**
+these keys:
+
+```text
+conflicting_same_message_id_rejected_without_mutation
+correlation_id_equals_action_id
+direction
+direction_rejected_without_mutation
+duplicate_same_message_id_is_idempotent
+future_state_version_rejected_without_mutation
+python_authority_cancel_transaction_count
+stale_exact_current_action_processed
+stale_nonmatching_or_terminal_authority_mutation_count
+stale_nonmatching_or_terminal_authority_transaction_count
+stale_nonmatching_or_terminal_diagnostic_resync
+unity_direct_authority_mutation_count
+```
+
+`python_authority_cancel_transaction_count=1` is the sole QA summary field for
+the processable exact-current-action stale branch; the SIM probe
+`stale_exact_current_action.authority_transaction_count` is its source. Do not
+also emit `stale_exact_current_action_transaction_count`. The three
+`stale_nonmatching_or_terminal_*` fields come from that SIM probe's
+`authority_mutation_count`, `authority_transaction_count`, and
+`outcome == DIAGNOSTIC_RESYNC`, respectively.
+
+The final reconnect object has **exactly** these keys:
+
+```text
+fresh_snapshot_not_older_than_last_acknowledged_version
+full_hello_and_registry_repeated
+late_obsolete_generation_authority_mutation_count
+new_client_ready_before_resume
+new_message_ids
+obsolete_generation_rejected
+```
+
+SIM's legacy broad `stale_state_message_authority_mutation_count` must not be
+copied from either source object into QA evidence: it ambiguously hides the
+processable A branch. `late_terminal_message_authority_mutation_count` and
+reconnect session/detail objects remain source evidence, not duplicate QA
+summary fields. The strict validator rejects all extra keys.
 
 ### UNITY
 
@@ -85,7 +130,10 @@ arrived/failed/cancelled, disconnect and reconnect; export the actual registry,
 redacted transcript, EditMode/PlayMode XML and batchmode log. Export
 `stwm.qa.m2-acceptance-evidence/v1` to a repository-external result directory.
 The agreed Editor/batchmode export entry point must return nonzero on any failed
-gate.
+gate. Update `SelectCancellationObservations` and
+`SelectReconnectObservations` to emit the exact key sets above. In particular,
+derive the three B-branch fields from the SIM probe rather than selecting either
+legacy broad stale field.
 
 ### ORCHESTRATOR/CI
 
@@ -128,6 +176,18 @@ Final independent QA verification after CONTRACTS formatting integration:
 The complete M1 three-day gate was deliberately not rerun, per ORCH's
 single-instance resource ordering. CONTRACTS re-freeze evidence remains an
 ORCH integration step and does not block this QA commit.
+
+ADR-0010 stale-semantics audit adds a strict evidence split: the current
+generation/world/action/agent/`TRAVELING` exact-match stale cancellation must be
+processed with `python_authority_cancel_transaction_count=1`; stale
+terminal/nonmatching reports must have authority-transaction and
+authority-mutation counts zero plus diagnostic resync. The final exact key sets
+above replace the deprecated broad `stale_state_message_authority_mutation_count`
+shape and avoid a duplicate exact-stale transaction field.
+QA-scoped Ruff/format and strict Mypy pass. The focused Python 3.12 audit has
+26 passes and one expected Unity-absence skip; the standalone diagnostic has
+17 passes, 26 ADR-0009 warnings, two Unity-owned pending items, and zero
+failures.
 
 ## Final commands
 

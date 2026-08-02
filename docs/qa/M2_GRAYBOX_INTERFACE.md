@@ -73,8 +73,11 @@ For every movement report:
 - envelope `correlation_id` equals the authority `action_id`;
 - an identical retransmission with the same `message_id` is processed once;
 - a same-ID message with different canonical content is rejected as a conflict;
-- stale `state_version`, wrong direction, obsolete generation, and late old
-  transport input produce zero authority mutation.
+- a stale report on the current generation is processable when world, action,
+  agent and allowed `TRAVELING` phase still match exactly;
+- stale terminal/nonmatching reports, wrong direction, obsolete generation, and
+  late old-transport input produce zero authority mutation and diagnostic
+  resync.
 
 For `movement_cancelled`, Python commits exactly one authoritative cancellation
 transaction and emits any resulting authoritative action/state messages. Unity
@@ -91,8 +94,11 @@ generation. Reconnect requires:
 4. receive a new full snapshot whose version is at least the old connection's
    last acknowledged authority version;
 5. send a new `client_ready` before execution resumes;
-6. inject one late old-generation input and one stale-version input and record
-   zero authority mutations for both.
+6. inject one exact-current-action stale cancellation and record one Python
+   cancellation transaction;
+7. inject one stale terminal/nonmatching cancellation and one late
+   old-generation input, recording zero authority mutation plus diagnostic
+   resync for both rejected branches.
 
 Unity cache may accelerate presentation reconstruction but may never replace
 the fresh authoritative snapshot.
@@ -104,11 +110,21 @@ the fresh authoritative snapshot.
   tests.
 - SIM: a production-bridge adapter capable of reporting accepted/rejected
   message outcomes, committed transaction count, before/after state hash and
-  state version, dedupe/conflict result, and connection generation. It may not
-  duplicate simulation rules in a QA adapter.
+  state version, dedupe/conflict result, connection generation, the processable
+  exact-current-action stale branch, and the zero-mutation stale
+  terminal/nonmatching branch. It may not duplicate simulation rules in a QA
+  adapter.
 - UNITY: deterministic mock/recorded transport injection, scoped registry JSON
   export, reconnect generation control, late/stale injection, and external
   `stwm.qa.m2-acceptance-evidence/v1` export from EditMode/PlayMode/batchmode.
+
+The QA summary uses `python_authority_cancel_transaction_count=1` as the only
+A-branch transaction count. B uses the
+`stale_nonmatching_or_terminal_authority_transaction_count`,
+`stale_nonmatching_or_terminal_authority_mutation_count`, and
+`stale_nonmatching_or_terminal_diagnostic_resync` fields. Do not copy the SIM
+source's broad `stale_state_message_authority_mutation_count` into the QA
+summary.
 
 Fixture JSON is input/expectation data. It is never authoritative runtime state
 and may not be used by product code as a replacement implementation.

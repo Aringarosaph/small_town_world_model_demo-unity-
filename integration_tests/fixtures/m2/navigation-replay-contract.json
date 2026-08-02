@@ -3,7 +3,9 @@
     "animation_completion_is_not_authority": true,
     "arrival_updates_high_level_location_once": true,
     "failed_or_cancelled_navigation_does_not_commit_arrival": true,
-    "late_messages_from_old_connection_are_rejected": true
+    "late_messages_from_old_connection_are_rejected": true,
+    "processable_stale_exact_current_action_commits_once": true,
+    "stale_zero_mutation_applies_only_to_nonmatching_terminal_or_obsolete": true
   },
   "cases": [
     {
@@ -30,10 +32,17 @@
       "conflicting_same_message_id_rejected": true,
       "correlation_id_equals_action_id": true,
       "direction": "unity_to_python",
+      "direction_rejected_without_mutation": true,
       "duplicate_same_message_id_is_idempotent": true,
       "expected_authority_outcome": "PYTHON_CANCEL_TRANSACTION_ONCE",
+      "future_state_version_rejected_without_mutation": true,
       "name": "cancelled",
+      "python_authority_cancel_transaction_count": 1,
       "required_message_type": "movement_cancelled",
+      "stale_exact_current_action_processed": true,
+      "stale_nonmatching_or_terminal_authority_mutation_count": 0,
+      "stale_nonmatching_or_terminal_authority_transaction_count": 0,
+      "stale_nonmatching_or_terminal_diagnostic_resync": true,
       "unity_direct_authority_mutation_count": 0
     }
   ],

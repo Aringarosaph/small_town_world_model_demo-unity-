@@ -127,6 +127,28 @@ EVIDENCE_ARTIFACTS: Final = (
     "playmode_results",
     "registry_report",
 )
+CANCELLATION_OBSERVATIONS: Final = (
+    "conflicting_same_message_id_rejected_without_mutation",
+    "correlation_id_equals_action_id",
+    "direction",
+    "direction_rejected_without_mutation",
+    "duplicate_same_message_id_is_idempotent",
+    "future_state_version_rejected_without_mutation",
+    "python_authority_cancel_transaction_count",
+    "stale_exact_current_action_processed",
+    "stale_nonmatching_or_terminal_authority_mutation_count",
+    "stale_nonmatching_or_terminal_authority_transaction_count",
+    "stale_nonmatching_or_terminal_diagnostic_resync",
+    "unity_direct_authority_mutation_count",
+)
+RECONNECT_OBSERVATIONS: Final = (
+    "fresh_snapshot_not_older_than_last_acknowledged_version",
+    "full_hello_and_registry_repeated",
+    "late_obsolete_generation_authority_mutation_count",
+    "new_client_ready_before_resume",
+    "new_message_ids",
+    "obsolete_generation_rejected",
+)
 UNITY_GENERATED_PARTS: Final = {
     "library",
     "temp",
@@ -421,6 +443,20 @@ def _validate_navigation_fixture(root: Path) -> tuple[bool, str, bool]:
         return False, "cancellation correlation/idempotency requirements are incomplete", cancelled in known
     if cancellation.get("unity_direct_authority_mutation_count") != 0:
         return False, "Unity cancellation reports must have zero direct authority mutation", cancelled in known
+    if cancellation.get("stale_exact_current_action_processed") is not True:
+        return False, "an exact current-action stale cancellation must be processed", cancelled in known
+    if cancellation.get("python_authority_cancel_transaction_count") != 1:
+        return False, "an exact current-action stale cancellation must commit once", cancelled in known
+    if cancellation.get("direction_rejected_without_mutation") is not True:
+        return False, "a wrong-direction cancellation must be rejected without mutation", cancelled in known
+    if cancellation.get("future_state_version_rejected_without_mutation") is not True:
+        return False, "a future-version cancellation must be rejected without mutation", cancelled in known
+    if cancellation.get("stale_nonmatching_or_terminal_diagnostic_resync") is not True:
+        return False, "a nonmatching or terminal stale cancellation must trigger diagnostic resync", cancelled in known
+    if cancellation.get("stale_nonmatching_or_terminal_authority_transaction_count") != 0:
+        return False, "a nonmatching or terminal stale cancellation must not commit", cancelled in known
+    if cancellation.get("stale_nonmatching_or_terminal_authority_mutation_count") != 0:
+        return False, "a nonmatching or terminal stale cancellation must not mutate authority", cancelled in known
     return True, "", cancelled in known
 
 
@@ -909,6 +945,9 @@ def check_evidence_template(root: Path) -> list[Finding]:
             and set(gates) == set(EVIDENCE_GATES)
             and set(artifacts) == set(EVIDENCE_ARTIFACTS)
             and set(observations) == {"cancellation", "reconnect"}
+            and set(_mapping(observations["cancellation"], "observations.cancellation"))
+            == set(CANCELLATION_OBSERVATIONS)
+            and set(_mapping(observations["reconnect"], "observations.reconnect")) == set(RECONNECT_OBSERVATIONS)
             and all(_mapping(value, f"gate.{key}").get("status") == "PENDING" for key, value in gates.items())
         )
         error = "M2 evidence template shape or frozen metadata is incorrect"
@@ -1024,10 +1063,14 @@ def validate_acceptance_evidence(evidence_path: Path, root: Path) -> list[Findin
         if set(observations) != {"cancellation", "reconnect"}:
             raise DiagnosticError("M2 evidence observations must contain cancellation and reconnect")
         cancellation = _mapping(observations["cancellation"], "M2 evidence.observations.cancellation")
+        if set(cancellation) != set(CANCELLATION_OBSERVATIONS):
+            raise DiagnosticError(f"M2 cancellation observations must be exactly {sorted(CANCELLATION_OBSERVATIONS)}")
         required_cancellation_true = (
             "conflicting_same_message_id_rejected_without_mutation",
             "correlation_id_equals_action_id",
+            "direction_rejected_without_mutation",
             "duplicate_same_message_id_is_idempotent",
+            "future_state_version_rejected_without_mutation",
         )
         if any(cancellation.get(key) is not True for key in required_cancellation_true):
             raise DiagnosticError("cancellation correlation/idempotency observations are not all true")
@@ -1037,7 +1080,22 @@ def validate_acceptance_evidence(evidence_path: Path, root: Path) -> list[Findin
             raise DiagnosticError("cancellation must commit exactly one Python authority transaction")
         if cancellation.get("unity_direct_authority_mutation_count") != 0:
             raise DiagnosticError("Unity cancellation report directly mutated authority")
+        if cancellation.get("stale_exact_current_action_processed") is not True:
+            raise DiagnosticError(
+                "a stale movement_cancelled for the exact current-generation/world/action/agent/TRAVELING "
+                "match was not processed"
+            )
+        if cancellation.get("stale_nonmatching_or_terminal_diagnostic_resync") is not True:
+            raise DiagnosticError(
+                "a nonmatching or terminal stale movement_cancelled did not trigger diagnostic resync"
+            )
+        if cancellation.get("stale_nonmatching_or_terminal_authority_transaction_count") != 0:
+            raise DiagnosticError("a nonmatching or terminal stale movement_cancelled committed a transaction")
+        if cancellation.get("stale_nonmatching_or_terminal_authority_mutation_count") != 0:
+            raise DiagnosticError("a nonmatching or terminal stale movement_cancelled mutated authority")
         reconnect = _mapping(observations["reconnect"], "M2 evidence.observations.reconnect")
+        if set(reconnect) != set(RECONNECT_OBSERVATIONS):
+            raise DiagnosticError(f"M2 reconnect observations must be exactly {sorted(RECONNECT_OBSERVATIONS)}")
         required_reconnect_true = (
             "fresh_snapshot_not_older_than_last_acknowledged_version",
             "full_hello_and_registry_repeated",
@@ -1049,8 +1107,6 @@ def validate_acceptance_evidence(evidence_path: Path, root: Path) -> list[Findin
             raise DiagnosticError("reconnect/resync observations are not all true")
         if reconnect.get("late_obsolete_generation_authority_mutation_count") != 0:
             raise DiagnosticError("late obsolete-generation message mutated authority")
-        if reconnect.get("stale_state_message_authority_mutation_count") != 0:
-            raise DiagnosticError("stale state-version message mutated authority")
         if "movement_cancelled" not in {item.value for item in MessageType}:
             raise DiagnosticError("movement_cancelled protocol contract is unresolved; strict M2 evidence cannot pass")
     except DiagnosticError as exc:

@@ -60,11 +60,15 @@ the unrestricted payload merely to prove hashing or deduplication.
 
 Reconnect evidence records the old last-acknowledged authority version, new
 snapshot version, new `client_ready`, and explicit rejection codes for late
-obsolete-generation and stale-version inputs. Cancellation evidence records
-whether an identical duplicate was idempotent, a conflicting same-ID message
-was rejected, and exactly one Python authority cancellation transaction was
-committed. Unity-originated reports always record zero direct authority
-mutation.
+obsolete-generation inputs. Cancellation evidence separates two stale cases:
+an exact current-generation world/action/agent/`TRAVELING` match is processed
+with `python_authority_cancel_transaction_count=1`; a terminal/nonmatching
+stale report records the three explicit
+`stale_nonmatching_or_terminal_*` transaction/mutation/resync fields. The broad
+`stale_state_message_authority_mutation_count` is not a QA summary field. It
+also records identical-duplicate idempotency and conflicting same-ID rejection.
+Unity-originated reports always record zero *direct* authority mutation; this
+does not prohibit Python from committing the valid cancellation transaction.
 
 ## Safety and quality rules
 

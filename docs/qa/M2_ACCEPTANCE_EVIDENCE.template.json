@@ -29,8 +29,14 @@
       "conflicting_same_message_id_rejected_without_mutation": null,
       "correlation_id_equals_action_id": null,
       "direction": "unity_to_python",
+      "direction_rejected_without_mutation": null,
       "duplicate_same_message_id_is_idempotent": null,
+      "future_state_version_rejected_without_mutation": null,
       "python_authority_cancel_transaction_count": null,
+      "stale_exact_current_action_processed": null,
+      "stale_nonmatching_or_terminal_authority_mutation_count": null,
+      "stale_nonmatching_or_terminal_authority_transaction_count": null,
+      "stale_nonmatching_or_terminal_diagnostic_resync": null,
       "unity_direct_authority_mutation_count": null
     },
     "reconnect": {
@@ -39,8 +45,7 @@
       "late_obsolete_generation_authority_mutation_count": null,
       "new_client_ready_before_resume": null,
       "new_message_ids": null,
-      "obsolete_generation_rejected": null,
-      "stale_state_message_authority_mutation_count": null
+      "obsolete_generation_rejected": null
     }
   },
   "project_name": "Small Town World Model（STWM）",

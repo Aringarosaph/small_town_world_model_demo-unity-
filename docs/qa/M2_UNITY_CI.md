@@ -11,8 +11,9 @@ repository/CI owner provisions a license or supported activation method.
    diagnostic and the pending-capable M2 adapter. It uploads only
    `m2-diagnostics.json`.
 2. **Unity EditMode**: validates semantic components, duplicate/missing IDs,
-   registry export, protocol parsing, message directions, dedupe/conflict,
-   stale versions and obsolete generations against deterministic mocks.
+   registry export, protocol parsing, message directions, dedupe/conflict, the
+   processable exact-match stale branch, rejected terminal/nonmatching stale
+   branch, and obsolete generations against deterministic mocks.
 3. **Unity PlayMode**: drives the no-art `home_a -> cafe_bar -> home_a` fixture,
    arrival/failure/timeout/cancel/disconnect/reconnect paths, animation fallback,
    and non-authority assertions.

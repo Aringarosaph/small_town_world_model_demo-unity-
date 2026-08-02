@@ -63,8 +63,14 @@ def _passing_evidence(root: Path, output: Path) -> Path:
         "conflicting_same_message_id_rejected_without_mutation": True,
         "correlation_id_equals_action_id": True,
         "direction": "unity_to_python",
+        "direction_rejected_without_mutation": True,
         "duplicate_same_message_id_is_idempotent": True,
+        "future_state_version_rejected_without_mutation": True,
         "python_authority_cancel_transaction_count": 1,
+        "stale_exact_current_action_processed": True,
+        "stale_nonmatching_or_terminal_authority_mutation_count": 0,
+        "stale_nonmatching_or_terminal_authority_transaction_count": 0,
+        "stale_nonmatching_or_terminal_diagnostic_resync": True,
         "unity_direct_authority_mutation_count": 0,
     }
     observations["reconnect"] = {
@@ -74,7 +80,6 @@ def _passing_evidence(root: Path, output: Path) -> Path:
         "new_client_ready_before_resume": True,
         "new_message_ids": True,
         "obsolete_generation_rejected": True,
-        "stale_state_message_authority_mutation_count": 0,
     }
     evidence = output / "m2-evidence.json"
     evidence.write_text(json.dumps(document), encoding="utf-8")
@@ -221,12 +226,73 @@ def test_pending_evidence_cannot_be_reported_as_final(tmp_path: Path) -> None:
     assert "not PASS" in findings[0].message
 
 
-def test_complete_external_evidence_passes(tmp_path: Path) -> None:
+def test_complete_external_evidence_passes_with_processable_stale_branch(tmp_path: Path) -> None:
     root = find_repository_root(Path(__file__))
 
     findings = validate_acceptance_evidence(_passing_evidence(root, tmp_path), root)
 
     assert [(finding.status, finding.code) for finding in findings] == [(Status.PASS, "M2_ACCEPTANCE_EVIDENCE_VALID")]
+
+
+@pytest.mark.parametrize(
+    ("section", "field"),
+    [
+        ("cancellation", "stale_exact_current_action_transaction_count"),
+        ("cancellation", "stale_state_message_authority_mutation_count"),
+        ("reconnect", "stale_state_message_authority_mutation_count"),
+    ],
+)
+def test_ambiguous_or_duplicate_stale_observation_is_rejected(
+    tmp_path: Path,
+    section: str,
+    field: str,
+) -> None:
+    root = find_repository_root(Path(__file__))
+    evidence = _passing_evidence(root, tmp_path)
+    document = _read_json(evidence)
+    observations = cast(dict[str, dict[str, object]], document["observations"])
+    observations[section][field] = 0
+    evidence.write_text(json.dumps(document), encoding="utf-8")
+
+    findings = validate_acceptance_evidence(evidence, root)
+
+    assert findings[0].status is Status.FAIL
+    assert f"{section} observations must be exactly" in findings[0].message
+
+
+@pytest.mark.parametrize(
+    ("field", "value", "message"),
+    [
+        ("stale_exact_current_action_processed", False, "match was not processed"),
+        ("python_authority_cancel_transaction_count", 0, "must commit exactly one Python authority transaction"),
+        ("direction_rejected_without_mutation", False, "not all true"),
+        ("future_state_version_rejected_without_mutation", False, "not all true"),
+        (
+            "stale_nonmatching_or_terminal_diagnostic_resync",
+            False,
+            "did not trigger diagnostic resync",
+        ),
+        ("stale_nonmatching_or_terminal_authority_transaction_count", 1, "committed a transaction"),
+        ("stale_nonmatching_or_terminal_authority_mutation_count", 1, "mutated authority"),
+    ],
+)
+def test_stale_cancellation_branches_are_not_conflated(
+    tmp_path: Path,
+    field: str,
+    value: object,
+    message: str,
+) -> None:
+    root = find_repository_root(Path(__file__))
+    evidence = _passing_evidence(root, tmp_path)
+    document = _read_json(evidence)
+    observations = cast(dict[str, dict[str, object]], document["observations"])
+    observations["cancellation"][field] = value
+    evidence.write_text(json.dumps(document), encoding="utf-8")
+
+    findings = validate_acceptance_evidence(evidence, root)
+
+    assert findings[0].status is Status.FAIL
+    assert message in findings[0].message
 
 
 def test_external_evidence_rejects_sensitive_artifact_content(tmp_path: Path) -> None:

@@ -6,6 +6,13 @@ rules, the ADR-0009 scoped asset profile, Unity generated-file policy and
 external acceptance evidence. It imports catalog/DTO definitions and contains
 no transport, navigation, cancellation or simulation implementation.
 
+The evidence validator distinguishes ADR-0010 stale branches: an exact current
+generation/world/action/agent/`TRAVELING` cancellation commits once, while only
+terminal/nonmatching or obsolete-generation stale inputs are zero-mutation
+resync outcomes. It rejects both the legacy broad stale counter and a duplicate
+exact-stale transaction counter; `python_authority_cancel_transaction_count` is
+the sole A-branch transaction field.
+
 ```bash
 python tools/diagnostics/check_m2.py \
   --registry integration_tests/fixtures/m2/m2-slice-valid.json \
