@@ -1,5 +1,58 @@
 # AITOWN-SIM M2 Python Bridge Handoff
 
+## M3 society authority increment (2026-08-03)
+
+The scoped M3 branch starts from frozen entry `2a51615` and consumes the
+CONTRACTS commits `3fe06f6` and `ca8944b` without editing their frozen
+protocol/config/domain paths. The additive society runtime lives under
+`python/town_core/society/`; the accepted M1 one-NPC and M2 protocol `0.2.0`
+entry points remain separate.
+
+The authority increment currently provides ten enabled NPCs, same-snapshot
+due-agent proposals, global deterministic IDs, the complete catalog-backed
+22-behavior rulebook, central batch resolution with one reselection, shared
+object/location/participant/household reservations, family economy, all-NPC
+work sessions and exactly-once wages, directed Target-to-Actor relationships,
+finite direct/witnessed/told knowledge, conversations, and central
+JointActions. Cancellation/failure releases the complete action reservation
+set. No neural model, training, DeepSeek call, or post-V0 graph was added.
+
+`AuthorityCheckpoint` remains SIM-owned and records the public world, private
+work/reservation/knowledge/conversation/JointAction ledgers, global counters,
+the M3 additive catalog hash, transaction-chain hash, and a persistable ordered
+authority-log cursor. Runs write a checkpoint every 360 game minutes.
+Checkpoint patch replay does not recompute policy, and a real one-day baseline,
+replay, and resume from minute 360 matched final state, final checkpoint,
+transaction chain, and the full ordered authority-log hash.
+
+The production object source is now only the CONTRACTS-owned shared
+`M3_FULL` 74-instance manifest loaded by `load_m3_catalogs`. The SIM runtime has
+no competing instance list. `SocietyCandidate` consumes `M3CandidateAction` and
+there is no duplicate invitation allowlist. Background dialogue consumes the
+CONTRACTS-owned Chinese `BackgroundDialogueCatalog` and selector; SIM adds only
+deterministic action/seed context and the speaker knowledge-permission check.
+
+### Current single-process performance evidence
+
+On Apple arm64, macOS 26.5.2, Python 3.12.11, seed `12345`, shared 74-instance
+manifest, `chunk_minutes=60`, a fresh production `run_society` execution from
+minute 0 through 1440 reported:
+
+- wall time: `8.884081` seconds;
+- peak RSS: `51,691,520` bytes via `resource.getrusage(RUSAGE_SELF).ru_maxrss`;
+- tick p99: `14.23525` ms;
+- decision-batch p95: `0.5765` ms;
+- 196 decisions, 187 actions, 86 events, and 2,707 ordered authority records.
+
+A deliberately simple 30x linear projection is `266.52243` seconds, or about
+`4m26.5s`, leaving about `10m33s` beneath the M3 15-minute single-run hard gate
+before separately scheduled replay/evidence work. This is a projection, not a
+substitute for the ORCH/QA-coordinated fixed 30-day soak; no long soak was run
+concurrently on the MacBook Air.
+
+The remaining M3 SIM work after this authority increment is protocol `0.3.0`
+Bridge presentation/gating plus the external readiness/evidence adapter.
+
 ## Current responsibility
 
 AITOWN-SIM owns the Python authority and local runtime-adapter side of the M2

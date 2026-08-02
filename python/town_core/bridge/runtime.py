@@ -507,7 +507,7 @@ class BridgeRuntime:
             if tag is CapabilityTag.WORKSHOP:
                 return AnimationSemantic.WORK_WORKSHOP
             return AnimationSemantic.WORK_DESK
-        return cast(AnimationSemantic, self._behavior(behavior_id).unity.animation_semantics[0])
+        return self._behavior(behavior_id).unity.animation_semantics[0]
 
     def _require_ready(self) -> None:
         if not self.ready:

@@ -10,7 +10,7 @@ from town_core.decision.candidates import CandidateEnumerator, WorkWindow
 from town_core.decision.outcomes import HeuristicOutcomeProvider
 from town_core.decision.resolver import CentralResolver, Resolution, SlotReservation
 from town_core.decision.utility import ScoredCandidate, UtilityScorer
-from town_core.domain.config_models import CatalogBundle, ScheduleEntry
+from town_core.domain.config_models import CatalogBundle, MoodValues, NeedValues, ScheduleEntry
 from town_core.domain.decision_models import (
     ActionProposal,
     CandidateAction,
@@ -33,8 +33,6 @@ from town_core.domain.enums import (
 from town_core.domain.state_models import (
     ActionState,
     KnowledgeRecord,
-    MoodValues,
-    NeedValues,
     WorldEvent,
     WorldState,
 )

@@ -157,7 +157,7 @@ class AuthorityTranscript:
 def _message_document(message: ProtocolMessage | Mapping[str, Any]) -> dict[str, Any]:
     if isinstance(message, Mapping):
         return dict(message)
-    return cast(dict[str, Any], message.model_dump(mode="json", exclude_none=False))
+    return message.model_dump(mode="json", exclude_none=False)
 
 
 def _message_type(document: Mapping[str, Any]) -> str | None:
