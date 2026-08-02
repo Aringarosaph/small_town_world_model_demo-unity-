@@ -17,7 +17,9 @@ Small Town World Model 是一个使用 **Python + Unity** 构建的小型社会�
 - DeepSeek 只负责玩家语言的结构化解析和自然语言表达；
 - 所有关键决策、事件和状态变化都可以追踪、检查和重放。
 
-当前仓库正在开发 **V0 Demo**。M0 契约基线与 M1 Headless 单 NPC 垂直切片已经完成；M2 Unity Bridge 功能灰盒切片正在开发。
+当前仓库正在开发 **V0 Demo**。M0 契约基线、M1 Headless 单 NPC 垂直切片和
+M2 Unity Bridge 功能灰盒切片均已通过本机严格验收；M2 的远端 Python CI 与
+需要许可证的 Unity CI 发布门仍需分别确认。
 
 ## 目录
 
@@ -106,7 +108,7 @@ M0 已冻结以下内容规模：
 | --- | --- | --- |
 | M0 规范与仓库基线 | 已完成 | 配置、Schema、协议、CI、冻结清单和 Unity 目录骨架 |
 | M1 Headless 硬规则切片 | 已完成 | 单 NPC 四行为、三日确定性运行、权威日志与事务回放 |
-| M2 Unity Bridge 切片 | 进行中 | 单 NPC 功能灰盒“家 -> 工作 -> 家”表现闭环 |
+| M2 Unity Bridge 切片 | 本机验收通过 | 单 NPC 功能灰盒“家 -> 工作 -> 家”、取消、失败、重连与全量重同步 |
 | M3 完整规则小社会 | 未开始 | 10 NPC、22 行为、经济与事件传播、30 日规则 Soak |
 | M4 社会锚点与世界模型 | 未开始 | 云端训练小型社会 Outcome Model，本地 CPU 推理 |
 | M5 DeepSeek 玩家对话 | 未开始 | 有权限边界的解析、表达、异步与模板回退 |
@@ -132,6 +134,16 @@ M1 在此基础上新增并通过：
 - 决策、Action、事务、事件四类权威日志联合哈希；
 - 从初始快照和有序事务回放到完全相同的最终状态哈希；
 - 非法版本、负资源、需求越界、重叠 Action 和事件篡改拒绝检查。
+
+M2 在本机固定环境中新增并通过：
+
+- Unity `6000.4.2f1` EditMode `26/26`、PlayMode `4/4`，均无跳过；
+- 真实 `ClientWebSocket` 与 Python `/town` 服务完成协议 `0.2.0` 的 hello、
+  registry、全量 snapshot 和 ready；
+- Python 单元测试 `123` 项、集成测试 `7` 项；
+- M0 `58/58`、M1 `15/15`、M2 `19/19` 严格诊断；
+- M2 的 26 条允许 warning 仅描述 M3 才会补齐的其余地点、NPC 和对象类型；
+- Ruff lint/format 与 strict Mypy 全部通过。
 
 ## 快速开始
 
@@ -265,6 +277,22 @@ uv run --no-editable python -m town_core.bridge.server \
   --host 127.0.0.1 --port 8765 --path /town
 ```
 
+保持这个终端运行，然后在 Unity Hub 中执行：
+
+1. 选择 **Add project from disk**，项目目录指向仓库内的 `unity/`；
+2. 使用固定 Editor `6000.4.2f1` 打开项目；
+3. 打开 `Assets/AITown/Scenes/M2FunctionalGraybox.unity`；
+4. 点击 Play。场景中的 `TownBridgeClient` 默认自动连接
+   `ws://127.0.0.1:8765/town`；
+5. 在左上角 `TownDebugPanel` 检查连接阶段、权威版本、游戏分钟、当前行为和
+   Action phase。只有 Ready 后，`0x / 1x / 2x / 4x` 与 Pause/Resume 请求才会启用；
+6. 结束时先退出 Play Mode，再在 Python 终端按 `Ctrl-C` 停止本地服务。
+
+灰盒只使用 Unity primitives，包含 `npc_01`、`home_a`、`cafe_bar`、床、
+冰箱、餐位和 `CAFE_MORNING` 工作位。需要重建时可使用 Unity 菜单
+`AITown > Create M2 Functional Graybox`；需要检查语义资产时使用
+`AITown > Validate Current Scene`。最终美术、其余九名 NPC 和完整八地点不属于 M2。
+
 Bridge 按顺序执行 `client_hello -> server_hello -> asset_registry ->
 asset_registry_result -> world_snapshot -> client_ready`。新连接会废止旧
 connection generation，重走完整握手并下发当前权威全量快照；
@@ -275,14 +303,16 @@ M2 在线连接使用 `0.2.0`，并按方向校验 Python→Unity 与 Unity→Py
 消息。合法的 typed `movement_cancelled` 由 Python 以自己的游戏分钟提交
 权威取消事务、释放该 Action 的预约并下发 `action_cancelled`；重复同一内容
 是 no-op，冲突、未知、已终态、未来版本或旧 connection generation 只产生
-诊断和全量重同步，不得改变其他 Action。Bridge 会话证据分别记录冻结目录
+诊断和全量重同步，不得改变其他 Action。较旧版本的取消只有在当前连接、
+world、action、agent 与 `TRAVELING` phase 仍精确匹配时才可由 Python 提交一次；
+终态或不匹配的旧消息必须保持零权威变更。Bridge 会话证据分别记录冻结目录
 来源版本 `0.1.0` 与实际协商版本 `0.2.0`。
 
 SIM 侧可以通过真实 production Bridge 会话生成取消与重连的权威证据。输出
 目录必须位于仓库外，并且必须为空：
 
 ```bash
-python -m town_core.bridge.qa_adapter \
+uv run --no-editable python -m town_core.bridge.qa_adapter \
   --config config/v0 \
   --output-root /tmp/stwm-m2-authority \
   --agent npc_01 --seed 12345
@@ -293,6 +323,11 @@ python -m town_core.bridge.qa_adapter \
 before/after state hash、state version、authority transaction 或 connection
 generation 观察。这是 Python authority test port，不冒充 Unity 拥有的最终
 `stwm.qa.m2-acceptance-evidence/v1`、EditMode 或 PlayMode 证据。
+
+Unity 批处理导入、EditMode/PlayMode、真实 server smoke 和最终外置证据导出
+命令见 [`docs/unity/README.md`](docs/unity/README.md)。严格验收规则见
+[`docs/qa/M2_ACCEPTANCE.md`](docs/qa/M2_ACCEPTANCE.md)。测试 XML、日志、SIM
+证据和最终 bundle 必须保存在仓库外，不能提交 Unity `Library/` 或许可数据。
 
 ## 仓库结构
 
@@ -343,7 +378,7 @@ generation 观察。这是 Python authority test port，不冒充 Unity 拥有�
 
 M1 保留全部 10 名 NPC 与 90 条有向关系边，但只启用 `npc_01`。其余角色不会衰减需求、决策、行动、领薪、见证或产生事件。M1 使用受冻结配置约束的确定性 Heuristic Outcome Provider；小型神经模型仍属于 M4。
 
-### M2：Unity Bridge 垂直切片
+### M2：Unity Bridge 垂直切片（本机验收通过）
 
 - Python/Unity WebSocket 握手；
 - Unity 资产注册与错误报告；

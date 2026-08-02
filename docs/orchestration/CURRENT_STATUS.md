@@ -2,15 +2,15 @@
 
 ## Milestone
 
-`M2 - One-NPC Unity Bridge functional-greybox slice (active)`
+`M2 - One-NPC Unity Bridge functional-greybox slice (local acceptance passed)`
 
 ## State
 
 - Orchestrator thread: `AITOWN-ORCH`
-- Contracts thread: active for M2 protocol compatibility audit
-- QA thread: active for M2 acceptance and CI
-- Simulation thread: active for the M2 Python bridge adapter
-- Unity thread: active for the M2 client, greybox, semantic assets, and tests
+- Contracts thread: M2 delivery complete; available for compatibility review
+- QA thread: M2 local gate complete; remote publication review pending
+- Simulation thread: M2 Python bridge and authority evidence complete
+- Unity thread: M2 client, greybox, evidence exporter, and tests complete
 - Integration branch: `codex/aitown-orch-m2`
 - Remote: `origin`
 - Unity version: `6000.4.2f1`
@@ -67,13 +67,32 @@
 - [x] Editor `6000.4.2f1` and sufficient local disk space verified.
 - [x] Freeze the one-NPC slice and scoped asset-validation policy.
 - [x] Activate CONTRACTS, SIM, QA, and UNITY ownership.
-- [ ] Freeze exact Unity package versions after the controlled first import.
-- [ ] Integrate the Python bridge adapter.
-- [ ] Integrate the Unity bridge, semantic components, and greybox fixture.
-- [ ] Pass local and remote M2 acceptance.
+- [x] Freeze exact Unity package versions after the controlled first import.
+- [x] Integrate the Python bridge adapter and authority evidence test port.
+- [x] Integrate the Unity bridge, semantic components, greybox fixture, and exporter.
+- [x] Pass local M2 acceptance with real `/town` interoperability.
+- [ ] Push the M2 integration branch and pass remote Python CI.
+- [ ] Provision and pass a licensed macOS ARM64 Unity CI lane, or explicitly
+  accept reproducible local batchmode evidence as the M2 Unity release gate.
+
+## M2 local acceptance result
+
+- Protocol `0.2.0` handshake, directional messages, registry, full snapshot,
+  readiness, cancellation, reconnect generations, and resynchronization pass.
+- Unity EditMode: 26 passed, 0 skipped.
+- Unity PlayMode: 4 passed, 0 skipped, including the production `/town` live smoke.
+- Python tests: 123 passed; integration tests: 7 passed.
+- Diagnostics: M0 58/58, M1 15/15, M2 19/19; M2 has 26 allowed M3-debt warnings,
+  0 pending, and 0 failures.
+- Ruff format/lint and strict Mypy pass; the final authority state hash is
+  `f0859d472a8ca7bbdd34393f75c342cfe16f84cb04deab38674bc92e9300aa6c`.
+- Final evidence was regenerated outside the repository against integration
+  commit `6b5b7d05c79186e0cd8f4b57fbd9552bfa54cbd1`.
 
 ## Blockers
 
-None at M2 entry. Final art, DeepSeek credentials, and the cloud training host
-are intentionally not required. A non-iCloud clone remains a contingency only
-if the first Unity import produces a measurable synchronization failure.
+No local implementation blocker remains. Remote strict Unity execution needs a
+macOS ARM64 runner with Unity `6000.4.2f1` and an approved Personal-license
+activation method; GitHub-hosted Python CI cannot supply that by itself. Final
+art, DeepSeek credentials, and the cloud training host remain intentionally out
+of scope.

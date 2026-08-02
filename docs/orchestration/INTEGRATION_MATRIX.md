@@ -64,3 +64,16 @@ with an M0 artifact are frozen inputs to that work.
   `negotiated_protocol_version`
 - Freeze gate: protocol/domain changes require the ADR-0010 M2 re-freeze manifest;
   the original M0 `0.1.0` source evidence remains recorded
+
+## M2 implementation integration record
+
+- Orchestrator execution baseline: `0a4caa1`
+- Protocol feature/format/re-freeze integrated as: `8a66e91`, `660efd8`, `1dcfd04`
+- Python WebSocket/cancellation/evidence integrated as: `a2a4814`, `8cfea57`, `7e11d24`
+- QA baseline and stale-semantics gate integrated as: `02c034c`, `19f769e`
+- Unity greybox foundation and final acceptance tooling integrated as:
+  `6d2fec1`, `6b5b7d0`
+- Local strict result: Unity EditMode 26/26, PlayMode 4/4, Python 123 tests,
+  integration 7 tests, M2 diagnostics 19 pass / 26 allowed warnings / 0 pending / 0 fail
+- Remote publication: Python CI pending branch push; licensed macOS ARM64 Unity
+  lane remains an explicit repository-owner provisioning decision

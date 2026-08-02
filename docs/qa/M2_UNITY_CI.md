@@ -1,9 +1,10 @@
 # M2 Unity CI strategy
 
 The Python workflow validates repository policy, QA fixtures and exported
-evidence without requiring a Unity license. Unity execution belongs in a
-separate macOS ARM64 lane after UNITY integrates a reproducible project and the
-repository/CI owner provisions a license or supported activation method.
+evidence without requiring a Unity license. The reproducible Unity project and
+local batchmode gate are implemented and locally accepted. Remote Unity
+execution belongs in a separate macOS ARM64 lane after the repository/CI owner
+provisions a runner and a supported license activation method.
 
 ## Lanes
 
@@ -21,9 +22,9 @@ repository/CI owner provisions a license or supported activation method.
    checkout, then runs `check_m2.py --require-m2 --evidence ...` against the
    integrated Python/Unity result.
 
-The first Unity lanes should use mock/recorded bridge fixtures. A live local
-Python WebSocket lane is additive and must wrap the production authority
-runtime; it cannot introduce a test-only simulation loop.
+Ordinary Unity lanes use mock/recorded bridge fixtures. Final evidence must also
+enable the environment-gated live local Python WebSocket smoke, which wraps the
+production authority runtime and may not introduce a test-only simulation loop.
 
 ## Batchmode commands
 
@@ -31,24 +32,27 @@ The runner supplies the exact Editor executable in `STWM_UNITY_EDITOR` and an
 external temporary directory in `STWM_M2_RESULTS`. The commands are:
 
 ```bash
-"$STWM_UNITY_EDITOR" -batchmode -quit \
+"$STWM_UNITY_EDITOR" -batchmode -nographics \
   -projectPath "$PWD/unity" \
   -runTests -testPlatform EditMode \
   -testResults "$STWM_M2_RESULTS/editmode-results.xml" \
   -logFile "$STWM_M2_RESULTS/editmode.log"
 
-"$STWM_UNITY_EDITOR" -batchmode -quit \
+STWM_M2_LIVE_BRIDGE=1 \
+STWM_M2_LIVE_BRIDGE_URL=ws://127.0.0.1:8765/town \
+"$STWM_UNITY_EDITOR" -batchmode -nographics \
   -projectPath "$PWD/unity" \
   -runTests -testPlatform PlayMode \
   -testResults "$STWM_M2_RESULTS/playmode-results.xml" \
   -logFile "$STWM_M2_RESULTS/playmode.log"
 ```
 
-UNITY must provide an Editor/batchmode evidence-export entry point agreed with
-ORCH. Its output is the evidence JSON plus `asset-registry.json`,
-`registry-report.json`, and a redacted handshake/navigation transcript. The
-entry point must return nonzero when any evidence gate fails; QA does not define
-Unity runtime code in order to create it.
+UNITY provides
+`STWM.AITown.Editor.M2AcceptanceEvidenceExporter.ExportBatch`. Its output is the
+evidence JSON plus `asset-registry.json`, `registry-report.json`, a redacted
+handshake/navigation transcript, sanitized Unity XML/logs, and the validated
+SIM authority evidence pair. It returns nonzero when any evidence gate fails.
+Exact arguments and reproduction commands are in `docs/unity/README.md`.
 
 ## Artifact and cache policy
 
@@ -65,6 +69,7 @@ Unity runtime code in order to create it.
   must never satisfy a handshake, snapshot or authority assertion.
 
 The QA repository guard fails tracked or unignored Unity generated output. A
-missing Unity runtime is readable `PENDING` during parallel development, but a
-partially integrated project or failed test is a hard failure. The final strict
-gate allows no pending result.
+missing remote Unity runtime remains readable `PENDING` in the integration-aware
+GitHub Python lane, but a partially integrated project or failed test is a hard
+failure. Local final strict acceptance allows no pending result and has passed;
+the remote licensed lane remains a repository-owner provisioning decision.

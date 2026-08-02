@@ -31,3 +31,30 @@
 - [x] CONTRACTS and QA handoffs are complete.
 - [x] Appendix D hashes and manual sign-off are recorded.
 - [x] No M1+ product logic is included.
+
+# M2 local release checklist
+
+## Runtime and authority
+
+- [x] Python remains the only authority; Unity reports presentation outcomes only.
+- [x] Protocol `0.2.0`, direction schemas, cancellation, dedupe, and correlation pass.
+- [x] Reconnect repeats hello/registry/snapshot/ready with a new generation.
+- [x] Exact-match stale cancellation commits once; terminal/nonmatching stale is zero-mutation resync.
+
+## Unity functional greybox
+
+- [x] Unity Editor is pinned to `6000.4.2f1` and package versions are locked.
+- [x] The primitive-only M2 scene and NavMesh rebuild reproducibly.
+- [x] The scoped asset registry accepts `npc_01`, `home_a`, `cafe_bar`, and required slots.
+- [x] EditMode passes 26/26 with zero skipped tests.
+- [x] PlayMode passes 4/4 with zero skipped tests, including the live `/town` smoke.
+
+## Integrated validation
+
+- [x] Python tests pass 123/123 and integration tests pass 7/7.
+- [x] M0, M1, and M2 strict local diagnostics have zero pending/fail results.
+- [x] Ruff lint/format and strict Mypy pass.
+- [x] Final evidence is external, redacted, and tied to the integration commit.
+- [ ] Remote Python CI passes for the M2 branch.
+- [ ] A licensed macOS ARM64 Unity CI lane passes, or the repository owner
+  explicitly accepts reproducible local batchmode evidence for M2 publication.

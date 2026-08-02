@@ -32,13 +32,15 @@ Long-term responsibility threads:
 
 Every change must land as a working vertical increment. Cross-thread contract changes require an ADR, version update, tests, and an updated handoff.
 
-## Accepted milestone
+## Accepted milestones
 
 M1 implements one active NPC in `HEADLESS_FAST` mode using only `idle`, `sleep`,
 `eat_at_home`, and `work_shift`. Its accepted output is a deterministic three-day
 run plus authoritative replay with matching final-state hash. The exact boundary
 and gate live in `docs/orchestration/M1_EXECUTION_BASELINE.md`.
 
-M2 is active by producer authorization and Orchestrator assignment. The active
-boundary is the functional-greybox one-NPC Unity bridge slice defined in
-`docs/orchestration/M2_EXECUTION_BASELINE.md`; M3 and later work remain closed.
+M2 implements the functional-greybox one-NPC Unity bridge slice defined in
+`docs/orchestration/M2_EXECUTION_BASELINE.md`. Local strict acceptance passed,
+including a real Python `/town` WebSocket handshake and zero-skipped Unity
+EditMode/PlayMode runs. Remote publication and the licensed Unity CI policy are
+the remaining release-administration gates. M3 and later work remain closed.
