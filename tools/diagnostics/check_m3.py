@@ -88,8 +88,15 @@ SIM_QA_ADAPTER: Final = Path("python/town_core/simulation/m3_qa_adapter.py")
 UNITY_EVIDENCE_EXPORTER: Final = Path("unity/Assets/AITown/Editor/M3AcceptanceEvidenceExporter.cs")
 UNITY_READINESS_EXPORTER: Final = Path("unity/Assets/AITown/Editor/M3ReadinessEvidenceExporter.cs")
 UNITY_FUNCTIONAL_GRAYBOX_BUILDER: Final = Path("unity/Assets/AITown/Editor/M3FunctionalGrayboxBuilder.cs")
-UNITY_RESOURCE_MANIFEST: Final = Path("unity/Assets/AITown/Resources/M3FunctionalGrayboxManifest.json")
 UNITY_SEMANTIC_MANIFEST_LOADER: Final = Path("unity/Assets/AITown/Scripts/Semantic/M3SemanticManifest.cs")
+UNITY_FORBIDDEN_INSTANCE_COPY_NAMES: Final = frozenset(
+    {
+        "M3FunctionalGrayboxManifest.json",
+        "M3FunctionalGrayboxManifest.json.meta",
+        "semantic_instances.yaml",
+        "semantic_instances.yaml.meta",
+    }
+)
 
 AGENT_IDS: Final = tuple(f"npc_{index:02d}" for index in range(1, 11))
 HOUSEHOLD_IDS: Final = ("household_a", "household_b", "household_c", "household_d")
@@ -1182,6 +1189,17 @@ def check_semantic_manifest(root: Path, require_m3: bool) -> list[Finding]:
     ]
 
 
+def _find_unity_instance_manifest_copies(root: Path) -> list[str]:
+    assets = root / "unity/Assets"
+    if not assets.is_dir():
+        return []
+    return sorted(
+        path.relative_to(root).as_posix()
+        for path in assets.rglob("*")
+        if path.is_file() and path.name in UNITY_FORBIDDEN_INSTANCE_COPY_NAMES
+    )
+
+
 def check_upstream_adapters(root: Path, require_m3: bool) -> list[Finding]:
     findings: list[Finding] = []
     for path, code, owner, message, remediation in (
@@ -1217,7 +1235,6 @@ def check_upstream_adapters(root: Path, require_m3: bool) -> list[Finding]:
     functional_graybox_paths = (
         UNITY_FUNCTIONAL_GRAYBOX_BUILDER,
         UNITY_READINESS_EXPORTER,
-        UNITY_RESOURCE_MANIFEST,
         UNITY_SEMANTIC_MANIFEST_LOADER,
     )
     present = [path for path in functional_graybox_paths if (root / path).is_file()]
@@ -1226,12 +1243,12 @@ def check_upstream_adapters(root: Path, require_m3: bool) -> list[Finding]:
             _pending(
                 check="m3.upstream",
                 code="M3_UNITY_FUNCTIONAL_GRAYBOX_PENDING",
-                message="Unity M3 functional-greybox builder and shared-manifest Resources seam are not integrated",
+                message="Unity M3 functional-greybox builder and direct shared-manifest YAML seam are not integrated",
                 owner=Owner.UNITY,
                 require_m3=require_m3,
                 remediation=(
                     "Integrate M3FunctionalGrayboxBuilder, the readiness-only exporter, "
-                    "Resources/M3FunctionalGrayboxManifest.json, and M3SemanticManifestDocument.LoadDefault()."
+                    "and the repository-relative M3SemanticManifestDocument.LoadDefault() YAML loader."
                 ),
                 path=UNITY_FUNCTIONAL_GRAYBOX_BUILDER.as_posix(),
             )
@@ -1244,7 +1261,7 @@ def check_upstream_adapters(root: Path, require_m3: bool) -> list[Finding]:
                 code="M3_UNITY_FUNCTIONAL_GRAYBOX_PARTIAL",
                 message=f"Unity M3 functional-greybox surface is partial; missing {missing}",
                 owner=Owner.UNITY,
-                remediation="Integrate the complete builder/readiness exporter/Resources loader seam as one surface.",
+                remediation="Integrate the complete builder/readiness exporter/direct YAML loader seam as one surface.",
                 path=UNITY_FUNCTIONAL_GRAYBOX_BUILDER.as_posix(),
             )
         )
@@ -1253,24 +1270,28 @@ def check_upstream_adapters(root: Path, require_m3: bool) -> list[Finding]:
             builder_text = (root / UNITY_FUNCTIONAL_GRAYBOX_BUILDER).read_text(encoding="utf-8")
             readiness_text = (root / UNITY_READINESS_EXPORTER).read_text(encoding="utf-8")
             loader_text = (root / UNITY_SEMANTIC_MANIFEST_LOADER).read_text(encoding="utf-8")
-            resource_manifest = _read_json(root / UNITY_RESOURCE_MANIFEST)
             if "M3SemanticManifestDocument.LoadDefault()" not in builder_text:
-                raise DiagnosticError("M3FunctionalGrayboxBuilder does not consume the Resources manifest loader")
+                raise DiagnosticError("M3FunctionalGrayboxBuilder does not consume the semantic manifest loader")
             if (
-                'ResourcePath = "M3FunctionalGrayboxManifest"' not in loader_text
-                or "Resources.Load<TextAsset>(ResourcePath)" not in loader_text
+                'RepositoryRelativePath = "config/v0/semantic_instances.yaml"' not in loader_text
+                or 'ExpectedSchema = "stwm.catalog.m3-semantic-instances/v1"' not in loader_text
+                or 'Path.Combine(Application.dataPath, "..", "..", RepositoryRelativePath)' not in loader_text
+                or "Path.GetFullPath(" not in loader_text
+                or "File.ReadAllText(path)" not in loader_text
+                or "document.ValidateDefinition();" not in loader_text
             ):
-                raise DiagnosticError("M3SemanticManifest loader does not use the frozen Resources seam")
+                raise DiagnosticError("M3SemanticManifest loader does not strictly consume the repository YAML")
+            if "Resources.Load<" in loader_text or "M3FunctionalGrayboxManifest" in loader_text:
+                raise DiagnosticError("M3SemanticManifest loader retains an obsolete Resources locator")
             if (
                 "M3FunctionalGrayboxBuilder.BuildAndSave()" not in readiness_text
                 or "M3SemanticManifestDocument.LoadDefault()" not in readiness_text
                 or "AcceptanceEligible = false" not in readiness_text
             ):
                 raise DiagnosticError("M3 readiness exporter is not explicitly non-acceptance builder evidence")
-            if resource_manifest.get("schema") != "stwm.unity.m3-functional-graybox-manifest/v1":
-                raise DiagnosticError("Unity Resources manifest schema is invalid")
-            if not isinstance(resource_manifest.get("shared_contract_manifest_status"), str):
-                raise DiagnosticError("Unity Resources manifest omits shared-contract consumption status")
+            duplicates = _find_unity_instance_manifest_copies(root)
+            if duplicates:
+                raise DiagnosticError(f"Unity contains a forbidden second semantic-instance manifest: {duplicates}")
         except (DiagnosticError, OSError) as exc:
             findings.append(
                 _fail(
@@ -1279,8 +1300,8 @@ def check_upstream_adapters(root: Path, require_m3: bool) -> list[Finding]:
                     message=str(exc),
                     owner=Owner.UNITY,
                     remediation=(
-                        "Keep the real builder wired through Resources/M3FunctionalGrayboxManifest.json and "
-                        "mark M3ReadinessEvidenceExporter as non-acceptance evidence."
+                        "Keep the builder wired directly to config/v0/semantic_instances.yaml, remove Unity-side "
+                        "manifest/locator copies, and mark M3ReadinessEvidenceExporter as non-acceptance evidence."
                     ),
                     path=UNITY_FUNCTIONAL_GRAYBOX_BUILDER.as_posix(),
                 )
@@ -1290,7 +1311,7 @@ def check_upstream_adapters(root: Path, require_m3: bool) -> list[Finding]:
                 _pass(
                     check="m3.upstream",
                     code="M3_UNITY_FUNCTIONAL_GRAYBOX",
-                    message="Unity builder and readiness exporter consume the shared Resources manifest seam",
+                    message="Unity builder and readiness exporter consume the sole repository YAML manifest",
                     owner=Owner.UNITY,
                     path=UNITY_FUNCTIONAL_GRAYBOX_BUILDER.as_posix(),
                 )

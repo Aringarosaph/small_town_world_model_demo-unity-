@@ -10,7 +10,8 @@ failure and `--require-m3` makes all pending fatal.
 The CONTRACTS gate reads the versioned 0.3 generic/Python/Unity direction
 schemas and the authoritative `stwm.catalog.m3-semantic-instances/v1` manifest
 through `load_m3_catalogs`. The Unity readiness gate recognizes the real
-`M3FunctionalGrayboxBuilder` plus its Resources manifest/loader seam;
+`M3FunctionalGrayboxBuilder` plus its direct repo-root YAML loader seam and
+rejects any Unity-side instance-manifest or obsolete Resources-locator copy;
 `M3ReadinessEvidenceExporter` remains explicitly distinct from the required
 final `M3AcceptanceEvidenceExporter`.
 

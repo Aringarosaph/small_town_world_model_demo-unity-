@@ -272,7 +272,6 @@ def _expected_pending_codes(root: Path) -> set[str]:
         for path in (
             m3_diagnostics.UNITY_FUNCTIONAL_GRAYBOX_BUILDER,
             m3_diagnostics.UNITY_READINESS_EXPORTER,
-            m3_diagnostics.UNITY_RESOURCE_MANIFEST,
             m3_diagnostics.UNITY_SEMANTIC_MANIFEST_LOADER,
         )
     ):
@@ -382,6 +381,59 @@ def test_integrated_authoritative_semantic_manifest_shape_and_loader_pass() -> N
         )
         assert "enabled" not in item
     assert [(finding.status, finding.code) for finding in findings] == [(Status.PASS, "M3_SHARED_SEMANTIC_MANIFEST")]
+
+
+def test_integrated_unity_functional_graybox_uses_only_repository_yaml() -> None:
+    root = find_repository_root(Path(__file__))
+    if not (root / m3_diagnostics.UNITY_FUNCTIONAL_GRAYBOX_BUILDER).is_file():
+        pytest.skip("Unity M3 functional graybox is not integrated in this checkout")
+
+    findings = m3_diagnostics.check_upstream_adapters(root, require_m3=False)
+    functional_graybox = [finding for finding in findings if finding.code.startswith("M3_UNITY_FUNCTIONAL_GRAYBOX")]
+
+    assert [(finding.status, finding.code) for finding in functional_graybox] == [
+        (Status.PASS, "M3_UNITY_FUNCTIONAL_GRAYBOX")
+    ]
+    assert m3_diagnostics._find_unity_instance_manifest_copies(root) == []
+
+
+def test_unity_manifest_copy_guard_rejects_second_inventory(tmp_path: Path) -> None:
+    duplicate = tmp_path / "unity/Assets/AITown/Resources/M3FunctionalGrayboxManifest.json"
+    duplicate.parent.mkdir(parents=True)
+    duplicate.write_text("{}", encoding="utf-8")
+
+    assert m3_diagnostics._find_unity_instance_manifest_copies(tmp_path) == [
+        "unity/Assets/AITown/Resources/M3FunctionalGrayboxManifest.json"
+    ]
+
+
+def test_unity_manifest_loader_rejects_obsolete_resources_locator(tmp_path: Path) -> None:
+    sources = {
+        m3_diagnostics.UNITY_FUNCTIONAL_GRAYBOX_BUILDER: "M3SemanticManifestDocument.LoadDefault()",
+        m3_diagnostics.UNITY_READINESS_EXPORTER: (
+            "M3FunctionalGrayboxBuilder.BuildAndSave(); "
+            "M3SemanticManifestDocument.LoadDefault(); AcceptanceEligible = false;"
+        ),
+        m3_diagnostics.UNITY_SEMANTIC_MANIFEST_LOADER: (
+            'RepositoryRelativePath = "config/v0/semantic_instances.yaml"; '
+            'ExpectedSchema = "stwm.catalog.m3-semantic-instances/v1"; '
+            'Path.GetFullPath(Path.Combine(Application.dataPath, "..", "..", RepositoryRelativePath)); '
+            "File.ReadAllText(path); document.ValidateDefinition(); Resources.Load<TextAsset>(ResourcePath);"
+        ),
+    }
+    for path, content in sources.items():
+        target = tmp_path / path
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text(content, encoding="utf-8")
+
+    findings = m3_diagnostics.check_upstream_adapters(tmp_path, require_m3=False)
+
+    assert any(
+        finding.status is Status.FAIL
+        and finding.code == "M3_UNITY_FUNCTIONAL_GRAYBOX_INVALID"
+        and "obsolete Resources locator" in finding.message
+        for finding in findings
+    )
 
 
 def test_complete_external_release_evidence_passes(tmp_path: Path) -> None:

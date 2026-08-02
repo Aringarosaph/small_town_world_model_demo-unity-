@@ -95,12 +95,14 @@ Provide:
 unity/Assets/AITown/Editor/M3AcceptanceEvidenceExporter.cs
 unity/Assets/AITown/Editor/M3FunctionalGrayboxBuilder.cs
 unity/Assets/AITown/Editor/M3ReadinessEvidenceExporter.cs
-unity/Assets/AITown/Resources/M3FunctionalGrayboxManifest.json
 unity/Assets/AITown/Scripts/Semantic/M3SemanticManifest.cs
 ```
 
-The real builder must consume `M3SemanticManifestDocument.LoadDefault()` through
-the Resources seam. `M3ReadinessEvidenceExporter` is explicitly
+The real builder must consume `M3SemanticManifestDocument.LoadDefault()` from
+the repository-relative `config/v0/semantic_instances.yaml`. The loader resolves
+that path from the repo root and strictly validates
+`stwm.catalog.m3-semantic-instances/v1`; a Unity-side Resources/YAML inventory or
+obsolete Resources locator is blocking. `M3ReadinessEvidenceExporter` is explicitly
 `AcceptanceEligible=false`; it proves only the builder/readiness surface and
 must not substitute for `M3AcceptanceEvidenceExporter`. The final exporter
 produces these sanitized artifacts:
@@ -167,7 +169,7 @@ foundation, and M3 SIM runtime, the focused suite is 46 passes/one acceptance
 skip and default `check_m3` is 14 PASS/4 PENDING/0 FAIL. Its remaining findings
 are the SIM QA adapter, final Unity acceptance exporter, external full registry,
 and external acceptance evidence; CONTRACTS and the Unity functional-greybox
-Resources seam pass. The frozen entry's broader `mypy --strict tools/diagnostics
+direct-YAML seam pass. The frozen entry's broader `mypy --strict tools/diagnostics
 python/tests/qa integration_tests` also traverses SIM-owned
 `python/town_core/simulation/engine.py` and reports two existing explicit-export
 errors for `NeedValues` and `MoodValues`; QA did not modify that product file.

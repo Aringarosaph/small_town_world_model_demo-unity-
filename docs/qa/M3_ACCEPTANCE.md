@@ -139,8 +139,10 @@ and UNITY facts; it does not reproduce their authority rules.
 
 19. Unity presents all 10 NPCs, 8 locations, 15 object types and every behavior
     semantic. `M3FunctionalGrayboxBuilder` consumes
-    `Resources/M3FunctionalGrayboxManifest.json` through
-    `M3SemanticManifestDocument.LoadDefault()`. The separate
+    the sole `config/v0/semantic_instances.yaml` through the repo-root-resolving,
+    strict-schema `M3SemanticManifestDocument.LoadDefault()`. A Unity Resources
+    or YAML copy of the instance inventory, or an obsolete Resources locator,
+    is blocking. The separate
     `M3ReadinessEvidenceExporter` is non-acceptance evidence; final acceptance
     still requires `M3AcceptanceEvidenceExporter`. Required
     animation/prop/facing mappings and NavMesh-reachable slots are complete.
