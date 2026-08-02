@@ -32,12 +32,12 @@ utility, resolver, action lifecycle, needs, work/wage settlement, append-only
 events, run evidence, and authoritative replay for `idle`, `sleep`,
 `eat_at_home`, and `work_shift`.
 
-M2 is implemented and locally accepted on the Orchestrator integration branch
-as the one-NPC Unity functional-greybox slice: loopback WebSocket bridge,
-protocol `0.2.0`, semantic registry, navigation/presentation, cancellation,
-reconnect/resync, debug UI, and external evidence. Remote publication and the
-licensed Unity CI policy remain open. M3 is not active until Orchestrator assigns
-it. Do not enable the complete 10-NPC society, implement neural
+M2 is implemented and accepted as the one-NPC Unity functional-greybox slice:
+loopback WebSocket bridge, protocol `0.2.0`, semantic registry,
+navigation/presentation, cancellation, reconnect/resync, debug UI, and external
+evidence. The producer accepted reproducible local Unity batchmode evidence as
+the release gate; remote licensed Unity CI is optional. M3 is not active until
+Orchestrator assigns it. Do not enable the complete 10-NPC society, implement neural
 inference/training, call DeepSeek, or introduce any post-V0 roadmap feature.
-Changes to frozen M0, accepted M1, or locally accepted M2 contracts require an
+Changes to frozen M0, accepted M1, or accepted M2 contracts require an
 ADR, version review, regenerated evidence, and Orchestrator acceptance.

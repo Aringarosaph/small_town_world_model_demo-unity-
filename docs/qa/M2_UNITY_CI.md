@@ -2,9 +2,9 @@
 
 The Python workflow validates repository policy, QA fixtures and exported
 evidence without requiring a Unity license. The reproducible Unity project and
-local batchmode gate are implemented and locally accepted. Remote Unity
-execution belongs in a separate macOS ARM64 lane after the repository/CI owner
-provisions a runner and a supported license activation method.
+local batchmode gate are implemented and accepted as the M2 Unity release gate.
+The producer explicitly made a remote licensed macOS ARM64 lane optional future
+infrastructure rather than an M2 blocker.
 
 ## Lanes
 
@@ -71,5 +71,5 @@ Exact arguments and reproduction commands are in `docs/unity/README.md`.
 The QA repository guard fails tracked or unignored Unity generated output. A
 missing remote Unity runtime remains readable `PENDING` in the integration-aware
 GitHub Python lane, but a partially integrated project or failed test is a hard
-failure. Local final strict acceptance allows no pending result and has passed;
-the remote licensed lane remains a repository-owner provisioning decision.
+failure. The accepted local strict gate allows no pending result and passed with
+zero skipped Unity tests plus live production interoperability.

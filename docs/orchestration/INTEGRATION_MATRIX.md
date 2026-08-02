@@ -77,5 +77,5 @@ with an M0 artifact are frozen inputs to that work.
   integration 7 tests, M2 diagnostics 19 pass / 26 allowed warnings / 0 pending / 0 fail
 - Remote Python acceptance: GitHub Actions run `30749456317` passed all QA,
   M0, M1, and M2 jobs on `codex/aitown-orch-m2`
-- Remote licensed macOS ARM64 Unity lane remains an explicit repository-owner
-  provisioning decision
+- Producer accepted the reproducible local Unity evidence gate; a remote
+  licensed macOS ARM64 Unity lane is optional future infrastructure

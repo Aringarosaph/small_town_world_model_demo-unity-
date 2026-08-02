@@ -2,7 +2,7 @@
 
 ## Milestone
 
-`M2 - One-NPC Unity Bridge functional-greybox slice (local acceptance passed)`
+`M2 - One-NPC Unity Bridge functional-greybox slice (accepted)`
 
 ## State
 
@@ -11,7 +11,8 @@
 - QA thread: M2 local and remote Python gates complete
 - Simulation thread: M2 Python bridge and authority evidence complete
 - Unity thread: M2 client, greybox, evidence exporter, and tests complete
-- Integration branch: `codex/aitown-orch-m2`
+- Accepted branch: public `main`
+- Source integration branch: `codex/aitown-orch-m2`
 - Remote: `origin`
 - Unity version: `6000.4.2f1`
 - Training environment: deferred to M4 cloud validation
@@ -60,7 +61,7 @@
 - [x] Pass local M1 acceptance.
 - [x] Pass GitHub M1 acceptance and push the accepted M1 baseline.
 
-## M2 activation
+## M2 completion
 
 - [x] Producer authorized M2 and selected the functional-greybox route.
 - [x] Unity Hub login and Personal license confirmed by the producer.
@@ -72,10 +73,11 @@
 - [x] Integrate the Unity bridge, semantic components, greybox fixture, and exporter.
 - [x] Pass local M2 acceptance with real `/town` interoperability.
 - [x] Push the M2 integration branch and pass remote Python CI.
-- [ ] Provision and pass a licensed macOS ARM64 Unity CI lane, or explicitly
-  accept reproducible local batchmode evidence as the M2 Unity release gate.
+- [x] Producer accepted reproducible local batchmode evidence as the M2 Unity
+  release gate; a licensed remote Unity lane is optional future infrastructure.
+- [x] Fast-forward the accepted M2 history to public `main`.
 
-## M2 local acceptance result
+## M2 acceptance result
 
 - Protocol `0.2.0` handshake, directional messages, registry, full snapshot,
   readiness, cancellation, reconnect generations, and resynchronization pass.
@@ -88,13 +90,13 @@
   `f0859d472a8ca7bbdd34393f75c342cfe16f84cb04deab38674bc92e9300aa6c`.
 - Final evidence was regenerated outside the repository against integration
   commit `6b5b7d05c79186e0cd8f4b57fbd9552bfa54cbd1`.
-- GitHub Actions run `30749456317` passed QA baseline, M0 readiness, M1 QA
+- GitHub Actions runs `30749456317` and `30749720664` passed QA baseline, M0 readiness, M1 QA
   readiness, and M2 QA readiness after the M2 ancestry gate fetched full history.
+- On 2026-08-02 the producer accepted the reproducible local Unity evidence as
+  the M2 release gate. This closes M2 without requiring a remote Unity license.
 
 ## Blockers
 
-No local implementation blocker remains. Remote strict Unity execution needs a
-macOS ARM64 runner with Unity `6000.4.2f1` and an approved Personal-license
-activation method; GitHub-hosted Python CI cannot supply that by itself. Final
-art, DeepSeek credentials, and the cloud training host remain intentionally out
-of scope.
+None. M3 remains inactive until a separate producer authorization and
+Orchestrator handoff. Final art, DeepSeek credentials, and the cloud training
+host remain intentionally out of scope.

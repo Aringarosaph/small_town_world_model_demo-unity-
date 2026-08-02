@@ -32,7 +32,7 @@
 - [x] Appendix D hashes and manual sign-off are recorded.
 - [x] No M1+ product logic is included.
 
-# M2 local release checklist
+# M2 release checklist
 
 ## Runtime and authority
 
@@ -56,5 +56,6 @@
 - [x] Ruff lint/format and strict Mypy pass.
 - [x] Final evidence is external, redacted, and tied to the integration commit.
 - [x] Remote Python CI passes for the M2 branch (run `30749456317`).
-- [ ] A licensed macOS ARM64 Unity CI lane passes, or the repository owner
-  explicitly accepts reproducible local batchmode evidence for M2 publication.
+- [x] The producer accepts reproducible local zero-skipped batchmode and live
+  interoperability evidence as the M2 Unity publication gate.
+- [x] The accepted M2 history is published to public `main`.

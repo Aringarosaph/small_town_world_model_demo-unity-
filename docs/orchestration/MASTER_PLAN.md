@@ -39,9 +39,10 @@ M1 implements one active NPC in `HEADLESS_FAST` mode using only `idle`, `sleep`,
 run plus authoritative replay with matching final-state hash. The exact boundary
 and gate live in `docs/orchestration/M1_EXECUTION_BASELINE.md`.
 
-M2 implements the functional-greybox one-NPC Unity bridge slice defined in
-`docs/orchestration/M2_EXECUTION_BASELINE.md`. Local strict acceptance passed,
-including a real Python `/town` WebSocket handshake and zero-skipped Unity
-EditMode/PlayMode runs. The integration branch and remote Python acceptance are
-published; the licensed Unity CI policy is the remaining release-administration
-gate. M3 and later work remain closed.
+M2 implements and accepts the functional-greybox one-NPC Unity bridge slice
+defined in `docs/orchestration/M2_EXECUTION_BASELINE.md`. Acceptance includes a
+real Python `/town` WebSocket handshake, zero-skipped Unity EditMode/PlayMode,
+external authority evidence, and passing remote Python gates. The producer
+accepted reproducible local Unity batchmode evidence as the M2 release gate;
+a licensed remote Unity lane is optional future infrastructure. M3 and later
+work remain closed.

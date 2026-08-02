@@ -18,8 +18,9 @@ Small Town World Model 是一个使用 **Python + Unity** 构建的小型社会�
 - 所有关键决策、事件和状态变化都可以追踪、检查和重放。
 
 当前仓库正在开发 **V0 Demo**。M0 契约基线、M1 Headless 单 NPC 垂直切片和
-M2 Unity Bridge 功能灰盒切片均已通过本机严格验收，远端 Python CI 也已
-通过；需要许可证的 Unity CI 发布门仍需确认。
+M2 Unity Bridge 功能灰盒切片均已完成并通过验收。M2 的 Unity 发布门采用
+可复现的本机零跳过 batchmode、真实 `/town` 联调和外置审计证据；远端
+Python CI 同样通过。带许可证的远端 Unity lane 保留为以后可选的基础设施增强。
 
 ## 目录
 
@@ -108,7 +109,7 @@ M0 已冻结以下内容规模：
 | --- | --- | --- |
 | M0 规范与仓库基线 | 已完成 | 配置、Schema、协议、CI、冻结清单和 Unity 目录骨架 |
 | M1 Headless 硬规则切片 | 已完成 | 单 NPC 四行为、三日确定性运行、权威日志与事务回放 |
-| M2 Unity Bridge 切片 | 本机验收与远端 Python CI 通过 | 单 NPC 功能灰盒“家 -> 工作 -> 家”、取消、失败、重连与全量重同步 |
+| M2 Unity Bridge 切片 | 已完成 | 单 NPC 功能灰盒“家 -> 工作 -> 家”、取消、失败、重连与全量重同步 |
 | M3 完整规则小社会 | 未开始 | 10 NPC、22 行为、经济与事件传播、30 日规则 Soak |
 | M4 社会锚点与世界模型 | 未开始 | 云端训练小型社会 Outcome Model，本地 CPU 推理 |
 | M5 DeepSeek 玩家对话 | 未开始 | 有权限边界的解析、表达、异步与模板回退 |
@@ -379,7 +380,7 @@ Unity 批处理导入、EditMode/PlayMode、真实 server smoke 和最终外置�
 
 M1 保留全部 10 名 NPC 与 90 条有向关系边，但只启用 `npc_01`。其余角色不会衰减需求、决策、行动、领薪、见证或产生事件。M1 使用受冻结配置约束的确定性 Heuristic Outcome Provider；小型神经模型仍属于 M4。
 
-### M2：Unity Bridge 垂直切片（本机验收通过）
+### M2：Unity Bridge 垂直切片（完成）
 
 - Python/Unity WebSocket 握手；
 - Unity 资产注册与错误报告；
