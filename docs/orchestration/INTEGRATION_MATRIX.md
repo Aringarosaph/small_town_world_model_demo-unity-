@@ -75,5 +75,7 @@ with an M0 artifact are frozen inputs to that work.
   `6d2fec1`, `6b5b7d0`
 - Local strict result: Unity EditMode 26/26, PlayMode 4/4, Python 123 tests,
   integration 7 tests, M2 diagnostics 19 pass / 26 allowed warnings / 0 pending / 0 fail
-- Remote publication: Python CI pending branch push; licensed macOS ARM64 Unity
-  lane remains an explicit repository-owner provisioning decision
+- Remote Python acceptance: GitHub Actions run `30749456317` passed all QA,
+  M0, M1, and M2 jobs on `codex/aitown-orch-m2`
+- Remote licensed macOS ARM64 Unity lane remains an explicit repository-owner
+  provisioning decision

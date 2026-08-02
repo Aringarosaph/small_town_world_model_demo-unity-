@@ -55,6 +55,6 @@
 - [x] M0, M1, and M2 strict local diagnostics have zero pending/fail results.
 - [x] Ruff lint/format and strict Mypy pass.
 - [x] Final evidence is external, redacted, and tied to the integration commit.
-- [ ] Remote Python CI passes for the M2 branch.
+- [x] Remote Python CI passes for the M2 branch (run `30749456317`).
 - [ ] A licensed macOS ARM64 Unity CI lane passes, or the repository owner
   explicitly accepts reproducible local batchmode evidence for M2 publication.

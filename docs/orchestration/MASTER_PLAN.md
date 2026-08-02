@@ -42,5 +42,6 @@ and gate live in `docs/orchestration/M1_EXECUTION_BASELINE.md`.
 M2 implements the functional-greybox one-NPC Unity bridge slice defined in
 `docs/orchestration/M2_EXECUTION_BASELINE.md`. Local strict acceptance passed,
 including a real Python `/town` WebSocket handshake and zero-skipped Unity
-EditMode/PlayMode runs. Remote publication and the licensed Unity CI policy are
-the remaining release-administration gates. M3 and later work remain closed.
+EditMode/PlayMode runs. The integration branch and remote Python acceptance are
+published; the licensed Unity CI policy is the remaining release-administration
+gate. M3 and later work remain closed.

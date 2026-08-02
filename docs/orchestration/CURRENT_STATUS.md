@@ -8,7 +8,7 @@
 
 - Orchestrator thread: `AITOWN-ORCH`
 - Contracts thread: M2 delivery complete; available for compatibility review
-- QA thread: M2 local gate complete; remote publication review pending
+- QA thread: M2 local and remote Python gates complete
 - Simulation thread: M2 Python bridge and authority evidence complete
 - Unity thread: M2 client, greybox, evidence exporter, and tests complete
 - Integration branch: `codex/aitown-orch-m2`
@@ -71,7 +71,7 @@
 - [x] Integrate the Python bridge adapter and authority evidence test port.
 - [x] Integrate the Unity bridge, semantic components, greybox fixture, and exporter.
 - [x] Pass local M2 acceptance with real `/town` interoperability.
-- [ ] Push the M2 integration branch and pass remote Python CI.
+- [x] Push the M2 integration branch and pass remote Python CI.
 - [ ] Provision and pass a licensed macOS ARM64 Unity CI lane, or explicitly
   accept reproducible local batchmode evidence as the M2 Unity release gate.
 
@@ -88,6 +88,8 @@
   `f0859d472a8ca7bbdd34393f75c342cfe16f84cb04deab38674bc92e9300aa6c`.
 - Final evidence was regenerated outside the repository against integration
   commit `6b5b7d05c79186e0cd8f4b57fbd9552bfa54cbd1`.
+- GitHub Actions run `30749456317` passed QA baseline, M0 readiness, M1 QA
+  readiness, and M2 QA readiness after the M2 ancestry gate fetched full history.
 
 ## Blockers
 
