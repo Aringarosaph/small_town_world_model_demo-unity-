@@ -12,6 +12,7 @@ license = { text = "MIT" }
 dependencies = [
   "pydantic>=2.11,<3",
   "PyYAML>=6.0.2,<7",
+  "websockets>=15.0.1,<16",
 ]
 
 [project.optional-dependencies]
@@ -33,6 +34,7 @@ markers = [
   "qa: QA-owned regression coverage",
   "m0: M0 acceptance and contract coverage",
   "m1: M1 headless authority acceptance and contract coverage",
+  "m2: M2 one-NPC Unity Bridge acceptance and contract coverage",
   "integration: cross-component repository checks",
   "contract_pending: temporary marker for an unavailable upstream contract",
   "sim_pending: temporary marker allowed only before the M1 simulation runtime is integrated",

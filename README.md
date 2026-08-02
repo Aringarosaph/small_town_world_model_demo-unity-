@@ -250,6 +250,23 @@ runs/<run_id>/
 
 `replay` 不重新运行 Utility 或决策逻辑，而是从初始快照按顺序应用已经提交的权威事务；它同时校验每笔事务、最终快照、四类日志联合哈希和源运行未被修改。
 
+### M2 本地 Unity Bridge
+
+Python 侧提供只绑定 loopback 的 JSON WebSocket server，默认地址是
+`ws://127.0.0.1:8765/town`：
+
+```bash
+uv run --no-editable python -m town_core.bridge.server \
+  --config config/v0 --agent npc_01 --seed 12345 \
+  --host 127.0.0.1 --port 8765 --path /town
+```
+
+Bridge 按顺序执行 `client_hello -> server_hello -> asset_registry ->
+asset_registry_result -> world_snapshot -> client_ready`。新连接会废止旧
+connection generation，重走完整握手并下发当前权威全量快照；
+`client_ready` 前模拟时钟不会恢复。Unity 的导航和表现回报只能触发
+Python 验证后的 Action phase 事务，不能直接结算需求、资源、工资或事件。
+
 ## 仓库结构
 
 ```text
@@ -268,7 +285,7 @@ runs/<run_id>/
 │   └── jsonschema/             # 由 Pydantic 生成的 JSON Schema
 ├── python/
 │   ├── tests/                  # contracts、simulation、QA 与集成测试
-│   └── town_core/              # 权威核心、decision、simulation、events、replay
+│   └── town_core/              # 权威核心、bridge、decision、simulation、events、replay
 ├── tools/diagnostics/          # 冻结清单与仓库诊断
 ├── unity/                      # Unity 工程与语义桥目录
 ├── pyproject.toml

@@ -25,6 +25,7 @@ from town_core.domain.enums import (
     EventWitnessScope,
     KnowledgeAcquisitionType,
     MoodAxis,
+    MovementFailureReason,
     NeedName,
     ProposalResult,
 )
@@ -37,9 +38,9 @@ from town_core.domain.state_models import (
     WorldState,
 )
 from town_core.events import EventLedger
-from town_core.simulation.clock import accept_advanced_game_minute
+from town_core.simulation.clock import RuntimeMode, accept_advanced_game_minute
 from town_core.simulation.initialization import catalog_hash
-from town_core.simulation.invariants import assert_transition, assert_world_invariants
+from town_core.simulation.invariants import assert_live_input_transition, assert_transition, assert_world_invariants
 from town_core.simulation.transactions import build_transaction_record
 
 
@@ -53,6 +54,7 @@ class _ActionRuntime:
     travel_arrival_minute: int
     perform_start_minute: int
     work_session_id: str | None
+    origin_location_id: str
 
 
 @dataclass(slots=True)
@@ -137,7 +139,15 @@ class _TickContext:
 class SimulationEngine:
     """Advance one enabled M1 agent using absolute game-minute inputs."""
 
-    def __init__(self, catalog: CatalogBundle, state: WorldState, *, active_agent_id: str = "npc_01") -> None:
+    def __init__(
+        self,
+        catalog: CatalogBundle,
+        state: WorldState,
+        *,
+        active_agent_id: str = "npc_01",
+        runtime_mode: RuntimeMode = RuntimeMode.HEADLESS_FAST,
+        movement_timeout_minutes: int = 15,
+    ) -> None:
         if state.config_hash != catalog_hash(catalog):
             raise ValueError("initial state/config hash mismatch")
         if state.active_actions:
@@ -145,6 +155,10 @@ class SimulationEngine:
         self.catalog = catalog
         self.state = state
         self.active_agent_id = active_agent_id
+        self.runtime_mode = runtime_mode
+        if movement_timeout_minutes <= 0:
+            raise ValueError("movement timeout must be positive")
+        self.movement_timeout_minutes = movement_timeout_minutes
         self.ledger = EventLedger(catalog)
         self._enumerator = CandidateEnumerator(catalog)
         self._outcomes = HeuristicOutcomeProvider(catalog)
@@ -164,6 +178,115 @@ class SimulationEngine:
         self._decision_counter = 0
         self._proposal_counter = 0
         assert_world_invariants(state, active_agent_id=active_agent_id, events=self.ledger.events)
+
+    def report_movement_arrived(
+        self,
+        *,
+        action_id: str,
+        agent_id: str,
+        expected_state_version: int,
+        object_id: str | None,
+        slot_index: int | None,
+    ) -> AdvanceResult:
+        """Commit a validated Unity arrival without advancing ``game_minute``."""
+
+        runtime, action = self._validate_live_movement_report(
+            action_id=action_id,
+            agent_id=agent_id,
+            expected_state_version=expected_state_version,
+        )
+        expected_slots = {(item.object_id, item.slot_index) for item in runtime.reservations}
+        if expected_slots and object_id is None:
+            raise ValueError("movement arrival must acknowledge an authoritative interaction slot")
+        if object_id is None and slot_index is not None:
+            raise ValueError("movement arrival slot requires an object_id")
+        if object_id is not None and (object_id, slot_index) not in expected_slots:
+            raise ValueError("movement arrival does not match an authoritative reservation")
+        context = _TickContext(self, self.state.game_minute)
+        perform_start = max(context.minute, runtime.perform_start_minute)
+        context.action_runtimes[action_id].perform_start_minute = perform_start
+        context.active_actions[action_id] = action.model_copy(
+            update={"planned_end_game_minute": perform_start + runtime.candidate.estimated_duration_minutes}
+        )
+        self._arrive(context, context.action_runtimes[action_id])
+        context.changes.append(f"movement_arrived:{action_id}")
+        return self._commit_live_input(context)
+
+    def report_movement_failed(
+        self,
+        *,
+        action_id: str,
+        agent_id: str,
+        expected_state_version: int,
+        reason: MovementFailureReason,
+    ) -> AdvanceResult:
+        """Commit a validated Unity navigation failure as an authority transaction."""
+
+        runtime, _ = self._validate_live_movement_report(
+            action_id=action_id,
+            agent_id=agent_id,
+            expected_state_version=expected_state_version,
+        )
+        context = _TickContext(self, self.state.game_minute)
+        self._fail_traveling_action(context, context.action_runtimes[runtime.action_id], reason)
+        return self._commit_live_input(context)
+
+    def _validate_live_movement_report(
+        self,
+        *,
+        action_id: str,
+        agent_id: str,
+        expected_state_version: int,
+    ) -> tuple[_ActionRuntime, ActionState]:
+        if self.runtime_mode is not RuntimeMode.UNITY_LIVE:
+            raise ValueError("movement reports are accepted only in UNITY_LIVE mode")
+        if expected_state_version != self.state.state_version:
+            raise ValueError("movement report state_version is stale")
+        if agent_id != self.active_agent_id:
+            raise ValueError("movement report agent is not the active M2 agent")
+        action = self.state.active_actions.get(action_id)
+        runtime = self._action_runtimes.get(action_id)
+        if action is None or runtime is None:
+            raise ValueError("movement report references an unknown or terminal action")
+        if action.agent_ids != [agent_id]:
+            raise ValueError("movement report action/agent mismatch")
+        if action.phase is not ActionPhase.TRAVELING:
+            raise ValueError("movement report is valid only during TRAVELING")
+        return runtime, action
+
+    def _commit_live_input(self, context: _TickContext) -> AdvanceResult:
+        committed = context.provisional_state().model_copy(update={"state_version": self.state.state_version + 1})
+        committed = WorldState.model_validate(committed.model_dump(mode="json", exclude_none=False))
+        all_events = (*self.ledger.events, *context.events)
+        assert_live_input_transition(self.state, committed)
+        assert_world_invariants(committed, active_agent_id=self.active_agent_id, events=all_events)
+        self.ledger.commit(context.events)
+
+        source = self.state
+        self.state = committed
+        self._action_runtimes = context.action_runtimes
+        self._work_sessions = context.work_sessions
+        self._reserved_food_by_household = context.reserved_food_by_household
+        self._active_need_crises = context.active_need_crises
+        self._recent_behavior = context.recent_behavior
+        self._knowledge_records = context.knowledge_records
+        transaction = build_transaction_record(
+            source,
+            committed,
+            committed_event_ids=[event.event_id for event in context.events],
+            changes=context.changes,
+            state_transaction=None,
+        )
+        for record in context.actions:
+            record["state_version"] = committed.state_version
+        return AdvanceResult(
+            previous_game_minute=source.game_minute,
+            target_game_minute=committed.game_minute,
+            transactions=(transaction,),
+            decisions=(),
+            actions=tuple(context.actions),
+            events=tuple(context.events),
+        )
 
     @property
     def knowledge_records(self) -> tuple[KnowledgeRecord, ...]:
@@ -290,9 +413,15 @@ class SimulationEngine:
             return
         action = context.active_actions[agent.current_action_id]
         runtime = context.action_runtimes[action.action_id]
-        if action.phase is ActionPhase.TRAVELING and context.minute >= runtime.travel_arrival_minute:
-            self._arrive(context, runtime)
-            action = context.active_actions[action.action_id]
+        if action.phase is ActionPhase.TRAVELING:
+            if self.runtime_mode is RuntimeMode.UNITY_LIVE:
+                timeout = runtime.travel_arrival_minute + self.movement_timeout_minutes
+                if context.minute >= timeout:
+                    self._fail_traveling_action(context, runtime, MovementFailureReason.TIMEOUT)
+                return
+            if context.minute >= runtime.travel_arrival_minute:
+                self._arrive(context, runtime)
+                action = context.active_actions[action.action_id]
         if action.phase is ActionPhase.ALIGNING and context.minute >= runtime.perform_start_minute:
             self._start_performing(context, runtime)
             action = context.active_actions[action.action_id]
@@ -319,6 +448,34 @@ class SimulationEngine:
         else:
             self._start_performing(context, runtime)
         context.changes.append(f"action_arrived:{runtime.action_id}")
+
+    def _fail_traveling_action(
+        self,
+        context: _TickContext,
+        runtime: _ActionRuntime,
+        reason: MovementFailureReason,
+    ) -> None:
+        action = context.active_actions[runtime.action_id]
+        if action.phase is not ActionPhase.TRAVELING:
+            raise ValueError("only a traveling action can fail movement")
+        self._release_reservations(context, runtime)
+        self._record_action_phase(context, action, ActionPhase.FAILED, failure_reason=reason.value)
+        context.active_actions.pop(runtime.action_id)
+        context.action_runtimes.pop(runtime.action_id)
+        origin = context.locations[runtime.origin_location_id]
+        context.locations[runtime.origin_location_id] = origin.model_copy(
+            update={"current_agent_ids": sorted({*origin.current_agent_ids, self.active_agent_id})}
+        )
+        agent = context.agents[self.active_agent_id]
+        context.agents[self.active_agent_id] = agent.model_copy(
+            update={
+                "current_location_id": runtime.origin_location_id,
+                "current_action_id": None,
+                "decision_due_at": context.minute,
+            }
+        )
+        context.recent_behavior = action.behavior_id
+        context.changes.append(f"movement_failed:{runtime.action_id}:{reason.value}")
 
     def _start_performing(self, context: _TickContext, runtime: _ActionRuntime) -> None:
         self._set_action_phase(context, runtime.action_id, ActionPhase.PERFORMING)
@@ -693,6 +850,7 @@ class SimulationEngine:
             travel_arrival_minute=arrival,
             perform_start_minute=perform_start,
             work_session_id=session_id,
+            origin_location_id=agent.current_location_id,
         )
         context.action_runtimes[action_id] = runtime
         context.agents[self.active_agent_id] = agent.model_copy(

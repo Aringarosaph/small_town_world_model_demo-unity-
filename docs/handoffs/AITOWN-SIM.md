@@ -1,17 +1,74 @@
-# AITOWN-SIM M1 Handoff
+# AITOWN-SIM M2 Python Bridge Handoff
 
 ## Current responsibility
 
-AITOWN-SIM owns the M1 headless authority slice for **Small Town World Model（STWM）**.
-This delivery is limited to one runtime-enabled NPC (`npc_01`), three game days,
-and `idle`, `sleep`, `eat_at_home`, and `work_shift`. The `AITOWN-*` name is an
-internal task identifier only.
+AITOWN-SIM owns the Python authority and local runtime-adapter side of the M2
+functional-greybox slice for **Small Town World Model（STWM）**. The active route
+is `npc_01: home_a -> cafe_bar -> home_a`; the behavior allowlist remains
+`idle`, `sleep`, `eat_at_home`, and `work_shift`. The `AITOWN-*` name is an
+internal compatibility identifier only.
 
 The implementation was checked against `AGENTS.md`, both files in `docs/specs/`,
 all accepted `docs/adr/` records, `docs/handoffs/AITOWN-CONTRACTS.md`, the frozen
 `config/v0`, `protocol/`, existing domain DTOs, and
-`docs/orchestration/M1_EXECUTION_BASELINE.md`. No frozen M0 contract file was
-changed.
+`docs/orchestration/M1_EXECUTION_BASELINE.md`, ADR-0009, and
+`docs/orchestration/M2_EXECUTION_BASELINE.md`. The M2 baseline commit `0a4caa1`
+was cherry-picked onto the M2 SIM branch; frozen M0 domain/protocol files were
+not edited by SIM.
+
+## M2 completed on the Python side
+
+- Added a real loopback-only WebSocket server using the versioned flat JSON
+  envelope, bounded message size, ping/pong liveness, readable protocol close
+  reasons, and machine-readable startup/error output.
+- Added the ordered handshake state machine and message idempotency. Repeating
+  the same `message_id` with identical content is safe; reusing it for different
+  content is a protocol error.
+- Each socket obtains a monotonically increasing connection generation. A new
+  connection immediately makes all older transports obsolete. Old-generation
+  and late inputs cannot mutate authority.
+- Successful reconnect repeats hello and registry, creates new server message
+  IDs, sends a fresh full `world_snapshot` from the current Python state, and
+  keeps the simulation gated until that generation acknowledges the snapshot
+  with `client_ready`.
+- Added ADR-0009 scoped registry validation for `home_a`, `cafe_bar`, the exact
+  active `npc_01` bed/fridge/dining-seat/workstation bindings and slots,
+  `CAFE_MORNING`, `NpcView`, and the four required animation semantics. Missing
+  or duplicate M2 entries are deterministic ERRORs; incomplete full-V0
+  locations/object types/NPC views remain deterministic WARNINGs.
+- A registered M2 location/NPC entry is the Unity scanner's attestation that its
+  required navigation anchor/controller/animation adapter passed local component
+  validation; the frozen registry payload has no coordinate or component fields,
+  and Python never accepts scene coordinates as authority IDs.
+- Added snapshot, clock, action-start, phase-change, active-agent delta, event,
+  and selected-decision trace presentation output. Messages use committed
+  `state_version`, stable authority IDs, and action correlation IDs.
+- Added `UNITY_LIVE` movement transactions around the accepted M1 engine. A
+  valid arrival controls the authoritative transition out of `TRAVELING`, sets
+  the high-level destination, restarts the planned behavior duration from the
+  confirmed arrival/alignment time, increments `state_version`, and does not
+  advance `game_minute`.
+- A valid navigation failure records `FAILED`, releases every slot/resource
+  reservation owned by that action, restores the authoritative origin location,
+  increments `state_version`, and never settles needs, money, wages, or events.
+  Python also has a deterministic bounded `TIMEOUT` fallback.
+- `presentation_completed` is diagnostic only. Missing animation completion
+  never blocks hard-state settlement; this is the bounded presentation fallback
+  frozen by Orchestrator.
+- Python wall time exists only in the outer server clock adapter. Town Core still
+  receives an already-advanced integer game minute, and Unity Live accepts only
+  `0x`, `1x`, `2x`, or `4x`.
+
+## M2 runtime interface
+
+```bash
+python -m town_core.bridge.server \
+  --config config/v0 --agent npc_01 --seed 12345 \
+  --host 127.0.0.1 --port 8765 --path /town
+```
+
+The default endpoint is `ws://127.0.0.1:8765/town`. Non-loopback binds are
+rejected in M2.
 
 ## Completed
 
@@ -93,6 +150,8 @@ wage; and disabled workstations with `WORK_MISSED` and zero wage.
 
 ## Files owned by this delivery
 
+- `python/town_core/bridge/`
+- `python/tests/bridge/`
 - `python/town_core/simulation/`
 - `python/town_core/decision/`
 - `python/town_core/events/`
@@ -101,6 +160,7 @@ wage; and disabled workstations with `WORK_MISSED` and zero wage.
 - `integration_tests/test_m1_headless.py`
 - `python/town_core/cli.py` (additive M1 commands)
 - `README.md` (actual M1 CLI)
+- `pyproject.toml` / `uv.lock` (local WebSocket runtime dependency)
 - `docs/handoffs/AITOWN-SIM.md`
 
 ## Validation and run evidence
@@ -123,13 +183,21 @@ The final gate uses Python 3.12, full Pytest, Ruff lint/format, strict Mypy, M0
 freeze diagnostics, the production three-day CLI/replay, and the QA-owned
 `check_m1.py --require-sim` contract.
 
+M2 adds deterministic unit/integration coverage for registry success/failure,
+handshake ordering, incompatible versions, message-ID idempotency, the
+`client_ready` gate, authoritative arrival/failure and TIMEOUT, resource
+non-mutation, fresh reconnect snapshots, obsolete generations, and a real
+loopback WebSocket handshake.
+
 ## Known limitations and forbidden scope
 
 - Only `npc_01` is active. The other nine records and their relationship edges
   exist solely to preserve the world boundary; this is not the M3 ten-NPC
   society simulation.
-- Headless semantic objects are not Unity registry instances. Unity transport,
-  presentation, animation, and asset binding remain outside M1.
+- Headless semantic objects remain Python authority objects; Unity registry
+  instances must bind the exact M2 semantic IDs and never replace them.
+- Python Bridge does not implement Unity components, scene navigation, greybox
+  rendering, or Editor tests. Those remain AITOWN-UNITY M2 ownership.
 - The outcome provider is a deterministic catalog-bounded heuristic. It is not
   an ML model and cannot mutate authority outside the Resolver/transaction path.
 - Relationship updates, dialogue/social behavior, Claim/Belief graphs,
@@ -141,6 +209,9 @@ freeze diagnostics, the production three-day CLI/replay, and the QA-owned
 
 ## Blocking dependencies
 
-No M1 SIM blocker remains. QA commit `99da4882be140d8130d3a3eb26d4ababa179e716`
-must be integrated by AITOWN-ORCH before the repository-local strict M1 checker
-is available on main; the SIM adapter already conforms to that final interface.
+The M2 cancellation implementation waits only for the CONTRACTS-owned protocol
+0.2.0/ADR-0010 commit authorized by Orchestrator. SIM will consume its typed
+Unity→Python `movement_cancelled` payload and implement the already-frozen
+generation/action/agent/phase/state-version validation, exactly-once authority
+cancellation transaction, reservation release, and `action_cancelled` output.
+SIM has not edited or locally guessed the frozen DTO.

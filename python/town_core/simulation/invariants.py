@@ -86,3 +86,20 @@ def assert_transition(previous: WorldState, committed: WorldState) -> None:
     for previous_relation, committed_relation in zip(previous.relationships, committed.relationships, strict=True):
         if previous_relation != committed_relation:
             raise InvariantViolation("M1 must not update relationships")
+
+
+def assert_live_input_transition(previous: WorldState, committed: WorldState) -> None:
+    """Validate an M2 external-input commit without advancing game time."""
+
+    if committed.state_version != previous.state_version + 1:
+        raise InvariantViolation("each live input must increment state_version exactly once")
+    if committed.game_minute != previous.game_minute:
+        raise InvariantViolation("movement reports cannot advance authority time")
+    if committed.random_seed != previous.random_seed or committed.config_hash != previous.config_hash:
+        raise InvariantViolation("authority identity changed during a live input")
+    for agent_id, previous_agent in previous.agents.items():
+        if not previous_agent.enabled and committed.agents[agent_id] != previous_agent:
+            raise InvariantViolation(f"inactive M2 agent changed: {agent_id}")
+    for previous_relation, committed_relation in zip(previous.relationships, committed.relationships, strict=True):
+        if previous_relation != committed_relation:
+            raise InvariantViolation("M2 movement inputs must not update relationships")
