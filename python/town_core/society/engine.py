@@ -181,6 +181,11 @@ class SocietyEngine:
     def export_checkpoint(self) -> AuthorityCheckpoint:
         return AuthorityCheckpoint.model_validate(self.checkpoint.model_dump(mode="json", exclude_none=False))
 
+    def _checkpoint_for_persistence(self) -> AuthorityCheckpoint:
+        """Return the validated authority object for immediate read-only persistence."""
+
+        return self.checkpoint
+
     def advance_to(self, target_game_minute: int) -> SocietyAdvanceResult:
         advance = accept_advanced_game_minute(self.state.game_minute, target_game_minute)
         transactions: list[dict[str, object]] = []

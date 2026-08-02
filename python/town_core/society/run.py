@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+import ctypes
 import json
+import os
 import platform
 import resource
 import time
@@ -11,7 +13,7 @@ from collections import Counter
 from contextlib import ExitStack
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import BinaryIO
+from typing import Any, BinaryIO, ClassVar
 
 from town_core.catalogs import m3_catalog_hash
 from town_core.domain.config_models import CatalogBundle
@@ -31,6 +33,10 @@ from town_core.society.invariants import assert_society_invariants
 from town_core.society.models import M3_RUN_SCHEMA, AuthorityCheckpoint, SocietyAdvanceResult
 
 CHECKPOINT_INTERVAL_MINUTES = 360
+DARWIN_CURRENT_RSS_METHOD = "libproc.proc_pidinfo(PROC_PIDTASKINFO).pti_resident_size"
+LINUX_CURRENT_RSS_METHOD = "/proc/self/statm resident pages * SC_PAGE_SIZE"
+PEAK_RSS_METHOD = "resource.getrusage(RUSAGE_SELF).ru_maxrss"
+RSS_SAMPLE_POINT = "after_authority_commit_before_checkpoint_persistence"
 AUTHORITY_KIND_FILENAMES = {
     "decision": "decisions.jsonl",
     "action": "actions.jsonl",
@@ -276,9 +282,7 @@ def run_society(
     if start_minute >= end_minute:
         raise ValueError("resume checkpoint is already at or beyond the requested M3 scenario end")
     started = time.perf_counter()
-    rss_daily_samples = [
-        {"game_day": start_minute // 1440, "game_minute": start_minute, "peak_rss_bytes": _peak_rss_bytes()}
-    ]
+    rss_daily_samples = [_rss_sample(start_minute)]
     try:
         while engine.state.game_minute < end_minute:
             next_checkpoint = (
@@ -290,17 +294,11 @@ def run_society(
                 next_checkpoint,
             )
             writer.append(engine.advance_to(target))
-            if engine.state.game_minute % CHECKPOINT_INTERVAL_MINUTES == 0:
-                writer.write_periodic_checkpoint(engine.export_checkpoint())
             if engine.state.game_minute % 1440 == 0:
-                rss_daily_samples.append(
-                    {
-                        "game_day": engine.state.game_minute // 1440,
-                        "game_minute": engine.state.game_minute,
-                        "peak_rss_bytes": _peak_rss_bytes(),
-                    }
-                )
-        final = engine.export_checkpoint()
+                rss_daily_samples.append(_rss_sample(engine.state.game_minute))
+            if engine.state.game_minute % CHECKPOINT_INTERVAL_MINUTES == 0:
+                writer.write_periodic_checkpoint(engine._checkpoint_for_persistence())
+        final = engine._checkpoint_for_persistence()
         assert_society_invariants(final, catalog, m3_catalogs)
         wall_seconds = time.perf_counter() - started
         behavior_counts = dict(sorted(writer.behavior_counts.items()))
@@ -390,12 +388,96 @@ def _peak_rss_bytes() -> int:
     return int(raw_rss if system == "Darwin" else raw_rss * 1024)
 
 
+class _DarwinProcTaskInfo(ctypes.Structure):
+    _fields_: ClassVar[list[tuple[str, Any]]] = [
+        ("pti_virtual_size", ctypes.c_uint64),
+        ("pti_resident_size", ctypes.c_uint64),
+        ("pti_total_user", ctypes.c_uint64),
+        ("pti_total_system", ctypes.c_uint64),
+        ("pti_threads_user", ctypes.c_uint64),
+        ("pti_threads_system", ctypes.c_uint64),
+        ("pti_policy", ctypes.c_int32),
+        ("pti_faults", ctypes.c_int32),
+        ("pti_pageins", ctypes.c_int32),
+        ("pti_cow_faults", ctypes.c_int32),
+        ("pti_messages_sent", ctypes.c_int32),
+        ("pti_messages_received", ctypes.c_int32),
+        ("pti_syscalls_mach", ctypes.c_int32),
+        ("pti_syscalls_unix", ctypes.c_int32),
+        ("pti_csw", ctypes.c_int32),
+        ("pti_threadnum", ctypes.c_int32),
+        ("pti_numrunning", ctypes.c_int32),
+        ("pti_priority", ctypes.c_int32),
+    ]
+
+
+def _darwin_current_rss_bytes() -> int:
+    proc_pidtaskinfo = 4
+    libproc = ctypes.CDLL("/usr/lib/libproc.dylib", use_errno=True)
+    proc_pidinfo = libproc.proc_pidinfo
+    proc_pidinfo.argtypes = [ctypes.c_int, ctypes.c_int, ctypes.c_uint64, ctypes.c_void_p, ctypes.c_int]
+    proc_pidinfo.restype = ctypes.c_int
+    info = _DarwinProcTaskInfo()
+    expected_size = ctypes.sizeof(info)
+    returned_size = int(
+        proc_pidinfo(
+            os.getpid(),
+            proc_pidtaskinfo,
+            0,
+            ctypes.byref(info),
+            expected_size,
+        )
+    )
+    if returned_size != expected_size:
+        error = ctypes.get_errno()
+        raise OSError(error, f"proc_pidinfo returned {returned_size} bytes; expected {expected_size}")
+    return int(info.pti_resident_size)
+
+
+def _linux_current_rss_bytes(statm_path: Path = Path("/proc/self/statm")) -> int:
+    fields = statm_path.read_text(encoding="ascii").split()
+    if len(fields) < 2:
+        raise RuntimeError("/proc/self/statm does not contain resident pages")
+    resident_pages = int(fields[1])
+    page_size = int(os.sysconf("SC_PAGE_SIZE"))
+    return resident_pages * page_size
+
+
+def _current_rss_bytes() -> int:
+    system = platform.system()
+    if system == "Darwin":
+        return _darwin_current_rss_bytes()
+    if system == "Linux":
+        return _linux_current_rss_bytes()
+    raise RuntimeError(f"current process RSS sampling is unsupported on {system}")
+
+
+def _rss_collection_method() -> str:
+    system = platform.system()
+    if system == "Darwin":
+        current = DARWIN_CURRENT_RSS_METHOD
+    elif system == "Linux":
+        current = LINUX_CURRENT_RSS_METHOD
+    else:
+        raise RuntimeError(f"current process RSS sampling is unsupported on {system}")
+    return f"peak={PEAK_RSS_METHOD}; daily_current={current}; daily_sample_point={RSS_SAMPLE_POINT}"
+
+
+def _rss_sample(game_minute: int) -> dict[str, int]:
+    return {
+        "game_day": game_minute // 1440,
+        "game_minute": game_minute,
+        "current_rss_bytes": _current_rss_bytes(),
+        "peak_rss_bytes": _peak_rss_bytes(),
+    }
+
+
 def _linear_slope(samples: list[dict[str, int]]) -> float:
     post_warmup = [item for item in samples if item["game_day"] >= 1]
     if len(post_warmup) < 2:
         return 0.0
     xs = [float(item["game_day"]) for item in post_warmup]
-    ys = [float(item["peak_rss_bytes"]) for item in post_warmup]
+    ys = [float(item["current_rss_bytes"]) for item in post_warmup]
     x_mean = sum(xs) / len(xs)
     y_mean = sum(ys) / len(ys)
     denominator = sum((value - x_mean) ** 2 for value in xs)
@@ -414,7 +496,7 @@ def _performance_document(
         "tick_p99_ms": _percentile(engine.tick_durations_ms, 0.99),
         "decision_batch_p95_ms": _percentile(engine.decision_batch_durations_ms, 0.95),
         "peak_rss_bytes": _peak_rss_bytes(),
-        "rss_collection_method": "resource.getrusage(RUSAGE_SELF).ru_maxrss",
+        "rss_collection_method": _rss_collection_method(),
         "rss_daily_samples": rss_daily_samples,
         "post_warmup_rss_slope_bytes_per_game_day": _linear_slope(rss_daily_samples),
         "platform": platform.platform(),

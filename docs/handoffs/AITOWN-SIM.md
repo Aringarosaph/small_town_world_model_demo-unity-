@@ -334,6 +334,54 @@ late-window rate by `30/24` and applies that projected maximum rate to all 30
 days: `312.5571s`, leaving `65.27%` below 900 seconds. This remains a projection;
 the ORCH release producer owns the final full 30-day measurement.
 
+### M3 truthful current-RSS evidence
+
+The integrated 30-day seed-`12345` RC completed authority simulation in
+`517.039836s` with peak RSS `137,592,832` bytes, but its reported
+`2,710,872.21891 B/day` slope was a regression over `ru_maxrss` high-water
+samples rather than live process memory. The checkpoint authority itself grows
+far more slowly: a recursive stdlib diagnostic measured approximately 174 KB
+initially, 2.22 MB at day 7, and 7.61 MB at day 30; the two exact-percentile
+timing arrays add approximately 0.09 MB/day.
+
+Peak RSS remains `resource.getrusage(RUSAGE_SELF).ru_maxrss`. Daily slope now
+uses a stdlib/`ctypes` current-process sampler: Darwin calls
+`libproc.proc_pidinfo(PROC_PIDTASKINFO).pti_resident_size`, while Linux reads
+the resident-page field from `/proc/self/statm` and multiplies by
+`SC_PAGE_SIZE`. Samples retain both `current_rss_bytes` and
+`peak_rss_bytes`. The exact method string also records the fixed sampling point:
+after the committed daily authority transaction and before checkpoint
+persistence. The post-warmup filter remains `game_day >= 1`, and the frozen
+1 MiB/day threshold is unchanged.
+
+Current-RSS sampling confirmed real allocator growth rather than hiding it: the
+first 7-day run still measured 3.18 MiB/day, and a day-7-to-30 continuation
+without the persistence fix measured 7.64 MiB/day. `gc.collect`, Darwin malloc
+pressure relief, `PYTHONMALLOC=malloc`, and disabling the nano allocator did not
+release the growth, so none is used by production or evidence.
+
+The retained pages came from periodic checkpoint persistence building one
+complete, ever-growing `json.dumps` string and then writing it. Checkpoints now
+use `json.dump` directly into the same atomic temporary file with the same
+indentation, key ordering, Unicode, LF, and replace semantics. Headless
+persistence also reads the already schema-validated and invariant-checked
+authority checkpoint directly; the public `export_checkpoint` API still
+returns a detached deep authority copy, and a test proves callers cannot mutate
+the engine through it.
+
+The corrected fresh 7-day run preserved every authority hash and measured peak
+RSS `63,881,216` bytes. Its short-window slope was `1,320,082.285714 B/day`;
+short-run allocator warmup therefore is not relabeled as a 30-day pass. A real
+continuation from the exact day-7 checkpoint through day 30 completed in
+`205.967729s`, peak RSS `92,897,280` bytes, and current-RSS slope
+`820,268.521739 B/day`, below the frozen threshold. Combining fresh day 1-7
+samples with continuation day 8-30 samples gives a conservative projected
+full-run slope of `877,282.100111 B/day`. Its final checkpoint SHA-256 matches
+the completed ORCH 30-day run exactly; its 2.22 GB authority log is byte-equal
+to the corresponding ORCH authority suffix, and production replay matched all
+93 resumed checkpoints with zero mismatch or source mutation. ORCH still owns
+the final uninterrupted 30-day evidence rerun.
+
 The independent one-day production observation for this increment completed
 in `7.682316s`, peaked at `51,593,216` bytes RSS, used `38 MiB` on disk, and
 passed all five persisted-checkpoint, final-state, ledger, authority-log, and

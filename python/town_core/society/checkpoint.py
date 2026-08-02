@@ -98,16 +98,15 @@ def write_checkpoint(path: Path, checkpoint: AuthorityCheckpoint) -> None:
 
     path.parent.mkdir(parents=True, exist_ok=True)
     temporary = path.with_name(f".{path.name}.tmp")
-    temporary.write_text(
-        json.dumps(
+    with temporary.open("w", encoding="utf-8", newline="\n") as stream:
+        json.dump(
             checkpoint.model_dump(mode="json", exclude_none=False, by_alias=True),
+            stream,
             ensure_ascii=False,
             indent=2,
             sort_keys=True,
         )
-        + "\n",
-        encoding="utf-8",
-    )
+        stream.write("\n")
     temporary.replace(path)
 
 
