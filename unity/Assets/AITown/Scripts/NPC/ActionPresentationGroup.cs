@@ -23,6 +23,9 @@ namespace STWM.AITown.NPC
         public string AgentId { get; set; }
         public ActionPresentationRole Role { get; set; }
         public string FacingAgentId { get; set; }
+        public string FacingObjectId { get; set; }
+        public string AnimationSemantic { get; set; }
+        public string PropSemantic { get; set; }
         public IReadOnlyList<PresentationObjectSlotBinding> ObjectSlotBindings { get; set; }
             = Array.Empty<PresentationObjectSlotBinding>();
     }
@@ -67,6 +70,13 @@ namespace STWM.AITown.NPC
         public string ActionId { get; }
         public IReadOnlyList<ActionPresentationParticipant> Participants { get; }
         public IReadOnlyList<ClaimedPresentationSlot> Claims => claims;
+
+        public ClaimedPresentationSlot FindClaim(string agentId, string objectId, int slotIndex)
+        {
+            return claims.FirstOrDefault(item => string.Equals(item.AgentId, agentId, StringComparison.Ordinal)
+                                                 && string.Equals(item.ObjectId, objectId, StringComparison.Ordinal)
+                                                 && item.SlotIndex == slotIndex);
+        }
 
         public bool TryClaimAuthoritativeSlots(out string error)
         {
@@ -121,20 +131,23 @@ namespace STWM.AITown.NPC
             error = null;
             foreach (var participant in Participants)
             {
-                if (string.IsNullOrEmpty(participant.FacingAgentId))
+                if (string.IsNullOrEmpty(participant.FacingAgentId)
+                    && string.IsNullOrEmpty(participant.FacingObjectId))
                 {
                     continue;
                 }
 
                 var source = TownSceneAssetRegistry.FindNpcView(participant.AgentId);
-                var target = TownSceneAssetRegistry.FindNpcView(participant.FacingAgentId);
+                var target = !string.IsNullOrEmpty(participant.FacingAgentId)
+                    ? TownSceneAssetRegistry.FindNpcView(participant.FacingAgentId)?.transform
+                    : TownSceneAssetRegistry.FindObject(participant.FacingObjectId)?.transform;
                 if (source?.SocialFacingController == null || target == null
                     || !source.SocialFacingController.BeginAuthoritativeFacing(
                         behaviorId,
                         ActionId,
-                        target.transform))
+                        target))
                 {
-                    error = $"AUTHORITATIVE_FACING_BINDING_INVALID: {participant.AgentId}->{participant.FacingAgentId}";
+                    error = $"AUTHORITATIVE_FACING_BINDING_INVALID: {participant.AgentId}->{participant.FacingAgentId ?? participant.FacingObjectId}";
                     ClearFacing();
                     return false;
                 }

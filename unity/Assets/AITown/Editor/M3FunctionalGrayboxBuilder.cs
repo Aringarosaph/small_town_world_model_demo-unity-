@@ -285,14 +285,14 @@ namespace STWM.AITown.Editor
 
         private static void CreateBridgeAndDebug(Transform parent, M3SemanticManifestDocument manifest)
         {
-            var bridgeObject = new GameObject("TownBridge_M3_PendingProtocol030");
+            var bridgeObject = new GameObject("TownBridge_M3_Protocol030");
             bridgeObject.transform.SetParent(parent);
             var panel = bridgeObject.AddComponent<TownDebugPanel>();
             panel.SetAvailableAgents(manifest.Npcs.Select(item => item.AgentId));
             var bridge = bridgeObject.AddComponent<TownBridgeClient>();
-            bridge.Configure(TownBridgeClient.DefaultEndpointUrl, TownProtocol.DefaultWorldId, false);
+            bridge.ConfigureM3(TownBridgeClient.DefaultEndpointUrl, TownProtocol.DefaultWorldId, false);
             bridge.BindDebugPanel(panel);
-            panel.RecordInfo("M3 protocol 0.3/SIM surface: PENDING; auto-connect intentionally disabled.");
+            panel.RecordInfo("M3 protocol 0.3 contracts ready; SIM live/evidence PENDING, auto-connect disabled.");
         }
 
         private static Vector3 ObjectScale(SemanticObjectType objectType)

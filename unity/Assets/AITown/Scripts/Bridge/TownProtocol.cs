@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Linq;
 using System.Threading;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
@@ -9,7 +10,10 @@ namespace STWM.AITown.Bridge
 {
     public static class TownProtocol
     {
+        // Historical alias retained for the accepted M2 regression surface.
         public const string Version = "0.2.0";
+        public const string M2Version = "0.2.0";
+        public const string M3Version = "0.3.0";
         public const string LegacyBootstrapVersion = "0.1.0";
         public const string ConfigVersion = "v0";
         public const string SchemaVersion = "v0.1";
@@ -31,6 +35,10 @@ namespace STWM.AITown.Bridge
             "dialogue_line_ready",
             "debug_decision_trace"
         };
+
+        public static readonly HashSet<string> M3InboundMessageTypes = new HashSet<string>(
+            InboundMessageTypes.Concat(new[] { "household_state_delta" }),
+            StringComparer.Ordinal);
 
         public static readonly HashSet<string> OutboundMessageTypes = new HashSet<string>(StringComparer.Ordinal)
         {
@@ -148,16 +156,23 @@ namespace STWM.AITown.Bridge
             object payload,
             string worldId,
             long stateVersion,
-            string correlationId = null)
+            string correlationId = null,
+            string protocolVersion = TownProtocol.Version)
         {
             if (!TownProtocol.OutboundMessageTypes.Contains(messageType))
             {
                 throw new ArgumentException($"Not a frozen outbound message type: {messageType}", nameof(messageType));
             }
 
+            if (!string.Equals(protocolVersion, TownProtocol.M2Version, StringComparison.Ordinal)
+                && !string.Equals(protocolVersion, TownProtocol.M3Version, StringComparison.Ordinal))
+            {
+                throw new ArgumentException($"Unsupported outbound protocol version: {protocolVersion}", nameof(protocolVersion));
+            }
+
             var envelope = new TownEnvelope
             {
-                ProtocolVersion = TownProtocol.Version,
+                ProtocolVersion = protocolVersion,
                 MessageId = TownMessageId.Next(),
                 MessageType = messageType,
                 SentAtUtc = DateTime.UtcNow.ToString("yyyy-MM-dd'T'HH:mm:ss.fff'Z'", CultureInfo.InvariantCulture),
@@ -174,7 +189,35 @@ namespace STWM.AITown.Bridge
             return envelope;
         }
 
+        public static bool TryParse(
+            string json,
+            string expectedWorldId,
+            string expectedProtocolVersion,
+            bool allowLegacyServerHello,
+            out TownEnvelope envelope,
+            out string error)
+        {
+            return TryParseInternal(
+                json,
+                expectedWorldId,
+                expectedProtocolVersion,
+                allowLegacyServerHello,
+                out envelope,
+                out error);
+        }
+
         public static bool TryParse(string json, string expectedWorldId, out TownEnvelope envelope, out string error)
+        {
+            return TryParseInternal(json, expectedWorldId, TownProtocol.M2Version, true, out envelope, out error);
+        }
+
+        private static bool TryParseInternal(
+            string json,
+            string expectedWorldId,
+            string expectedProtocolVersion,
+            bool allowLegacyServerHello,
+            out TownEnvelope envelope,
+            out string error)
         {
             envelope = null;
             error = null;
@@ -200,11 +243,12 @@ namespace STWM.AITown.Bridge
                 return false;
             }
 
-            var legacyServerHello = string.Equals(envelope.ProtocolVersion, TownProtocol.LegacyBootstrapVersion, StringComparison.Ordinal)
+            var legacyServerHello = allowLegacyServerHello
+                                    && string.Equals(envelope.ProtocolVersion, TownProtocol.LegacyBootstrapVersion, StringComparison.Ordinal)
                                     && string.Equals(envelope.MessageType, "server_hello", StringComparison.Ordinal);
-            if (!string.Equals(envelope.ProtocolVersion, TownProtocol.Version, StringComparison.Ordinal) && !legacyServerHello)
+            if (!string.Equals(envelope.ProtocolVersion, expectedProtocolVersion, StringComparison.Ordinal) && !legacyServerHello)
             {
-                error = $"PROTOCOL_VERSION_MISMATCH: expected {TownProtocol.Version}, received {envelope.ProtocolVersion}";
+                error = $"PROTOCOL_VERSION_MISMATCH: expected {expectedProtocolVersion}, received {envelope.ProtocolVersion}";
                 return false;
             }
 
@@ -229,7 +273,10 @@ namespace STWM.AITown.Bridge
                 return false;
             }
 
-            if (!TownProtocol.InboundMessageTypes.Contains(envelope.MessageType))
+            var inboundTypes = string.Equals(expectedProtocolVersion, TownProtocol.M3Version, StringComparison.Ordinal)
+                ? TownProtocol.M3InboundMessageTypes
+                : TownProtocol.InboundMessageTypes;
+            if (!inboundTypes.Contains(envelope.MessageType))
             {
                 error = $"UNKNOWN_MESSAGE_TYPE: {envelope.MessageType}";
                 return false;

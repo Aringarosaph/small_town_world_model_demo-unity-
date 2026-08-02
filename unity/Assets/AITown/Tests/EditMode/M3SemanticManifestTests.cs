@@ -24,8 +24,11 @@ namespace STWM.AITown.Tests.EditMode
             var manifest = M3SemanticManifestDocument.LoadDefault();
             var objects = manifest.ExpandObjects();
 
-            Assert.That(manifest.BaselineCommit, Is.EqualTo("2a51615"));
-            Assert.That(manifest.SharedContractManifestStatus, Is.EqualTo("PENDING_CONTRACTS_0_3"));
+            Assert.That(manifest.Schema, Is.EqualTo("stwm.catalog.m3-semantic-instances/v1"));
+            Assert.That(manifest.Profile, Is.EqualTo("M3_FULL"));
+            Assert.That(manifest.CatalogProtocolVersion, Is.EqualTo("0.1.0"));
+            Assert.That(manifest.SharedContractManifestStatus, Is.EqualTo("CONSUMED_CONTRACTS_0_3"));
+            Assert.That(manifest.SourcePath, Does.EndWith("config/v0/semantic_instances.yaml"));
             Assert.That(manifest.Locations.Count, Is.EqualTo(8));
             Assert.That(manifest.Npcs.Count, Is.EqualTo(10));
             Assert.That(objects.Select(item => item.ObjectType).Distinct().Count(), Is.EqualTo(15));
@@ -53,9 +56,9 @@ namespace STWM.AITown.Tests.EditMode
                 ["LEISURE_SPOT"] = 2,
                 ["CONVERSATION_ANCHOR"] = 2
             };
-            foreach (var group in manifest.ObjectGroups)
+            foreach (var semanticObject in objects)
             {
-                Assert.That(group.SlotCount, Is.EqualTo(defaultSlots[group.ObjectType]), group.IdPrefix);
+                Assert.That(semanticObject.SlotCount, Is.EqualTo(defaultSlots[semanticObject.ObjectType]), semanticObject.ObjectId);
             }
 
             foreach (var home in new[] { "home_a", "home_b", "home_c", "home_d" })

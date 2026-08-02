@@ -68,6 +68,15 @@ namespace STWM.AITown.Editor
         [JsonProperty("manifest_schema")]
         public string ManifestSchema { get; set; }
 
+        [JsonProperty("manifest_source")]
+        public string ManifestSource { get; set; }
+
+        [JsonProperty("catalog_protocol_version")]
+        public string CatalogProtocolVersion { get; set; }
+
+        [JsonProperty("target_protocol_version")]
+        public string TargetProtocolVersion { get; set; } = TownProtocol.M3Version;
+
         [JsonProperty("shared_contract_manifest_status")]
         public string SharedContractManifestStatus { get; set; }
 
@@ -79,6 +88,9 @@ namespace STWM.AITown.Editor
 
         [JsonProperty("sim_authority")]
         public M3EvidenceGate SimAuthority { get; set; }
+
+        [JsonProperty("live_interop")]
+        public M3EvidenceGate LiveInterop { get; set; }
 
         [JsonProperty("editmode_results")]
         public M3EvidenceGate EditModeResults { get; set; }
@@ -157,6 +169,8 @@ namespace STWM.AITown.Editor
                 AcceptanceEligible = false,
                 GeneratedAtUtc = DateTime.UtcNow.ToString("yyyy-MM-dd'T'HH:mm:ss.fff'Z'"),
                 ManifestSchema = manifest.Schema,
+                ManifestSource = M3SemanticManifestDocument.RepositoryRelativePath,
+                CatalogProtocolVersion = manifest.CatalogProtocolVersion,
                 SharedContractManifestStatus = manifest.SharedContractManifestStatus,
                 LocalFixture = new M3LocalFixtureEvidence
                 {
@@ -172,14 +186,20 @@ namespace STWM.AITown.Editor
                     SlotCount = scan.Payload.Objects.Sum(item => item.InteractionSlots.Count),
                     RouteCount = routeReport.RouteCount
                 },
-                Protocol030 = Pending("contracts_external", "Protocol 0.3 DTO/schema/live smoke has not been supplied to this increment."),
+                Protocol030 = new M3EvidenceGate
+                {
+                    Status = "PASS",
+                    EvidenceSource = "contracts_3fe06f6",
+                    Detail = "Unity consumes the frozen 0.3.0 schema/DTO direction surface and the shared semantic-instance manifest; live SIM interoperability remains a separate pending gate."
+                },
                 SimAuthority = Pending("sim_external", "Real M3 SIM authority evidence/transcript has not been supplied."),
+                LiveInterop = Pending("sim_live_external", "Real ClientWebSocket /town protocol 0.3.0 interoperability has not been supplied."),
                 EditModeResults = Pending("unity_test_runner", "Zero-skipped final EditMode XML is not an input to the framework exporter yet."),
                 PlayModeResults = Pending("unity_test_runner", "Zero-skipped final PlayMode/live 0.3 XML is not an input to the framework exporter yet."),
                 PendingReasons = new List<string>
                 {
-                    "CONTRACTS_0_3_NOT_INTEGRATED",
                     "SIM_M3_AUTHORITY_EVIDENCE_NOT_INTEGRATED",
+                    "M3_LIVE_PROTOCOL_0_3_INTEROP_NOT_RUN",
                     "FINAL_ZERO_SKIPPED_TEST_EVIDENCE_NOT_INTEGRATED"
                 }
             };

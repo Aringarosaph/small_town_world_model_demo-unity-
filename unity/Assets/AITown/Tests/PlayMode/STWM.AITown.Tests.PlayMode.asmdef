@@ -3,13 +3,16 @@
   "rootNamespace": "STWM.AITown.Tests.PlayMode",
   "references": [
     "STWM.AITown.Runtime",
-    "Unity.AI.Navigation"
+    "Unity.AI.Navigation",
+    "Unity.Newtonsoft.Json"
   ],
   "includePlatforms": [],
   "excludePlatforms": [],
   "allowUnsafeCode": false,
-  "overrideReferences": false,
-  "precompiledReferences": [],
+  "overrideReferences": true,
+  "precompiledReferences": [
+    "Newtonsoft.Json.dll"
+  ],
   "autoReferenced": false,
   "defineConstraints": [],
   "versionDefines": [],

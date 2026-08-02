@@ -33,7 +33,7 @@ namespace STWM.AITown.Tests.EditMode
                             .Select(index => new RegisteredInteractionSlotDto { SlotIndex = index })
                             .ToList()
                     }).ToList(),
-                    NpcViews = manifest.Npcs.Select(item => new RegisteredNpcViewDto { AgentId = item.AgentId }).ToList()
+                    NpcViews = manifest.NpcViewIds.Select(item => new RegisteredNpcViewDto { AgentId = item }).ToList()
                 },
                 Issues = new List<AssetValidationIssueDto>()
             };
@@ -49,9 +49,12 @@ namespace STWM.AITown.Tests.EditMode
             Assert.That(document.LocalFixture.Status, Is.EqualTo("PASS"));
             Assert.That(document.Status, Is.EqualTo("PENDING"));
             Assert.That(document.AcceptanceEligible, Is.False);
-            Assert.That(document.Protocol030.Status, Is.EqualTo("PENDING"));
+            Assert.That(document.Protocol030.Status, Is.EqualTo("PASS"));
             Assert.That(document.SimAuthority.Status, Is.EqualTo("PENDING"));
-            Assert.That(document.PendingReasons, Does.Contain("CONTRACTS_0_3_NOT_INTEGRATED"));
+            Assert.That(document.LiveInterop.Status, Is.EqualTo("PENDING"));
+            Assert.That(document.ManifestSource, Is.EqualTo("config/v0/semantic_instances.yaml"));
+            Assert.That(document.CatalogProtocolVersion, Is.EqualTo("0.1.0"));
+            Assert.That(document.PendingReasons, Does.Not.Contain("CONTRACTS_0_3_NOT_INTEGRATED"));
         }
     }
 }

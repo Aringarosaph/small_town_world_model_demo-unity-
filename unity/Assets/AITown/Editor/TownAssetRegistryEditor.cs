@@ -49,7 +49,7 @@ namespace STWM.AITown.Editor
         public string SharedContractManifestStatus { get; set; }
 
         [JsonProperty("protocol_status")]
-        public string ProtocolStatus { get; set; } = "PENDING_0.3.0";
+        public string ProtocolStatus { get; set; } = "CONTRACTS_0.3.0_CONSUMED";
 
         [JsonProperty("unity_editor")]
         public string UnityEditor { get; set; } = TownProtocol.UnityEditorVersion;

@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Linq;
+using Newtonsoft.Json;
 using STWM.AITown.Bridge;
 using UnityEngine;
 
@@ -32,6 +33,7 @@ namespace STWM.AITown.Debugging
         private readonly List<AssetValidationIssueDto> serverRegistryIssues = new List<AssetValidationIssueDto>();
         private readonly List<string> availableAgentIds = new List<string>();
         private readonly Dictionary<string, TownNpcDebugSurface> npcSurfaces = new Dictionary<string, TownNpcDebugSurface>();
+        private readonly Dictionary<string, DebugDecisionTraceV030Payload> decisionTraces = new Dictionary<string, DebugDecisionTraceV030Payload>();
 
         private string connectionState = "Disconnected";
         private long gameMinute;
@@ -48,6 +50,8 @@ namespace STWM.AITown.Debugging
         public string ConnectionState => connectionState;
         public string SelectedAgentId => selectedAgentId;
         public IReadOnlyList<string> AvailableAgentIds => availableAgentIds;
+        public DebugDecisionTraceV030Payload SelectedDecisionTrace =>
+            decisionTraces.TryGetValue(selectedAgentId, out var trace) ? trace : null;
 
         public void BindBridge(TownBridgeClient bridge)
         {
@@ -131,6 +135,26 @@ namespace STWM.AITown.Debugging
             {
                 behaviorId = surface.BehaviorId;
                 actionPhase = surface.ActionPhase;
+            }
+        }
+
+        public void SetDecisionTrace(DebugDecisionTraceV030Payload trace)
+        {
+            if (trace == null)
+            {
+                return;
+            }
+
+            trace.Validate();
+            EnsureAgent(trace.AgentId);
+            decisionTraces[trace.AgentId] = trace;
+        }
+
+        public void SetHouseholdResources(string householdId, long? money, long? foodUnits)
+        {
+            foreach (var surface in npcSurfaces.Values.Where(item => item.HouseholdId == householdId))
+            {
+                surface.HouseholdResources = $"money={(money.HasValue ? money.Value.ToString() : "null")}; food={(foodUnits.HasValue ? foodUnits.Value.ToString() : "null")}";
             }
         }
 
@@ -261,7 +285,27 @@ namespace STWM.AITown.Debugging
             GUILayout.Label($"Needs: {surface.Needs}");
             GUILayout.Label($"Mood: {surface.Mood}");
             GUILayout.Label($"Relationships: {surface.Relationships} | known events: {surface.KnownEvents}");
-            GUILayout.Label("Top-K / hard preview / prediction / utility / Resolver: PENDING protocol 0.3 DTO");
+            DrawDecisionTrace();
+        }
+
+        private void DrawDecisionTrace()
+        {
+            if (!decisionTraces.TryGetValue(selectedAgentId, out var trace))
+            {
+                GUILayout.Label("Top-K: PENDING authoritative debug_decision_trace");
+                return;
+            }
+
+            GUILayout.Label($"Decision {trace.DecisionId} | {trace.Trigger} | source v{trace.SourceStateVersion}");
+            GUILayout.Label($"Selected {trace.SelectedCandidateId} / {trace.SelectedProposalId}");
+            foreach (var row in trace.Candidates)
+            {
+                var selected = row.CandidateId == trace.SelectedCandidateId ? "SELECTED" : "";
+                GUILayout.Label($"#{row.Rank} {row.BehaviorId} score={row.TotalScore:0.###} {row.ResolverResult ?? "NOT_ATTEMPTED"} {row.ConflictCode ?? selected}");
+                GUILayout.Label($"  hard: money {row.HardPreview.HouseholdMoneyDelta:+#;-#;0}, food {row.HardPreview.HouseholdFoodUnitsDelta:+#;-#;0}, bindings {row.HardPreview.ObjectBindings.Count}, reservations {row.HardPreview.ReservationKeys.Count}");
+                GUILayout.Label($"  prediction: {row.Prediction.ToString(Formatting.None)}");
+                GUILayout.Label($"  utility: {string.Join(", ", row.UtilityTerms.OrderBy(item => item.Key).Select(item => $"{item.Key}={item.Value:0.###}"))}");
+            }
         }
 
         private void CycleAgent(int offset)

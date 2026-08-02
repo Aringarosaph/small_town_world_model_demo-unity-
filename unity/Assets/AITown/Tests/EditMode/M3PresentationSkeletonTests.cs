@@ -90,7 +90,7 @@ namespace STWM.AITown.Tests.EditMode
 
         private SemanticObject CreateTwoSlotObject()
         {
-            var root = Track(new GameObject("park_conversation_anchor_01"));
+            var root = Track(new GameObject("park_conversation_01"));
             var slot0Root = new GameObject("slot0");
             slot0Root.transform.SetParent(root.transform);
             var slot1Root = new GameObject("slot1");
@@ -101,7 +101,7 @@ namespace STWM.AITown.Tests.EditMode
             slot1.Configure(1, slot1.transform, null, STWM.AITown.Bridge.AnimationSemantic.TALK_NEUTRAL);
             var semanticObject = root.AddComponent<SemanticObject>();
             semanticObject.Configure(
-                "park_conversation_anchor_01",
+                "park_conversation_01",
                 SemanticObjectType.CONVERSATION_ANCHOR,
                 "park",
                 true,

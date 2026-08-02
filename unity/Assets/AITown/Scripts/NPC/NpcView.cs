@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using Newtonsoft.Json.Linq;
 using STWM.AITown.Animation;
 using STWM.AITown.Bridge;
@@ -31,6 +32,8 @@ namespace STWM.AITown.NPC
         public string CurrentPhase { get; private set; } = "NONE";
         public string CachedAuthorityLocationId { get; private set; }
         public JObject CachedNeeds { get; private set; }
+        public JObject CachedMood { get; private set; }
+        public JArray CachedKnownEventIds { get; private set; }
 
         private void Awake()
         {
@@ -99,6 +102,8 @@ namespace STWM.AITown.NPC
             CachedAuthorityLocationId = agent.Value<string>("current_location_id");
             CurrentActionId = agent.Value<string>("current_action_id");
             CachedNeeds = agent["needs"] as JObject;
+            CachedMood = agent["mood"] as JObject;
+            CachedKnownEventIds = agent["known_event_ids"] as JArray;
             if (statusIndicator != null)
             {
                 statusIndicator.SetActive(agent.Value<bool?>("enabled") ?? false);
@@ -121,6 +126,58 @@ namespace STWM.AITown.NPC
             {
                 CachedNeeds = delta.Needs;
             }
+        }
+
+        public void ApplyAgentDeltaV030(AgentStateDeltaV030Payload delta)
+        {
+            if (delta == null || !string.Equals(delta.AgentId, agentId, StringComparison.Ordinal))
+            {
+                return;
+            }
+
+            if (delta.Has("current_location_id"))
+            {
+                CachedAuthorityLocationId = delta.Value("current_location_id")?.Type == JTokenType.Null
+                    ? null
+                    : delta.Value("current_location_id")?.Value<string>();
+            }
+            if (delta.Has("current_action_id"))
+            {
+                CurrentActionId = delta.Value("current_action_id")?.Type == JTokenType.Null
+                    ? null
+                    : delta.Value("current_action_id")?.Value<string>();
+            }
+            if (delta.Has("needs"))
+            {
+                CachedNeeds = delta.Value("needs")?.Type == JTokenType.Null ? null : delta.Value("needs") as JObject;
+            }
+            if (delta.Has("mood"))
+            {
+                CachedMood = delta.Value("mood")?.Type == JTokenType.Null ? null : delta.Value("mood") as JObject;
+            }
+            if (delta.Has("known_event_ids"))
+            {
+                CachedKnownEventIds = delta.Value("known_event_ids")?.Type == JTokenType.Null
+                    ? null
+                    : delta.Value("known_event_ids") as JArray;
+            }
+        }
+
+        public void ResetPresentationForSnapshot()
+        {
+            var actionId = CurrentActionId;
+            navigationController?.CancelNavigation(MovementCancellationReason.NAVIGATION_STOPPED, false);
+            if (!string.IsNullOrEmpty(actionId))
+            {
+                animationDriver?.Stop(actionId);
+                propPresenter?.Hide(actionId);
+                socialFacingController?.Clear(actionId);
+            }
+
+            CurrentActionId = null;
+            CurrentBehaviorId = null;
+            CurrentPhase = "NONE";
+            currentPropSemantic = null;
         }
 
         public void BeginAction(ActionStartedPayload action)
@@ -146,6 +203,77 @@ namespace STWM.AITown.NPC
                 {
                     animationDriver?.SetLocomotion(true, action.ActionId);
                 }
+            }
+        }
+
+        public void BeginActionV030(
+            StructuredActionPresentationV030 action,
+            ActionPresentationParticipant participant,
+            ActionPresentationGroup group,
+            string phase = "CREATED")
+        {
+            if (action == null || participant == null || group == null
+                || !string.Equals(participant.AgentId, agentId, StringComparison.Ordinal))
+            {
+                return;
+            }
+
+            if (!Enum.TryParse(participant.AnimationSemantic, out currentAnimationSemantic))
+            {
+                throw new InvalidOperationException($"Unsupported animation semantic {participant.AnimationSemantic} for {agentId}.");
+            }
+
+            CurrentActionId = action.ActionId;
+            CurrentBehaviorId = action.BehaviorId;
+            CurrentPhase = phase;
+            currentPropSemantic = participant.PropSemantic;
+            var firstBinding = participant.ObjectSlotBindings.FirstOrDefault();
+            NpcNavigationRequest request = null;
+            if (firstBinding != null)
+            {
+                var semanticObject = TownSceneAssetRegistry.FindObject(firstBinding.ObjectId);
+                var slot = semanticObject?.FindSlot(firstBinding.SlotIndex);
+                var claim = group.FindClaim(agentId, firstBinding.ObjectId, firstBinding.SlotIndex);
+                if (semanticObject == null || slot == null || claim == null)
+                {
+                    throw new InvalidOperationException(
+                        $"Missing claimed M3 navigation binding {agentId}/{firstBinding.ObjectId}/{firstBinding.SlotIndex}.");
+                }
+
+                request = new NpcNavigationRequest
+                {
+                    ActionId = action.ActionId,
+                    AgentId = agentId,
+                    PresentationClaimId = claim.ClaimId,
+                    TargetObject = semanticObject,
+                    TargetSlot = slot
+                };
+            }
+            else
+            {
+                var location = TownSceneAssetRegistry.FindLocation(action.DestinationLocationId);
+                if (location?.PrimaryEntrance != null)
+                {
+                    request = new NpcNavigationRequest
+                    {
+                        ActionId = action.ActionId,
+                        AgentId = agentId,
+                        DestinationAnchor = location.PrimaryEntrance
+                    };
+                }
+            }
+
+            if ((phase == "CREATED" || phase == "TRAVELING")
+                && request != null
+                && navigationController != null
+                && navigationController.BeginNavigation(request))
+            {
+                animationDriver?.SetLocomotion(true, action.ActionId);
+            }
+
+            if (phase == "PERFORMING")
+            {
+                ApplyActionPhase(action.ActionId, phase);
             }
         }
 

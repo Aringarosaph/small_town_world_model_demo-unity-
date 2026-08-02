@@ -27,6 +27,12 @@ namespace STWM.AITown.Bridge
         ProtocolRejected
     }
 
+    public enum TownBridgeProtocolProfile
+    {
+        M2_SCOPED_V020,
+        M3_FULL_V030
+    }
+
     [DisallowMultipleComponent]
     public sealed class TownBridgeClient : MonoBehaviour
     {
@@ -37,6 +43,7 @@ namespace STWM.AITown.Bridge
         [SerializeField] private string endpointUrl = DefaultEndpointUrl;
         [SerializeField] private string worldId = TownProtocol.DefaultWorldId;
         [SerializeField] private bool connectOnStart = true;
+        [SerializeField] private TownBridgeProtocolProfile protocolProfile = TownBridgeProtocolProfile.M2_SCOPED_V020;
 
         [Header("Transport liveness")]
         [SerializeField, Min(1f)] private float keepAliveSeconds = 10f;
@@ -52,6 +59,9 @@ namespace STWM.AITown.Bridge
         private readonly Dictionary<string, JToken> seenMessageContents = new Dictionary<string, JToken>(StringComparer.Ordinal);
         private readonly Queue<string> seenMessageOrder = new Queue<string>();
         private readonly Dictionary<string, NpcView> actionViews = new Dictionary<string, NpcView>(StringComparer.Ordinal);
+        private readonly Dictionary<string, ActionPresentationGroup> actionGroups = new Dictionary<string, ActionPresentationGroup>(StringComparer.Ordinal);
+        private readonly Dictionary<string, JObject> householdAuthority = new Dictionary<string, JObject>(StringComparer.Ordinal);
+        private readonly Dictionary<string, string> agentHouseholds = new Dictionary<string, string>(StringComparer.Ordinal);
         private readonly SemaphoreSlim sendGate = new SemaphoreSlim(1, 1);
 
         private Func<ITownSocketTransport> transportFactory = () => new ClientWebSocketTransport();
@@ -76,6 +86,11 @@ namespace STWM.AITown.Bridge
         public string EndpointUrl => endpointUrl;
         public int ConnectionGeneration => connectionGeneration;
         public bool IsReady => ConnectionState == BridgeConnectionState.Ready;
+        public TownBridgeProtocolProfile ProtocolProfile => protocolProfile;
+        public string ActiveProtocolVersion => protocolProfile == TownBridgeProtocolProfile.M3_FULL_V030
+            ? TownProtocol.M3Version
+            : TownProtocol.M2Version;
+        public int ActivePresentationGroupCount => actionGroups.Count;
 
         public event Action<BridgeConnectionState> ConnectionStateChanged;
         public event Action<TownEnvelope> EnvelopeApplied;
@@ -157,6 +172,15 @@ namespace STWM.AITown.Bridge
             endpointUrl = endpoint;
             worldId = expectedWorldId;
             connectOnStart = shouldConnectOnStart;
+            protocolProfile = TownBridgeProtocolProfile.M2_SCOPED_V020;
+        }
+
+        public void ConfigureM3(string endpoint, string expectedWorldId, bool shouldConnectOnStart)
+        {
+            endpointUrl = endpoint;
+            worldId = expectedWorldId;
+            connectOnStart = shouldConnectOnStart;
+            protocolProfile = TownBridgeProtocolProfile.M3_FULL_V030;
         }
 
         public void BindDebugPanel(TownDebugPanel panel)
@@ -231,7 +255,13 @@ namespace STWM.AITown.Bridge
 
         public bool ProcessInboundJson(string json)
         {
-            if (!TownEnvelope.TryParse(json, worldId, out var envelope, out var error))
+            if (!TownEnvelope.TryParse(
+                    json,
+                    worldId,
+                    ActiveProtocolVersion,
+                    protocolProfile == TownBridgeProtocolProfile.M2_SCOPED_V020,
+                    out var envelope,
+                    out var error))
             {
                 if (error.StartsWith("PROTOCOL_VERSION_MISMATCH", StringComparison.Ordinal))
                 {
@@ -272,7 +302,7 @@ namespace STWM.AITown.Bridge
 
         public void ReportMovementArrived(string actionId, string agentId, string objectId, int? slotIndex)
         {
-            Send(TownEnvelope.Create(
+            Send(CreateOutbound(
                 "movement_arrived",
                 new MovementArrivedPayload
                 {
@@ -288,7 +318,7 @@ namespace STWM.AITown.Bridge
 
         public void ReportMovementFailed(string actionId, string agentId, MovementFailureReason reason)
         {
-            Send(TownEnvelope.Create(
+            Send(CreateOutbound(
                 "movement_failed",
                 new MovementFailedPayload
                 {
@@ -303,7 +333,7 @@ namespace STWM.AITown.Bridge
 
         public void ReportMovementCancelled(string actionId, string agentId, MovementCancellationReason reason)
         {
-            Send(TownEnvelope.Create(
+            Send(CreateOutbound(
                 "movement_cancelled",
                 new MovementCancelledPayload
                 {
@@ -319,7 +349,7 @@ namespace STWM.AITown.Bridge
 
         public void ReportPresentationCompleted(string actionId, string agentId)
         {
-            Send(TownEnvelope.Create(
+            Send(CreateOutbound(
                 "presentation_completed",
                 new PresentationCompletedPayload { ActionId = actionId, AgentId = agentId },
                 worldId,
@@ -339,7 +369,7 @@ namespace STWM.AITown.Bridge
 
             EnsureReadyForControlRequest("set_time_scale_request");
 
-            Send(TownEnvelope.Create(
+            Send(CreateOutbound(
                 "set_time_scale_request",
                 new SetTimeScaleRequestPayload { RequestedTimeScale = requestedTimeScale },
                 worldId,
@@ -349,7 +379,7 @@ namespace STWM.AITown.Bridge
         public void RequestPause(bool shouldPause)
         {
             EnsureReadyForControlRequest("pause_request");
-            Send(TownEnvelope.Create(
+            Send(CreateOutbound(
                 "pause_request",
                 new PauseRequestPayload { Paused = shouldPause },
                 worldId,
@@ -366,7 +396,7 @@ namespace STWM.AITown.Bridge
             if (!IsReady)
             {
                 throw new InvalidOperationException(
-                    $"{messageType} requires a completed 0.2.0 handshake, registry, snapshot, and client_ready.");
+                    $"{messageType} requires a completed {ActiveProtocolVersion} handshake, registry, snapshot, and client_ready.");
             }
         }
 
@@ -406,9 +436,12 @@ namespace STWM.AITown.Bridge
                     registryMessageId = null;
                     lastInboundUtc = DateTime.UtcNow;
                     Transition(BridgeConnectionState.AwaitingServerHello);
-                    var clientHello = TownEnvelope.Create(
+                    var helloPayload = protocolProfile == TownBridgeProtocolProfile.M3_FULL_V030
+                        ? (object)new ClientHelloV030Payload()
+                        : new ClientHelloPayload();
+                    var clientHello = CreateOutbound(
                         "client_hello",
-                        new ClientHelloPayload(),
+                        helloPayload,
                         worldId,
                         LastAppliedStateVersion);
                     clientHelloMessageId = clientHello.MessageId;
@@ -501,7 +534,14 @@ namespace STWM.AITown.Bridge
                     debugPanel?.SetClock(clock.GameMinute, clock.TimeScale, clock.Paused);
                     break;
                 case "action_started":
-                    ApplyActionStarted(envelope.ReadPayload<ActionStartedPayload>());
+                    if (protocolProfile == TownBridgeProtocolProfile.M3_FULL_V030)
+                    {
+                        ApplyActionStartedV030(envelope.ReadPayload<ActionStartedV030Payload>());
+                    }
+                    else
+                    {
+                        ApplyActionStarted(envelope.ReadPayload<ActionStartedPayload>());
+                    }
                     break;
                 case "action_phase_changed":
                     ApplyActionPhase(envelope.ReadPayload<ActionPhaseChangedPayload>());
@@ -510,7 +550,24 @@ namespace STWM.AITown.Bridge
                     ApplyActionCancelled(envelope.ReadPayload<ActionCancelledPayload>());
                     break;
                 case "agent_state_delta":
-                    ApplyAgentDelta(envelope.ReadPayload<AgentStateDeltaPayload>());
+                    if (protocolProfile == TownBridgeProtocolProfile.M3_FULL_V030)
+                    {
+                        ApplyAgentDeltaV030(AgentStateDeltaV030Payload.Parse(envelope.Payload));
+                    }
+                    else
+                    {
+                        ApplyAgentDelta(envelope.ReadPayload<AgentStateDeltaPayload>());
+                    }
+                    break;
+                case "household_state_delta":
+                    RequireM3Message(envelope.MessageType);
+                    ApplyHouseholdDeltaV030(HouseholdStateDeltaV030Payload.Parse(envelope.Payload));
+                    break;
+                case "debug_decision_trace":
+                    RequireM3Message(envelope.MessageType);
+                    var trace = envelope.ReadPayload<DebugDecisionTraceV030Payload>();
+                    trace.Validate();
+                    debugPanel?.SetDecisionTrace(trace);
                     break;
                 default:
                     debugPanel?.RecordInfo($"Observed {envelope.MessageType} at v{envelope.StateVersion}");
@@ -534,7 +591,7 @@ namespace STWM.AITown.Bridge
             if (!string.Equals(envelope.ProtocolVersion, hello.AcceptedProtocolVersion, StringComparison.Ordinal)
                 || !string.Equals(envelope.CorrelationId, clientHelloMessageId, StringComparison.Ordinal)
                 || hello.ServerName != "python_town_core"
-                || hello.AcceptedProtocolVersion != TownProtocol.Version
+                || hello.AcceptedProtocolVersion != ActiveProtocolVersion
                 || hello.ConfigVersion != TownProtocol.ConfigVersion
                 || hello.SchemaVersion != TownProtocol.SchemaVersion)
             {
@@ -542,10 +599,12 @@ namespace STWM.AITown.Bridge
                 return false;
             }
 
-            var scan = TownSceneAssetRegistry.ScanM2Fixture();
+            var scan = protocolProfile == TownBridgeProtocolProfile.M3_FULL_V030
+                ? TownSceneAssetRegistry.ScanFullV0(true)
+                : TownSceneAssetRegistry.ScanM2Fixture();
             localRegistryHasErrors = scan.HasErrors;
             debugPanel?.SetRegistryIssues(scan.Issues);
-            var registry = TownEnvelope.Create(
+            var registry = CreateOutbound(
                 "asset_registry",
                 scan.Payload,
                 worldId,
@@ -582,7 +641,7 @@ namespace STWM.AITown.Bridge
             {
                 Transition(BridgeConnectionState.DiagnosticOnly);
                 ReportError(result.Accepted
-                    ? "LOCAL_M2_ASSET_REGISTRY_BLOCKED_READY"
+                    ? $"LOCAL_{ScanProfileName()}_ASSET_REGISTRY_BLOCKED_READY"
                     : "ASSET_REGISTRY_REJECTED");
                 return false;
             }
@@ -600,7 +659,14 @@ namespace STWM.AITown.Bridge
                 return false;
             }
 
-            var world = envelope.Payload["world"] as JObject;
+            WorldSnapshotV030Payload snapshotV030 = null;
+            if (protocolProfile == TownBridgeProtocolProfile.M3_FULL_V030)
+            {
+                snapshotV030 = envelope.ReadPayload<WorldSnapshotV030Payload>();
+                snapshotV030.Validate();
+            }
+
+            var world = snapshotV030?.World ?? envelope.Payload["world"] as JObject;
             if (world == null)
             {
                 throw new JsonSerializationException("world_snapshot payload has no world object.");
@@ -622,10 +688,18 @@ namespace STWM.AITown.Bridge
             }
 
             lastAppliedStateVersion = envelope.StateVersion;
+            ResetPresentationProjection();
             ApplySnapshotToViews(world);
+            if (snapshotV030 != null)
+            {
+                foreach (var presentation in snapshotV030.ActivePresentations)
+                {
+                    BindStructuredPresentation(presentation, presentation.Phase);
+                }
+            }
             if (ConnectionState == BridgeConnectionState.AwaitingWorldSnapshot)
             {
-                Send(TownEnvelope.Create(
+                Send(CreateOutbound(
                     "client_ready",
                     new ClientReadyPayload { RegistryMessageId = registryMessageId },
                     worldId,
@@ -648,6 +722,20 @@ namespace STWM.AITown.Bridge
 
             debugPanel?.SetAvailableAgents(agents.Properties().Select(item => item.Name));
 
+            householdAuthority.Clear();
+            agentHouseholds.Clear();
+            var snapshotHouseholds = world["households"] as JObject;
+            if (snapshotHouseholds != null)
+            {
+                foreach (var property in snapshotHouseholds.Properties())
+                {
+                    if (property.Value is JObject household)
+                    {
+                        householdAuthority[property.Name] = (JObject)household.DeepClone();
+                    }
+                }
+            }
+
             foreach (var view in TownSceneAssetRegistry.FindNpcViews())
             {
                 view.BindBridge(this);
@@ -669,6 +757,10 @@ namespace STWM.AITown.Bridge
                     }
 
                     var householdId = agent.Value<string>("household_id");
+                    if (!string.IsNullOrEmpty(householdId))
+                    {
+                        agentHouseholds[property.Name] = householdId;
+                    }
                     var household = households?[householdId] as JObject;
                     var relationshipCount = relationships?.OfType<JObject>()
                         .Count(item => string.Equals(item.Value<string>("source_agent_id"), property.Name, StringComparison.Ordinal)) ?? 0;
@@ -714,8 +806,34 @@ namespace STWM.AITown.Bridge
             }
         }
 
+        private void ApplyActionStartedV030(ActionStartedV030Payload payload)
+        {
+            if (payload.PlannedDurationMinutes < 0)
+            {
+                throw new InvalidOperationException("M3 action planned_duration_minutes cannot be negative.");
+            }
+
+            BindStructuredPresentation(payload, "CREATED");
+        }
+
         private void ApplyActionPhase(ActionPhaseChangedPayload payload)
         {
+            if (actionGroups.TryGetValue(payload.ActionId, out var group))
+            {
+                foreach (var participant in group.Participants)
+                {
+                    var participantView = TownSceneAssetRegistry.FindNpcView(participant.AgentId);
+                    participantView?.ApplyActionPhase(payload.ActionId, payload.Phase);
+                    debugPanel?.SetNpcAction(participant.AgentId, participantView?.CurrentBehaviorId, payload.Phase);
+                }
+
+                if (IsTerminalPhase(payload.Phase))
+                {
+                    ReleaseGroup(payload.ActionId, group);
+                }
+                return;
+            }
+
             if (!actionViews.TryGetValue(payload.ActionId, out var view))
             {
                 view = TownSceneAssetRegistry.FindNpcViewByAction(payload.ActionId);
@@ -735,6 +853,18 @@ namespace STWM.AITown.Bridge
 
         private void ApplyActionCancelled(ActionCancelledPayload payload)
         {
+            if (actionGroups.TryGetValue(payload.ActionId, out var group))
+            {
+                foreach (var participant in group.Participants)
+                {
+                    TownSceneAssetRegistry.FindNpcView(participant.AgentId)
+                        ?.CancelAuthoritativeAction(payload.ActionId, payload.Reason);
+                    debugPanel?.SetNpcAction(participant.AgentId, null, "CANCELLED");
+                }
+                ReleaseGroup(payload.ActionId, group);
+                return;
+            }
+
             if (actionViews.TryGetValue(payload.ActionId, out var view))
             {
                 view.CancelAuthoritativeAction(payload.ActionId, payload.Reason);
@@ -746,6 +876,148 @@ namespace STWM.AITown.Bridge
         private static void ApplyAgentDelta(AgentStateDeltaPayload payload)
         {
             TownSceneAssetRegistry.FindNpcView(payload.AgentId)?.ApplyAgentDelta(payload);
+        }
+
+        private void ApplyAgentDeltaV030(AgentStateDeltaV030Payload payload)
+        {
+            var view = TownSceneAssetRegistry.FindNpcView(payload.AgentId);
+            view?.ApplyAgentDeltaV030(payload);
+            UpdateDebugSurfaceFromView(payload.AgentId, view);
+        }
+
+        private void ApplyHouseholdDeltaV030(HouseholdStateDeltaV030Payload payload)
+        {
+            if (!householdAuthority.TryGetValue(payload.HouseholdId, out var household))
+            {
+                household = new JObject();
+                householdAuthority[payload.HouseholdId] = household;
+            }
+
+            foreach (var field in payload.FieldMask)
+            {
+                household[field] = payload.RawPayload[field].DeepClone();
+            }
+            debugPanel?.SetHouseholdResources(
+                payload.HouseholdId,
+                household.Value<long?>("money"),
+                household.Value<long?>("food_units"));
+        }
+
+        private void BindStructuredPresentation(StructuredActionPresentationV030 action, string phase)
+        {
+            if (actionGroups.ContainsKey(action.ActionId))
+            {
+                throw new InvalidOperationException($"M3 presentation action already bound: {action.ActionId}.");
+            }
+
+            var participants = action.ValidateAndProjectParticipants();
+            var missingAgent = participants.FirstOrDefault(item => TownSceneAssetRegistry.FindNpcView(item.AgentId) == null);
+            if (missingAgent != null)
+            {
+                throw new InvalidOperationException($"NPC_VIEW_NOT_FOUND: {missingAgent.AgentId}");
+            }
+
+            var group = new ActionPresentationGroup(action.ActionId, participants);
+            if (!group.TryClaimAuthoritativeSlots(out var claimError))
+            {
+                group.ClearFacing();
+                group.ReleaseClaims();
+                throw new InvalidOperationException(claimError);
+            }
+            if (!group.ApplyAuthoritativeFacing(action.BehaviorId, out var facingError))
+            {
+                group.ClearFacing();
+                group.ReleaseClaims();
+                throw new InvalidOperationException(facingError);
+            }
+
+            actionGroups[action.ActionId] = group;
+            foreach (var participant in participants)
+            {
+                var view = TownSceneAssetRegistry.FindNpcView(participant.AgentId);
+                view.BindBridge(this);
+                view.BeginActionV030(action, participant, group, phase);
+                debugPanel?.SetNpcAction(participant.AgentId, action.BehaviorId, phase);
+            }
+        }
+
+        private void ResetPresentationProjection()
+        {
+            foreach (var group in actionGroups.Values)
+            {
+                group.ClearFacing();
+                group.ReleaseClaims();
+            }
+            actionGroups.Clear();
+            actionViews.Clear();
+            foreach (var view in TownSceneAssetRegistry.FindNpcViews())
+            {
+                view.ResetPresentationForSnapshot();
+            }
+        }
+
+        private void ReleaseGroup(string actionId, ActionPresentationGroup group)
+        {
+            group.ClearFacing();
+            group.ReleaseClaims();
+            actionGroups.Remove(actionId);
+        }
+
+        private void UpdateDebugSurfaceFromView(string agentId, NpcView view)
+        {
+            if (view == null)
+            {
+                return;
+            }
+            var householdId = agentHouseholds.TryGetValue(agentId, out var value) ? value : "unknown";
+            householdAuthority.TryGetValue(householdId, out var household);
+            debugPanel?.SetNpcSurface(new TownNpcDebugSurface
+            {
+                AgentId = agentId,
+                AuthorityLocationId = view.CachedAuthorityLocationId ?? "null",
+                HouseholdId = householdId,
+                HouseholdResources = household == null ? "pending" : $"money={household["money"]}; food={household["food_units"]}",
+                Needs = view.CachedNeeds?.ToString(Formatting.None) ?? "null",
+                Mood = view.CachedMood?.ToString(Formatting.None) ?? "null",
+                KnownEvents = view.CachedKnownEventIds?.Count.ToString() ?? "null",
+                Relationships = "snapshot",
+                BehaviorId = view.CurrentBehaviorId ?? "none",
+                ActionPhase = view.CurrentPhase
+            });
+        }
+
+        private void RequireM3Message(string messageType)
+        {
+            if (protocolProfile != TownBridgeProtocolProfile.M3_FULL_V030)
+            {
+                throw new InvalidOperationException($"{messageType} is Python-to-Unity protocol 0.3.0 only.");
+            }
+        }
+
+        private string ScanProfileName()
+        {
+            return protocolProfile == TownBridgeProtocolProfile.M3_FULL_V030 ? "M3_FULL" : "M2_SCOPED";
+        }
+
+        private static bool IsTerminalPhase(string phase)
+        {
+            return phase == "COMPLETED" || phase == "FAILED" || phase == "CANCELLED" || phase == "INTERRUPTED";
+        }
+
+        private TownEnvelope CreateOutbound(
+            string messageType,
+            object payload,
+            string envelopeWorldId,
+            long stateVersion,
+            string correlationId = null)
+        {
+            return TownEnvelope.Create(
+                messageType,
+                payload,
+                envelopeWorldId,
+                stateVersion,
+                correlationId,
+                ActiveProtocolVersion);
         }
 
         private void Send(TownEnvelope envelope)
