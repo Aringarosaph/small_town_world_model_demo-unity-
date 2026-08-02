@@ -278,6 +278,22 @@ M2 在线连接使用 `0.2.0`，并按方向校验 Python→Unity 与 Unity→Py
 诊断和全量重同步，不得改变其他 Action。Bridge 会话证据分别记录冻结目录
 来源版本 `0.1.0` 与实际协商版本 `0.2.0`。
 
+SIM 侧可以通过真实 production Bridge 会话生成取消与重连的权威证据。输出
+目录必须位于仓库外，并且必须为空：
+
+```bash
+python -m town_core.bridge.qa_adapter \
+  --config config/v0 \
+  --output-root /tmp/stwm-m2-authority \
+  --agent npc_01 --seed 12345
+```
+
+命令生成 `stwm.bridge.m2-authority-evidence/v1` JSON 和
+`stwm.bridge.m2-authority-transcript/v1` JSONL。每个结论都关联实际
+before/after state hash、state version、authority transaction 或 connection
+generation 观察。这是 Python authority test port，不冒充 Unity 拥有的最终
+`stwm.qa.m2-acceptance-evidence/v1`、EditMode 或 PlayMode 证据。
+
 ## 仓库结构
 
 ```text

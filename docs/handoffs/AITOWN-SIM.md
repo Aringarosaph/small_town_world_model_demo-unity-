@@ -79,6 +79,15 @@ paths; manifest SHA-256
   generation produces a resync-required protocol diagnostic and is closed so it
   cannot receive or mutate authority; the client must reconnect for the fresh
   handshake/registry/snapshot sequence.
+- Added a SIM-owned M2 authority evidence adapter that drives the production
+  `BridgeRuntime`, `BridgeSession`, and `SimulationEngine` rather than copying
+  cancellation or reconnect rules. It writes only to an empty external
+  directory and emits redaction-checked UTF-8 JSON/JSONL.
+- The adapter records both ADR-0010 stale cases without conflating them: an
+  older version for the exact current generation/world/action/agent/TRAVELING
+  context commits one cancellation transaction, while a stale report for the
+  now-terminal action records a diagnostic/resync and zero mutation. The QA
+  `stale_state_message_authority_mutation_count` maps only to the latter.
 - `presentation_completed` is diagnostic only. Missing animation completion
   never blocks hard-state settlement; this is the bounded presentation fallback
   frozen by Orchestrator.
@@ -96,6 +105,34 @@ python -m town_core.bridge.server \
 
 The default endpoint is `ws://127.0.0.1:8765/town`. Non-loopback binds are
 rejected in M2.
+
+Authority evidence test port:
+
+```bash
+python -m town_core.bridge.qa_adapter \
+  --config config/v0 \
+  --output-root /absolute/path/outside/repository/stwm-m2-authority \
+  --agent npc_01 --seed 12345
+```
+
+This creates `m2-authority-evidence.json` with schema
+`stwm.bridge.m2-authority-evidence/v1` and
+`bridge-authority-transcript.jsonl` with schema
+`stwm.bridge.m2-authority-transcript/v1`. Transcript event types are exactly
+`unity_message_received`, `python_message_emitted`, and
+`authority_probe_evaluated`. Every line contains the probe/generation,
+direction, message identity, full redacted envelope when applicable,
+before/after authority point, mutation/transaction count, outcome, error code,
+and trigger sequence.
+
+The evidence exports the QA cancellation/reconnect observation names plus an
+explicit `evidence_refs` map to their supporting probe/session. It records one
+real Python cancellation transaction; duplicate, conflicting-ID,
+wrong-direction, future-version, stale-terminal, late-terminal, and
+obsolete-generation probes all show zero authority mutation. Two generation
+records prove new message IDs, fresh full snapshot, the pre-ready gate, and
+resume only after the new `client_ready`. This artifact is not the Unity-owned
+`stwm.qa.m2-acceptance-evidence/v1` and contains no fabricated Unity test result.
 
 ## Completed
 
@@ -210,18 +247,21 @@ The final gate uses Python 3.12, full Pytest, Ruff lint/format, strict Mypy, M0
 freeze diagnostics, the production three-day CLI/replay, and the QA-owned
 `check_m1.py --require-sim` contract.
 
-M2 adds 19 deterministic bridge unit/integration tests for registry
+M2 adds 21 deterministic bridge unit/integration tests for registry
 success/failure, `0.2.0` negotiation, direction enforcement, handshake ordering,
 message-ID idempotency, the `client_ready` gate, authoritative
 arrival/failure/cancellation and TIMEOUT, reservation/resource boundaries, fresh
 reconnect snapshots, obsolete generations, evidence version separation, and a
-real loopback WebSocket handshake. The consumed CONTRACTS change adds 21 focused
-protocol `0.2.0` and artifact tests.
+real loopback WebSocket handshake. The two additive evidence tests also lock the
+external output boundary, exact JSON/JSONL fields, transaction-backed
+cancellation count, stale semantic split, and reconnect observations. The
+consumed CONTRACTS change adds 21 focused protocol `0.2.0` and artifact tests.
 
-The post-`247711a` focused gate passed with Python 3.12: Ruff format check over
-101 files, Ruff lint, strict Mypy over 62 source files, all 21 protocol
-`0.2.0`/artifact tests, and all 19 M2 Bridge tests including the real loopback
-WebSocket handshake.
+The additive authority-evidence focused gate passes with 21/21 Bridge tests,
+21/21 protocol `0.2.0`/artifact tests, Ruff format check over 103 files, Ruff
+lint, and strict Mypy over 64 source files. Two independent CLI runs produced
+byte-identical evidence and 1,093-line transcripts with final state hash
+`f0859d472a8ca7bbdd34393f75c342cfe16f84cb04deab38674bc92e9300aa6c`.
 
 ## Known limitations and forbidden scope
 

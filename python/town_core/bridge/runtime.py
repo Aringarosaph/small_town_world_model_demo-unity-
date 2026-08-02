@@ -40,6 +40,7 @@ from town_core.domain.protocol_models import (
 )
 from town_core.simulation.clock import RuntimeMode, approve_time_scale
 from town_core.simulation.engine import AdvanceResult, SimulationEngine
+from town_core.simulation.initialization import state_hash
 
 if TYPE_CHECKING:
     from town_core.bridge.session import BridgeSession
@@ -69,6 +70,7 @@ class BridgeRuntime:
         self.diagnostics: list[dict[str, Any]] = []
         self._presented_action_ids: set[str] = set()
         self.session_evidence: dict[int, dict[str, Any]] = {}
+        self.authority_input_evidence: list[dict[str, Any]] = []
 
     @property
     def world_id(self) -> str:
@@ -130,6 +132,7 @@ class BridgeRuntime:
             "project_name": "Small Town World Model（STWM）",
             "active_generation": self._generation,
             "sessions": [dict(self.session_evidence[key]) for key in sorted(self.session_evidence)],
+            "authority_inputs": [dict(item) for item in self.authority_input_evidence],
         }
 
     def next_message_id(self) -> str:
@@ -243,6 +246,7 @@ class BridgeRuntime:
     ) -> tuple[ProtocolMessage, ...]:
         with self._lock:
             self._require_current_ready(generation)
+            before = self._authority_point()
             try:
                 result = self.engine.report_movement_cancelled(
                     action_id=action_id,
@@ -251,8 +255,83 @@ class BridgeRuntime:
                     reason=reason,
                 )
             except ValueError as exc:
+                self._record_cancellation_authority_input(
+                    generation=generation,
+                    action_id=action_id,
+                    agent_id=agent_id,
+                    reported_state_version=state_version,
+                    reason=reason,
+                    accepted=False,
+                    before=before,
+                    result=None,
+                    diagnostic_code="MOVEMENT_CANCELLED_REJECTED",
+                )
                 return self._diagnose_and_resync("MOVEMENT_CANCELLED_REJECTED", str(exc), action_id)
+            self._record_cancellation_authority_input(
+                generation=generation,
+                action_id=action_id,
+                agent_id=agent_id,
+                reported_state_version=state_version,
+                reason=reason,
+                accepted=True,
+                before=before,
+                result=result,
+                diagnostic_code=None,
+            )
             return self._messages_for_result(result, include_clock=False)
+
+    def _authority_point(self) -> dict[str, Any]:
+        state = self.engine.state
+        return {
+            "state_hash": state_hash(state),
+            "state_version": state.state_version,
+            "game_minute": state.game_minute,
+        }
+
+    def _record_cancellation_authority_input(
+        self,
+        *,
+        generation: int,
+        action_id: str,
+        agent_id: str,
+        reported_state_version: int,
+        reason: MovementCancellationReason,
+        accepted: bool,
+        before: dict[str, Any],
+        result: AdvanceResult | None,
+        diagnostic_code: str | None,
+    ) -> None:
+        after = self._authority_point()
+        transaction_projection = [
+            {
+                "transaction_id": transaction["transaction_id"],
+                "expected_state_version": transaction["expected_state_version"],
+                "committed_state_version": transaction["committed_state_version"],
+                "input_game_minute": transaction["input_game_minute"],
+                "previous_state_hash": transaction["previous_state_hash"],
+                "committed_state_hash": transaction["committed_state_hash"],
+                "transaction_hash": transaction["transaction_hash"],
+                "changes": list(transaction["changes"]),
+            }
+            for transaction in (() if result is None else result.transactions)
+        ]
+        self.authority_input_evidence.append(
+            {
+                "input_kind": MessageType.MOVEMENT_CANCELLED.value,
+                "generation": generation,
+                "action_id": action_id,
+                "agent_id": agent_id,
+                "reason": reason.value,
+                "reported_state_version": reported_state_version,
+                "accepted": accepted,
+                "diagnostic_code": diagnostic_code,
+                "before": before,
+                "after": after,
+                "authority_mutation_count": int(before["state_hash"] != after["state_hash"]),
+                "authority_transaction_count": len(transaction_projection),
+                "transactions": transaction_projection,
+            }
+        )
 
     def presentation_completed(
         self,
