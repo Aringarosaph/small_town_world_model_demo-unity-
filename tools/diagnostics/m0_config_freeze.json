@@ -1,23 +1,24 @@
 {
   "schema": "aitown.qa.m0-freeze/v1",
-  "source_commit": "247711a79a77453219000714a321568f7b473282",
-  "approved_by": "AITOWN-ORCH / ADR-0010",
-  "approved_at_utc": "2026-08-02T11:45:22Z",
+  "source_commit": "3fe06f659479dcdc0e0834b2e49dff2e2608eb71",
+  "approved_by": "AITOWN-ORCH / ADR-0011",
+  "approved_at_utc": "2026-08-02T15:23:51Z",
   "refreeze": {
-    "milestone": "M2",
-    "adr": "docs/adr/0010-m2-movement-cancellation-and-protocol-v020.md",
+    "milestone": "M3",
+    "adr": "docs/adr/0011-m3-society-authority-and-protocol-v030.md",
     "decision_authority": "AITOWN-ORCH task 019fbea0-12dc-7dd2-a52e-732d8dac0ce8",
-    "protocol_feature_commit": "392f94143cc3abeb1e8d14c2a1cc885e5f5da40c",
-    "source_content_commit": "247711a79a77453219000714a321568f7b473282",
-    "reason": "Add direction-safe Unity movement cancellation reporting and protocol 0.2.0",
+    "protocol_feature_commit": "3fe06f659479dcdc0e0834b2e49dff2e2608eb71",
+    "source_content_commit": "3fe06f659479dcdc0e0834b2e49dff2e2608eb71",
+    "reason": "Add protocol 0.3.0, complete full-town semantic instances, and deterministic M3 background dialogue contracts",
     "previous_freeze": {
-      "source_commit": "9bc20517932265d43a030f833bfd9918f025e512",
-      "protocol_version": "0.1.0",
-      "manifest_sha256": "ab2babea6531820b21ffb49ea641245a2e9b3921b2993f9dccc472679ae9d9d0",
-      "protocol_version_document_sha256": "b5507204297bda6a5331773951b35327f15204535d9f5a6c1f6010d36a3386b2"
+      "source_commit": "247711a79a77453219000714a321568f7b473282",
+      "protocol_version": "0.2.0",
+      "manifest_sha256": "cb5edafca43373a549a238038f03581734b31729b18b085234fe0e7b38366c6e",
+      "protocol_version_document_sha256": "0608bd8e3c93cd6bb26dfc15ab9a1c3502ebd7cf08c993ff9ce333c9e75c9672"
     },
     "catalog_protocol_version": "0.1.0",
-    "negotiated_protocol_version": "0.2.0",
+    "negotiated_protocol_version": "0.3.0",
+    "accepted_m1_catalog_hash": "6e6c688145ff74ed5326e00bebad3f86e38b5560c6469deaf65f505afe20d5cf",
     "unchanged_appendix_d_items_inherited_from_previous_approval": true
   },
   "checklist": {
@@ -43,6 +44,10 @@
     "v0_non_goals_documented": true
   },
   "files": [
+    {
+      "path": "config/v0/background_dialogue.yaml",
+      "sha256": "3aeeb9991a6b47876d3365d5910bfd3c24e0bbf9414a7ed346ade98fba824854"
+    },
     {
       "path": "config/v0/behaviors.yaml",
       "sha256": "c1729fdd95901d7aa3a54128c19cf8d2abd0fa0097ec8d234659c638fd7908a8"
@@ -92,6 +97,10 @@
       "sha256": "cfb2f985cef05a7c4c89725ca70951e38de0cd41ec894f578dcf3fd2134ff798"
     },
     {
+      "path": "config/v0/semantic_instances.yaml",
+      "sha256": "4bb86bc39e4f496f0d32dd3734e5b05eff1670a6cb625d0fde5d8f16bac03095"
+    },
+    {
       "path": "config/v0/utility.yaml",
       "sha256": "b2d94ac7274e4b9c076c0f2eb56bf88b2403eb714b674e579ce684592e50f942"
     },
@@ -104,8 +113,16 @@
       "sha256": "25cea30c86d3736e9aa5aeafb7c5fdb902b99907443e9ebe3fb487259c9b426b"
     },
     {
+      "path": "protocol/examples/action-started-v030.json",
+      "sha256": "55cd42d42494f2862ed10384bf47ab977eb07da96a5d43957736dd10d330a385"
+    },
+    {
       "path": "protocol/examples/action-started.json",
       "sha256": "d909a545c5cf7916bb6d2489a9af2a967b35310eaebe6eb456fcfb48ed38969a"
+    },
+    {
+      "path": "protocol/examples/agent-state-delta-clear-v030.json",
+      "sha256": "84d5d411c175b4a52a5337c8a2953e7116efc22ffa1945513cab315ca48235ac"
     },
     {
       "path": "protocol/examples/asset-registry-result.json",
@@ -120,6 +137,10 @@
       "sha256": "b3f36d055ae7a200ac9f88b4e0bf43c312cb3a41d48244888f15c5ba6d08b184"
     },
     {
+      "path": "protocol/examples/client-hello-v030.json",
+      "sha256": "e2e7dde97280bb876b1c7608076bf4658fddf241a233c6a1d67dcc4ebcea1d92"
+    },
+    {
       "path": "protocol/examples/client-hello.json",
       "sha256": "449547d7d4d2b7089e557bb51adf619843443c64d51109c4b85bd76cf97c9219"
     },
@@ -128,8 +149,24 @@
       "sha256": "ac4d6135662200f4bdb83888483203841bc423e64e47b903c970a7139fb02884"
     },
     {
+      "path": "protocol/examples/debug-decision-trace-v030.json",
+      "sha256": "c2cffd6cac08c8dc9cf855b06fa44bc36208499a66d8ef8a31218350826390e2"
+    },
+    {
+      "path": "protocol/examples/household-state-delta-v030.json",
+      "sha256": "3bb3ce2d6634853139d52bf2c8867e851011c6c5d5aa3d5fa2096d14bf50db37"
+    },
+    {
       "path": "protocol/examples/joint-action.json",
       "sha256": "ccb2930b771f39ab7c23bfbb0f0a1849d3cdebcf44e80c61e45f2c3ace942dbd"
+    },
+    {
+      "path": "protocol/examples/m3-candidate-action.json",
+      "sha256": "b0043c5bed75e5b076cfb1ad1df3167bd3c675237d475ba65aed6b856e3daae4"
+    },
+    {
+      "path": "protocol/examples/m3-joint-action-presentation.json",
+      "sha256": "1e22ff84bf3d05a269b2d4e3307ac05d47827e98d10fe744ecbd1ce6df91eba2"
     },
     {
       "path": "protocol/examples/movement-arrived.json",
@@ -164,8 +201,16 @@
       "sha256": "d8669d552cfb7bedcee0efe65d58c1d3be33704718849e8fc0a4e8345025d033"
     },
     {
+      "path": "protocol/examples/reconnect-world-snapshot-v030.json",
+      "sha256": "34412e77a8fb496d378f1c0fbabd794c7211da1ad29c988174150a5f47a2ea72"
+    },
+    {
       "path": "protocol/examples/reconnect-world-snapshot.json",
       "sha256": "99dc91b6b7af77c5d1713e804a9d85e427001b2ca59498ba1158b6fa380a95f3"
+    },
+    {
+      "path": "protocol/examples/server-hello-v030.json",
+      "sha256": "5e851798ffbad03c166d0cf3a4566f85956586f453830768bfeac99b2fa73c7b"
     },
     {
       "path": "protocol/examples/server-hello.json",
@@ -180,12 +225,36 @@
       "sha256": "53eb7c412ac6a382ece23637a44b26fad13b8cebca8dfa5c7dca7d9d655a210f"
     },
     {
+      "path": "protocol/jsonschema/client-hello-bootstrap-all.schema.json",
+      "sha256": "18b6cc4e77469da42bdea47f93969b37084ae81e110c6bfb187e38aa0f62a4a9"
+    },
+    {
+      "path": "protocol/jsonschema/client-hello-bootstrap-v030.schema.json",
+      "sha256": "95585b205a411c98c1a0cb05c0a08535e3e023ed671568aed54e7315355725ba"
+    },
+    {
       "path": "protocol/jsonschema/client-hello-bootstrap.schema.json",
       "sha256": "b5bb306cd0f851bbdbffded3897a96701554722e5bab560469bac9bc76eb1443"
     },
     {
       "path": "protocol/jsonschema/joint-action.schema.json",
       "sha256": "3419ad6be461d0c80f1221f215ac9dcc3aa2e2fbf7d3d07e46f08adb1d784b59"
+    },
+    {
+      "path": "protocol/jsonschema/m3-background-dialogue.schema.json",
+      "sha256": "0f972be9e01819c127aedb452e77623677343977acc86030f69d5af79e916d76"
+    },
+    {
+      "path": "protocol/jsonschema/m3-candidate-action.schema.json",
+      "sha256": "c95c951b1a48082e0ef1bf395831ef4daeaed62383985fd772e02df0148dd37b"
+    },
+    {
+      "path": "protocol/jsonschema/m3-joint-action-presentation.schema.json",
+      "sha256": "1a37602f16e3557142e38cdf54c79c65cce4ef474e4594fd7aae2c18d1d75123"
+    },
+    {
+      "path": "protocol/jsonschema/m3-semantic-instances.schema.json",
+      "sha256": "b69b160a8523a826d45a9cc32033075300f305c924f8fde0cbcf9086739a5b0a"
     },
     {
       "path": "protocol/jsonschema/outcome-prediction.schema.json",
@@ -204,8 +273,24 @@
       "sha256": "1173356b9b4307bf6833cf18bc6646135bd0e5f471505cb3637e298cd846e157"
     },
     {
+      "path": "protocol/jsonschema/protocol-message-v020-compat.schema.json",
+      "sha256": "480283ed87f86f751e1842ab2ee3f06f5562398bf1690810d738ced65364acf8"
+    },
+    {
+      "path": "protocol/jsonschema/protocol-message-v030.schema.json",
+      "sha256": "ac67bd343b6b2f6f775f22991e040dbb6fee4f5461aafc83e0a65cfa1a6a5577"
+    },
+    {
       "path": "protocol/jsonschema/protocol-message.schema.json",
       "sha256": "8b64494760914c2bb78cfdf056bea632e9d0e961addfb17ac78ee7329cf0c0b0"
+    },
+    {
+      "path": "protocol/jsonschema/python-to-unity-message-v020-compat.schema.json",
+      "sha256": "ba13ae643961a7bc265fa95c898b6ebf3d277faf6103da9adc80199d74989d4e"
+    },
+    {
+      "path": "protocol/jsonschema/python-to-unity-message-v030.schema.json",
+      "sha256": "a5eddfe7fa46797593f93bd4b24f48a88bc346ce8284e10ee1bc7ea091690525"
     },
     {
       "path": "protocol/jsonschema/python-to-unity-message.schema.json",
@@ -220,6 +305,14 @@
       "sha256": "75617a0a2e4f174fe1b5fb4da3511e8e63164e730ea974fbe8bc5880891ca40f"
     },
     {
+      "path": "protocol/jsonschema/unity-to-python-message-v020-compat.schema.json",
+      "sha256": "ca4f15c5fa99d87091ae60a5fa9fa585a0e7ac7c370523fac922da8050a31c70"
+    },
+    {
+      "path": "protocol/jsonschema/unity-to-python-message-v030.schema.json",
+      "sha256": "1d4b7a275519b1fd635b20fc18f0a3007485e22df8114d8dc91053abe2b1df5f"
+    },
+    {
       "path": "protocol/jsonschema/unity-to-python-message.schema.json",
       "sha256": "d12a6e3c687eca42bd2fa2e26e0a524e470f2daa3f0084a88352384607dd4cd0"
     },
@@ -229,11 +322,11 @@
     },
     {
       "path": "protocol/version.json",
-      "sha256": "0608bd8e3c93cd6bb26dfc15ab9a1c3502ebd7cf08c993ff9ce333c9e75c9672"
+      "sha256": "8dabf7279c4ce2112f8e0c9dce8585423b0651e2b423c2672d935bd111d8734d"
     },
     {
       "path": "python/town_core/domain/__init__.py",
-      "sha256": "f61fcad1537f818078db5e00c296cd2222727c50f377f194d3506c77b07fbd90"
+      "sha256": "b56b663c1bb4fefa44731cb8225d2e705f76b8e20e070380459879e45b70e9bb"
     },
     {
       "path": "python/town_core/domain/base.py",
@@ -253,19 +346,27 @@
     },
     {
       "path": "python/town_core/domain/enums.py",
-      "sha256": "98768362e21f7f03fa18307fc93bad15913591b51ce4916b297582ce52fd7a29"
+      "sha256": "67fcfb7524a135464b88403c32eabbd94689982776423b00e08f80ff50a80a7d"
     },
     {
       "path": "python/town_core/domain/identifiers.py",
       "sha256": "6cd11dd9d63f429ac1ff9928f46c2e909b72f8a13bb6fbf23ad47e97db8e3016"
     },
     {
+      "path": "python/town_core/domain/m3_catalog_models.py",
+      "sha256": "c02c57ceb6cb12d8368f156fc55f08a7ad92f30e5ff7bd15c2ff15ae0c9593d9"
+    },
+    {
+      "path": "python/town_core/domain/m3_models.py",
+      "sha256": "6474e859ac3ecfeaa374950aa31cb4063635f77c1910a7604257d11077f677f7"
+    },
+    {
       "path": "python/town_core/domain/protocol_models.py",
-      "sha256": "a31bd1ae8d353835af322a0f6021c230f7507b78bd8601a8593d519bcc8263a0"
+      "sha256": "e25e8209bc013332e1034ec5f95fb91ab25ae9036664082eb34f5ac96e5d2447"
     },
     {
       "path": "python/town_core/domain/schema_artifacts.py",
-      "sha256": "484d5a0126ab2093e6e36192655f83051cf0be2cfde5a3119e1eca77461be757"
+      "sha256": "fb2eb4db8755043f6d6c831afa7774cd1f415609553b66a969ef16b2b0fbc66b"
     },
     {
       "path": "python/town_core/domain/state_models.py",
