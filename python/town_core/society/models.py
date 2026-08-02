@@ -68,6 +68,15 @@ class WorkSessionRecord(ContractModel):
     paid: bool = False
     proposal_ids: list[str] = Field(default_factory=list)
     action_ids: list[ActionId] = Field(default_factory=list)
+    completed_break_action_ids: list[ActionId] = Field(default_factory=list)
+
+    @model_validator(mode="after")
+    def validate_completed_break(self) -> WorkSessionRecord:
+        if len(self.completed_break_action_ids) > 1:
+            raise ValueError("work occurrence permits at most one completed break")
+        if set(self.completed_break_action_ids) & set(self.action_ids):
+            raise ValueError("break action cannot be recorded as effective work")
+        return self
 
 
 ReservationKind = Literal["OBJECT_SLOT", "HOUSEHOLD_RESOURCE", "LOCATION", "PARTICIPANT"]

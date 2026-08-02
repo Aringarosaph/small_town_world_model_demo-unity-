@@ -56,7 +56,9 @@ NOW = datetime(2026, 8, 3, tzinfo=UTC)
 def _runtime(*, social_fixture: bool = False) -> M3BridgeRuntime:
     catalog = load_catalog(ROOT / "config" / "v0")
     m3_catalogs = load_m3_catalogs(ROOT / "config" / "v0", catalog=catalog)
-    checkpoint = build_initial_society_checkpoint(catalog, m3_catalogs, seed=12345)
+    # Seed 11 deterministically selects a joint-capable WATCH_TV invitation
+    # and accepts it; the ordinary bridge fixtures retain canonical seed 12345.
+    checkpoint = build_initial_society_checkpoint(catalog, m3_catalogs, seed=11 if social_fixture else 12345)
     allowlist = None
     if social_fixture:
         fixture_agents = {"npc_01", "npc_03"}

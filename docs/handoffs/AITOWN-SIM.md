@@ -457,6 +457,92 @@ under `/tmp/stwm-m3-stream-canonical-seed97531-30d-20260803` and
 `/tmp/stwm-m3-stream-canonical-seed97531-30d-replay-20260803`; neither is a
 repository artifact.
 
+### M3 release liveness and pathology correction
+
+The first common-RC eleven-run release bundle exposed four independent final
+assembly failures. Inspection used the preserved raw decisions, actions,
+transactions, events, and checkpoints rather than the aggregate report alone.
+
+- In the 30-day seed-`12345` run, `take_break` was a legal candidate in exactly
+  660 decision rows but was never selected. It ranked second through tenth in
+  every row, while `work_shift` won all 660. Its generic schedule term ranged
+  from `-1.11` to `-0.27`, whereas work received the shift-priority term. The
+  rulebook also had no persisted one-break-per-session state. A break is now
+  legal only at the assigned workplace, inside the shift's bounded break
+  window, after effective work has begun, when no earlier break completed, and
+  when the break plus all remaining shift minutes can still reach the frozen
+  `scheduled_minutes - grace_minutes` completion threshold. Such a break gets
+  shift priority, is associated with the work occurrence, and records its
+  completed action ID. It never enters the work proposal/action list, never
+  increments effective work, and does not alter exactly-once wage settlement.
+- `confront` appeared zero times even as a candidate across all eight soak
+  runs. The rulebook had implemented only the `high_tension` half of the
+  catalog's `high_tension_or_target_related_event` condition; seed `97531` ended
+  with maximum directed tension `0.319026`, below the old `0.50` gate, despite
+  real negative interactions. The alternate is now implemented from the
+  actor's finite known-event ledger. A recent, actor/target-related
+  `AWKWARD_INTERACTION`, `INVITATION_REJECTED`, `APOLOGY_REJECTED`,
+  `COWORKER_EXTRA_LOAD`, `CONFLICT_STARTED`, or `CONFLICT_ESCALATED` supplies a
+  stable selected context event. These event-backed confront drafts survive
+  the 12-candidate cap and receive a small event-importance response term; no
+  unknown event or unrelated target qualifies.
+- The reported 86 duplicate semantic events were an observer-key defect, not
+  86 duplicate authority emissions. All 41 colliding groups had null action and
+  session identity, all occurrences had distinct game minutes, and the 86
+  excess counts consisted only of 71 `HOUSEHOLD_FOOD_LOW` and 15 `NEED_CRISIS`
+  re-armed threshold episodes. The producer now reconstructs need and household
+  threshold episode numbers from the persisted `active_need_crises` and
+  `low_resource_flags` transitions. A later event receives a new occurrence
+  identity only after the corresponding flag was actually cleared; an
+  erroneous repeat before recovery still collides even at another minute or
+  under another action. Non-threshold action/session-backed duplicates retain
+  their stable cross-minute identity and remain detectable.
+- The longest true zero-need interval was `npc_04.hunger`, minute `11353` to
+  `15405` (`4052` minutes), in 30-day seed `97531`. Of 144 decisions in that
+  interval, `eat_at_cafe` was top-scored 120 times but was rejected 118 times as
+  closed and twice for object-slot conflict; the fallback selected idle 120
+  times while household food was exhausted. Recovery behavior now receives a
+  deterministic axis-prioritized crisis term only when its destination is open,
+  depleted household food gives `buy_groceries` a supply term outside a due
+  shift, and a zero need prevents another work chunk. Work soft-effect bounds
+  are normalized over the 480-minute schedule occurrence instead of being
+  multiplied once for each 120-minute chunk. Social recovery is activated
+  before zero at `0.30`; at zero, local TV recovery uses the shortest
+  catalog-legal 30-minute duration. Non-energy crisis also caps sleep to 120
+  minutes so another recovery decision remains bounded. All durations and
+  effects stay within the frozen catalog ranges.
+
+A fresh final-code seed-`97531`, chunk-`60` seven-day production run completed
+all 10,080 ticks in `52.877929s` with zero invariant, reservation-leak, or work
+bound violations. The producer observed actual CREATED actions
+`take_break=23` and `confront=33`, `duplicate_semantic_event_count=0`, and
+`max_recoverable_zero_need_minutes=248`. Production replay applied all 10,080
+transactions and checked all 29 persisted checkpoints with zero mismatch and
+zero source mutation. It matched final state
+`a4a74d3d4af7a972524bcbda4686f76dbfacc3b936e8c2649e22be5e14b6a34e`,
+checkpoint `b9f7370507c692b30962c0e4f60b4f334f3b2f1ddd0d732186310d42fe57e995`,
+ledger `ab5288c9e7bd1a24e8b017aa89ec6b38ff26bf04e2e840dc6f3e44a59c77f653`,
+and authority log
+`c071c412105451ab63789f53ca756de7f46c78ec0cb11e01b9ccf1b34b13a811`.
+The external run is
+`/tmp/stwm-m3-liveness-g9uXHx/soak_7d_seed_97531_v10`; it is not a repository
+artifact.
+
+These heuristic changes intentionally change M3 authority trajectories and
+hashes, so the old eleven-run release bundle cannot be reused or relabeled.
+After integration, ORCH should run a fresh serial release producer root for the
+exact five 7-day plus three 30-day soak seeds and canonical repeat/chunks, then
+run the unchanged QA assembler against that new SIM bundle and the existing
+Unity-owned evidence. No protocol, domain, config, QA, or Unity-owned file was
+changed by this correction.
+
+The focused society gate passed `255` tests. The final repository regression
+passed `412` tests with only two QA-owned M2 nodes explicitly deselected: those
+nodes require top-level protocol `0.2.0` and therefore conflict with the frozen
+M3 `0.3.0` repository baseline; SIM did not rewrite them. Both real loopback
+WebSocket tests passed when allowed to bind ephemeral `127.0.0.1` ports. Ruff
+format/check and strict Mypy over 93 source files passed.
+
 ## Current responsibility
 
 AITOWN-SIM owns the Python authority and local runtime-adapter side of the M2

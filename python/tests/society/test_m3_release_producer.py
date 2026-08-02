@@ -166,6 +166,44 @@ def test_release_job_plan_is_exact_fixed_matrix() -> None:
     }
 
 
+def test_semantic_event_occurrences_distinguish_rearmed_threshold_episodes() -> None:
+    threshold_event: dict[str, Any] = {
+        "event_id": "event_00000001",
+        "event_type": "NEED_CRISIS",
+        "game_minute": 100,
+        "source_action_id": None,
+        "actor_ids": ["npc_03"],
+        "affected_agent_ids": ["npc_03"],
+        "payload": {"need": "hunger", "value": 0.1, "threshold": 0.1},
+    }
+    later_emission = {**threshold_event, "event_id": "event_00000002", "game_minute": 200}
+    action_event = {**threshold_event, "source_action_id": "action_00000001"}
+    delayed_action_duplicate = {**action_event, "event_id": "event_00000004", "game_minute": 101}
+    tracker = producer._SemanticEventEpisodeTracker(
+        active_need_crises={"npc_03": []},
+        low_resource_flags={},
+    )
+
+    first_key = tracker.observe(threshold_event)
+    assert tracker.observe(later_emission) == first_key
+    tracker.apply_patch({"active_need_crises": {"npc_03": []}})
+    assert tracker.observe(later_emission) != first_key
+    food_event = {
+        **threshold_event,
+        "event_type": "HOUSEHOLD_FOOD_LOW",
+        "actor_ids": ["npc_01", "npc_02"],
+        "affected_agent_ids": ["npc_01", "npc_02"],
+        "payload": {"household_id": "household_a", "food_units": 0, "money": 50000},
+    }
+    first_food_key = tracker.observe(food_event)
+    assert tracker.observe({**food_event, "game_minute": 300}) == first_food_key
+    tracker.apply_patch({"low_resource_flags": {"household_a": []}})
+    assert tracker.observe({**food_event, "game_minute": 300}) != first_food_key
+    assert producer._semantic_event_occurrence_key(action_event) == producer._semantic_event_occurrence_key(
+        delayed_action_duplicate
+    )
+
+
 def test_release_plan_is_external_idempotent_and_recovers_dead_local_lock(tmp_path: Path) -> None:
     first = producer.produce_release_evidence(**_arguments(tmp_path), plan_only=True)
     state_before = (tmp_path / "producer-state.json").read_bytes()

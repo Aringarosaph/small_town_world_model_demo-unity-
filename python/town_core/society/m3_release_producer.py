@@ -118,6 +118,106 @@ def _payload(envelope: Mapping[str, Any]) -> dict[str, Any]:
     return value
 
 
+def _semantic_event_occurrence_key(
+    item: Mapping[str, Any],
+    *,
+    edge_episode: tuple[str, str, int] | None = None,
+) -> tuple[object, ...]:
+    """Identify one authority event occurrence without merging later episodes.
+
+    Action- and session-backed events retain their stable authority identity.
+    Need/resource threshold events instead receive a producer-observed edge
+    episode from the persisted active-flag transitions. This distinguishes a
+    real re-arm after recovery while retaining the same key for an erroneous
+    repeated emission before recovery, even if its minute or action changes.
+    """
+
+    event_payload = item.get("payload", {})
+    if not isinstance(event_payload, dict):
+        raise TypeError("event payload must be an object")
+    if edge_episode is not None:
+        return (
+            item.get("event_type"),
+            "EDGE_EPISODE",
+            tuple(item.get("actor_ids", [])),
+            tuple(item.get("affected_agent_ids", [])),
+            event_payload.get("household_id"),
+            event_payload.get("need"),
+            edge_episode,
+        )
+    return (
+        item.get("event_type"),
+        item.get("source_action_id"),
+        tuple(item.get("actor_ids", [])),
+        tuple(item.get("affected_agent_ids", [])),
+        event_payload.get("session_id"),
+        event_payload.get("need"),
+    )
+
+
+class _SemanticEventEpisodeTracker:
+    def __init__(
+        self,
+        active_need_crises: Mapping[str, Sequence[object]],
+        low_resource_flags: Mapping[str, Sequence[object]],
+    ) -> None:
+        self._active_needs = {
+            str(agent_id): {str(getattr(axis, "value", axis)) for axis in axes}
+            for agent_id, axes in active_need_crises.items()
+        }
+        self._active_resources = {
+            str(household_id): {str(flag) for flag in flags} for household_id, flags in low_resource_flags.items()
+        }
+        self._episode_counts: Counter[tuple[str, str]] = Counter()
+
+    def observe(self, item: Mapping[str, Any]) -> tuple[object, ...]:
+        event_type = str(item.get("event_type"))
+        payload = item.get("payload", {})
+        if not isinstance(payload, dict):
+            raise TypeError("event payload must be an object")
+        edge_kind: str | None = None
+        owner_id: str | None = None
+        active_values: set[str] | None = None
+        if event_type == EventType.NEED_CRISIS.value:
+            actor_ids = item.get("actor_ids", [])
+            if not isinstance(actor_ids, list) or not actor_ids:
+                raise TypeError("need crisis event must identify its actor")
+            owner_id = str(actor_ids[0])
+            edge_kind = str(payload.get("need"))
+            active_values = self._active_needs.setdefault(owner_id, set())
+        elif event_type in {
+            EventType.HOUSEHOLD_FOOD_LOW.value,
+            EventType.HOUSEHOLD_MONEY_LOW.value,
+        }:
+            owner_id = str(payload.get("household_id"))
+            edge_kind = "FOOD" if event_type == EventType.HOUSEHOLD_FOOD_LOW.value else "MONEY"
+            active_values = self._active_resources.setdefault(owner_id, set())
+        if edge_kind is None or owner_id is None or active_values is None:
+            return _semantic_event_occurrence_key(item)
+        episode_key = (owner_id, edge_kind)
+        if edge_kind not in active_values:
+            self._episode_counts[episode_key] += 1
+            active_values.add(edge_kind)
+        return _semantic_event_occurrence_key(
+            item,
+            edge_episode=(owner_id, edge_kind, self._episode_counts[episode_key]),
+        )
+
+    def apply_patch(self, patch: Mapping[str, Any]) -> None:
+        active_needs = patch.get("active_need_crises", {})
+        low_resources = patch.get("low_resource_flags", {})
+        if not isinstance(active_needs, dict) or not isinstance(low_resources, dict):
+            raise TypeError("edge-trigger authority patches must be objects")
+        for agent_id, axes in active_needs.items():
+            if not isinstance(axes, list):
+                raise TypeError("active_need_crises patch values must be lists")
+            self._active_needs[str(agent_id)] = {str(axis) for axis in axes}
+        for household_id, flags in low_resources.items():
+            if not isinstance(flags, list):
+                raise TypeError("low_resource_flags patch values must be lists")
+            self._active_resources[str(household_id)] = {str(flag) for flag in flags}
+
+
 def _relative(path: Path, root: Path) -> str:
     try:
         return path.resolve().relative_to(root.resolve()).as_posix()
@@ -359,6 +459,10 @@ def _run_observation(catalog: CatalogBundle, run_path: Path) -> dict[str, Any]:
     wage_by_household: Counter[str] = Counter()
     event_daily_counts: Counter[int] = Counter()
     event_semantic_keys: Counter[tuple[object, ...]] = Counter()
+    event_episodes = _SemanticEventEpisodeTracker(
+        initial.active_need_crises,
+        initial.low_resource_flags,
+    )
     acquisition_counts: Counter[str] = Counter(
         record.acquisition_type.value for record in final.knowledge_records.values()
     )
@@ -370,16 +474,6 @@ def _run_observation(catalog: CatalogBundle, run_path: Path) -> dict[str, Any]:
         event_payload = item.get("payload", {})
         if not isinstance(event_payload, dict):
             raise TypeError("event payload must be an object")
-        event_semantic_keys[
-            (
-                event_type,
-                item.get("source_action_id"),
-                tuple(item.get("actor_ids", [])),
-                tuple(item.get("affected_agent_ids", [])),
-                event_payload.get("session_id"),
-                event_payload.get("need"),
-            )
-        ] += 1
         if event_type == EventType.WORK_COMPLETED.value:
             actor_id = str(item["actor_ids"][0])
             wage_by_household[final.world.agents[actor_id].household_id] += int(event_payload["wage_minor_units"])
@@ -486,6 +580,7 @@ def _run_observation(catalog: CatalogBundle, run_path: Path) -> dict[str, Any]:
         for raw_event in appended_events:
             if not isinstance(raw_event, dict):
                 raise TypeError("appended event must be an object")
+            event_semantic_keys[event_episodes.observe(raw_event)] += 1
             actors = [str(value) for value in raw_event.get("actor_ids", [])]
             affected = [str(value) for value in raw_event.get("affected_agent_ids", [])]
             if actors:
@@ -496,6 +591,7 @@ def _run_observation(catalog: CatalogBundle, run_path: Path) -> dict[str, Any]:
                 event_id = raw_payload.get("shared_event_id") if isinstance(raw_payload, dict) else None
                 if event_id not in known.get(actors[0], set()):
                     shared_without_speaker_knowledge += 1
+        event_episodes.apply_patch(patch)
         relationship_wrong_direction += sum(
             key not in expected_directions for key in relationships_upsert if expected_directions
         )

@@ -445,16 +445,21 @@ class SocietyEngine:
                     bounds = behavior.output_bounds.need_deltas[NeedName.ENERGY]
                     values[NeedName.ENERGY.value] += midpoint(bounds) / behavior.duration_minutes.base
                 elif action.behavior_id is BehaviorId.WORK_SHIFT:
+                    runtime = context.action_runtimes[action.action_id]
+                    if runtime.work_session_id is None:
+                        raise ValueError("performing work action lost its work occurrence")
+                    session = context.work_sessions[runtime.work_session_id]
+                    scheduled_minutes = session.end_game_minute - session.start_game_minute
                     for axis in (NeedName.ENERGY, NeedName.HYGIENE, NeedName.FUN):
                         bounds = behavior.output_bounds.need_deltas[axis]
-                        values[axis.value] += midpoint(bounds) / behavior.duration_minutes.base
-                    runtime = context.action_runtimes[action.action_id]
-                    if runtime.work_session_id is not None and runtime.actor_id == agent_id:
-                        session = context.work_sessions[runtime.work_session_id]
-                        if session.start_game_minute < context.minute <= session.end_game_minute:
-                            context.work_sessions[session.session_id] = session.model_copy(
-                                update={"effective_work_minutes": session.effective_work_minutes + 1}
-                            )
+                        values[axis.value] += midpoint(bounds) / scheduled_minutes
+                    if (
+                        runtime.actor_id == agent_id
+                        and session.start_game_minute < context.minute <= session.end_game_minute
+                    ):
+                        context.work_sessions[session.session_id] = session.model_copy(
+                            update={"effective_work_minutes": session.effective_work_minutes + 1}
+                        )
             bounded = {key: round(max(0.0, min(1.0, float(value))), 9) for key, value in values.items()}
             context.agents[agent_id] = agent.model_copy(update={"needs": NeedValues(**bounded)})
         context.changes.append("all_enabled_agent_need_tick")
@@ -589,6 +594,7 @@ class SocietyEngine:
         event_importance = {
             event.event_id: float(event.importance) for event in [*context.events, *context.staged_events]
         }
+        events_by_id = {event.event_id: event for event in [*context.events, *context.staged_events]}
         prepared: list[_PreparedDecision] = []
         for agent_id in sorted(source_state.agents):
             agent = source_state.agents[agent_id]
@@ -607,6 +613,7 @@ class SocietyEngine:
                 work_session=session,
                 conversations=context.conversations,
                 event_importance=event_importance,
+                events_by_id=events_by_id,
                 reserved_money=reserved_money,
                 reserved_food=reserved_food,
                 next_candidate_id=lambda: f"candidate_{context.bump('candidate'):08d}",
@@ -853,11 +860,12 @@ class SocietyEngine:
             arrivals[agent_id] = context.minute + travel
         perform_start = max(arrivals.values(), default=context.minute)
         work_session_id: str | None = None
-        if candidate.behavior_id is BehaviorId.WORK_SHIFT:
+        if candidate.behavior_id in {BehaviorId.WORK_SHIFT, BehaviorId.TAKE_BREAK}:
             work_session = self._decision_work_session(context, proposal.actor_id)
             if work_session is None:
-                raise ValueError("accepted work action has no work occurrence")
-            perform_start = max(perform_start, work_session.start_game_minute)
+                raise ValueError("accepted shift activity has no work occurrence")
+            if candidate.behavior_id is BehaviorId.WORK_SHIFT:
+                perform_start = max(perform_start, work_session.start_game_minute)
             work_session_id = work_session.session_id
         planned_end = perform_start + candidate.estimated_duration_minutes
         action = ActionState(
@@ -959,7 +967,7 @@ class SocietyEngine:
             context.agents[agent_id] = agent.model_copy(
                 update={"current_action_id": action_id, "decision_due_at": planned_end}
             )
-        if work_session_id is not None:
+        if work_session_id is not None and candidate.behavior_id is BehaviorId.WORK_SHIFT:
             session = context.work_sessions[work_session_id]
             context.work_sessions[work_session_id] = session.model_copy(
                 update={
@@ -1024,6 +1032,19 @@ class SocietyEngine:
 
         self._commit_reserved_resources(context, runtime)
         self._apply_behavior_effects(context, runtime, accepted)
+        if action.behavior_id is BehaviorId.TAKE_BREAK:
+            if runtime.work_session_id is None:
+                raise ValueError("completed work break lost its work occurrence")
+            session = context.work_sessions[runtime.work_session_id]
+            context.work_sessions[session.session_id] = session.model_copy(
+                update={
+                    "completed_break_action_ids": [
+                        *session.completed_break_action_ids,
+                        runtime.action_id,
+                    ]
+                }
+            )
+            context.changes.append(f"work_break_completed:{session.session_id}:{runtime.action_id}")
         if action.behavior_id in self._social_behaviors:
             self._complete_social_effects(context, runtime, accepted)
         else:

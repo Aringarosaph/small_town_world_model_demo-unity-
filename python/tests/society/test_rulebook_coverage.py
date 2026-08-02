@@ -4,9 +4,9 @@ from collections.abc import Mapping
 
 import pytest
 from town_core.domain.config_models import CatalogBundle
-from town_core.domain.enums import BehaviorId
+from town_core.domain.enums import BehaviorId, EventType, EventWitnessScope
 from town_core.domain.m3_catalog_models import M3Catalogs
-from town_core.domain.state_models import RelationshipState, WorldState
+from town_core.domain.state_models import RelationshipState, WorldEvent, WorldState
 from town_core.society.initialization import build_initial_society_checkpoint
 from town_core.society.models import ConversationRecord, WorkSessionRecord
 from town_core.society.rules import SocietyRulebook
@@ -46,7 +46,7 @@ def _state_for_behavior(
         agents = dict(state.agents)
         agents[agent.agent_id] = agent.model_copy(update={"current_location_id": agent.assigned_work_location_id})
         state = state.model_copy(
-            update={"game_minute": 600, "state_version": 600, "agents": agents, "locations": locations}
+            update={"game_minute": 485, "state_version": 485, "agents": agents, "locations": locations}
         )
         work_session = WorkSessionRecord(
             session_id="work_session_npc_01_day_0000",
@@ -55,7 +55,7 @@ def _state_for_behavior(
             start_game_minute=360,
             end_game_minute=840,
             grace_minutes=15,
-            effective_work_minutes=120,
+            effective_work_minutes=125,
         )
     elif behavior_id is BehaviorId.BUY_GROCERIES:
         households = dict(state.households)
@@ -161,3 +161,254 @@ def test_unknown_share_event_and_low_tension_social_candidates_are_rejected(
             )
             == []
         )
+
+
+def test_completion_safe_break_is_selected_once_without_consuming_wage_grace(
+    catalog: CatalogBundle,
+    m3_catalogs: M3Catalogs,
+) -> None:
+    state, work_session, conversations = _state_for_behavior(catalog, m3_catalogs, BehaviorId.TAKE_BREAK)
+    assert work_session is not None
+    rulebook = SocietyRulebook(catalog)
+    candidate_number = 0
+
+    def next_id() -> str:
+        nonlocal candidate_number
+        candidate_number += 1
+        return f"candidate_{candidate_number:08d}"
+
+    candidates = rulebook.enumerate_candidates(
+        state,
+        "npc_01",
+        work_session=work_session,
+        conversations=conversations,
+        event_importance={},
+        reserved_money=0,
+        reserved_food=0,
+        next_candidate_id=next_id,
+        behavior_allowlist=frozenset({BehaviorId.IDLE, BehaviorId.WORK_SHIFT, BehaviorId.TAKE_BREAK}),
+    )
+    predictions = {
+        item.candidate.candidate_id: rulebook.predict(
+            state,
+            item,
+            prediction_id=f"prediction_{index:08d}",
+        )
+        for index, item in enumerate(candidates, start=1)
+    }
+    scored = rulebook.score_candidates(
+        state,
+        candidates,
+        predictions,
+        work_session=work_session,
+        recent_behavior=None,
+        event_importance={},
+    )
+    selected = scored[0].candidate.candidate
+    scheduled = work_session.end_game_minute - work_session.start_game_minute
+    projected_effective = work_session.effective_work_minutes + (
+        work_session.end_game_minute - state.game_minute - selected.estimated_duration_minutes
+    )
+
+    assert selected.behavior_id is BehaviorId.TAKE_BREAK
+    assert projected_effective >= scheduled - work_session.grace_minutes
+    completed = work_session.model_copy(update={"completed_break_action_ids": ["action_00000001"]})
+    assert (
+        rulebook.enumerate_candidates(
+            state,
+            "npc_01",
+            work_session=completed,
+            conversations=conversations,
+            event_importance={},
+            reserved_money=0,
+            reserved_food=0,
+            next_candidate_id=next_id,
+            behavior_allowlist=frozenset({BehaviorId.TAKE_BREAK}),
+        )
+        == []
+    )
+    with pytest.raises(ValueError, match="at most one completed break"):
+        WorkSessionRecord.model_validate(
+            {
+                **work_session.model_dump(mode="json"),
+                "completed_break_action_ids": ["action_00000001", "action_00000002"],
+            }
+        )
+
+
+def test_target_related_negative_event_unlocks_and_prioritizes_confront(
+    catalog: CatalogBundle,
+    m3_catalogs: M3Catalogs,
+) -> None:
+    checkpoint = build_initial_society_checkpoint(catalog, m3_catalogs, seed=12345)
+    event = WorldEvent(
+        event_id="event_00000001",
+        event_type=EventType.AWKWARD_INTERACTION,
+        game_minute=9,
+        location_id="home_a",
+        actor_ids=["npc_01"],
+        affected_agent_ids=["npc_02"],
+        witness_agent_ids=[],
+        source_action_id="action_00000001",
+        importance=0.45,
+        witness_scope=EventWitnessScope.HIGH_LEVEL_LOCATION,
+        payload={"accepted": False},
+    )
+    agents = dict(checkpoint.world.agents)
+    agents["npc_01"] = agents["npc_01"].model_copy(update={"known_event_ids": [event.event_id]})
+    state = checkpoint.world.model_copy(
+        update={"game_minute": 10, "state_version": 10, "event_cursor": 1, "agents": agents}
+    )
+    rulebook = SocietyRulebook(catalog)
+    candidate_number = 0
+
+    def next_id() -> str:
+        nonlocal candidate_number
+        candidate_number += 1
+        return f"candidate_{candidate_number:08d}"
+
+    candidates = rulebook.enumerate_candidates(
+        state,
+        "npc_01",
+        work_session=None,
+        conversations={},
+        event_importance={event.event_id: float(event.importance)},
+        events_by_id={event.event_id: event},
+        reserved_money=0,
+        reserved_food=0,
+        next_candidate_id=next_id,
+        behavior_allowlist=frozenset({BehaviorId.IDLE, BehaviorId.CHAT, BehaviorId.CONFRONT}),
+    )
+    predictions = {
+        item.candidate.candidate_id: rulebook.predict(
+            state,
+            item,
+            prediction_id=f"prediction_{index:08d}",
+        )
+        for index, item in enumerate(candidates, start=1)
+    }
+    scored = rulebook.score_candidates(
+        state,
+        candidates,
+        predictions,
+        work_session=None,
+        recent_behavior=None,
+        event_importance={event.event_id: float(event.importance)},
+    )
+    confront = next(item for item in candidates if item.candidate.behavior_id is BehaviorId.CONFRONT)
+
+    assert confront.selected_context_event_id == event.event_id
+    assert scored[0].candidate.candidate.behavior_id is BehaviorId.CONFRONT
+    assert scored[0].utility_terms["conflict_response"] > 0.0
+
+
+def test_low_household_food_supply_outranks_individual_discretionary_actions(
+    catalog: CatalogBundle,
+    m3_catalogs: M3Catalogs,
+) -> None:
+    state, _, conversations = _state_for_behavior(catalog, m3_catalogs, BehaviorId.BUY_GROCERIES)
+    rulebook = SocietyRulebook(catalog)
+    candidate_number = 0
+
+    def next_id() -> str:
+        nonlocal candidate_number
+        candidate_number += 1
+        return f"candidate_{candidate_number:08d}"
+
+    candidates = rulebook.enumerate_candidates(
+        state,
+        "npc_01",
+        work_session=None,
+        conversations=conversations,
+        event_importance={},
+        reserved_money=0,
+        reserved_food=0,
+        next_candidate_id=next_id,
+        behavior_allowlist=frozenset({BehaviorId.IDLE, BehaviorId.BUY_GROCERIES, BehaviorId.EAT_AT_CAFE}),
+    )
+    predictions = {
+        item.candidate.candidate_id: rulebook.predict(
+            state,
+            item,
+            prediction_id=f"prediction_{index:08d}",
+        )
+        for index, item in enumerate(candidates, start=1)
+    }
+    scored = rulebook.score_candidates(
+        state,
+        candidates,
+        predictions,
+        work_session=None,
+        recent_behavior=None,
+        event_importance={},
+    )
+
+    assert scored[0].candidate.candidate.behavior_id is BehaviorId.BUY_GROCERIES
+    assert scored[0].utility_terms["household_food_supply"] > 0.0
+
+
+def test_zero_need_recovery_blocks_work_and_bounds_discretionary_duration(
+    catalog: CatalogBundle,
+    m3_catalogs: M3Catalogs,
+) -> None:
+    checkpoint = build_initial_society_checkpoint(catalog, m3_catalogs, seed=12345)
+    actor = checkpoint.world.agents["npc_01"]
+    agents = dict(checkpoint.world.agents)
+    agents[actor.agent_id] = actor.model_copy(
+        update={
+            "needs": actor.needs.model_copy(update={"hunger": 0.0, "social": 0.0}),
+        }
+    )
+    state = checkpoint.world.model_copy(update={"game_minute": 600, "state_version": 600, "agents": agents})
+    work_session = WorkSessionRecord(
+        session_id="work_session_npc_01_day_0000",
+        agent_id="npc_01",
+        day=0,
+        start_game_minute=360,
+        end_game_minute=840,
+        grace_minutes=15,
+        effective_work_minutes=240,
+    )
+    rulebook = SocietyRulebook(catalog)
+    candidate_number = 0
+
+    def next_id() -> str:
+        nonlocal candidate_number
+        candidate_number += 1
+        return f"candidate_{candidate_number:08d}"
+
+    candidates = rulebook.enumerate_candidates(
+        state,
+        actor.agent_id,
+        work_session=work_session,
+        conversations={},
+        event_importance={},
+        reserved_money=0,
+        reserved_food=0,
+        next_candidate_id=next_id,
+        behavior_allowlist=frozenset(
+            {BehaviorId.IDLE, BehaviorId.WORK_SHIFT, BehaviorId.EAT_AT_CAFE, BehaviorId.WATCH_TV}
+        ),
+    )
+    predictions = {
+        item.candidate.candidate_id: rulebook.predict(
+            state,
+            item,
+            prediction_id=f"prediction_{index:08d}",
+        )
+        for index, item in enumerate(candidates, start=1)
+    }
+    scored = rulebook.score_candidates(
+        state,
+        candidates,
+        predictions,
+        work_session=work_session,
+        recent_behavior=None,
+        event_importance={},
+    )
+
+    assert scored[0].candidate.candidate.behavior_id is BehaviorId.EAT_AT_CAFE
+    work = next(item for item in scored if item.candidate.candidate.behavior_id is BehaviorId.WORK_SHIFT)
+    assert work.utility_terms["critical_need_block"] == -200.0
+    watch = next(item for item in candidates if item.candidate.behavior_id is BehaviorId.WATCH_TV)
+    assert watch.candidate.estimated_duration_minutes == 30

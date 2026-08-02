@@ -544,3 +544,34 @@ def test_one_day_ten_npc_smoke_preserves_economy_and_work_settlement(
     for household_id, household in final.world.households.items():
         assert household.money == initial.world.households[household_id].money + money_delta[household_id]
         assert household.food_units == initial.world.households[household_id].food_units + food_delta[household_id]
+
+
+def test_work_soft_effect_is_normalized_across_session_chunks(
+    catalog: CatalogBundle,
+    m3_catalogs: M3Catalogs,
+) -> None:
+    checkpoint = _decision_fixture(
+        catalog,
+        m3_catalogs,
+        minute=480,
+        locations_by_agent={"npc_02": "workshop"},
+        due_agent_ids={"npc_02"},
+    )
+    agents = dict(checkpoint.world.agents)
+    agents["npc_02"] = agents["npc_02"].model_copy(
+        update={"needs": NeedValues(hunger=1.0, energy=1.0, hygiene=1.0, fun=1.0, social=1.0)}
+    )
+    checkpoint = checkpoint.model_copy(update={"world": checkpoint.world.model_copy(update={"agents": agents})})
+    engine = SocietyEngine(
+        catalog,
+        m3_catalogs,
+        checkpoint,
+        behavior_allowlist=frozenset({BehaviorId.IDLE, BehaviorId.WORK_SHIFT}),
+    )
+
+    engine.advance_to(600)
+    final = engine.export_checkpoint()
+    session = final.work_sessions["work_session_npc_02_day_0000"]
+
+    assert session.effective_work_minutes == 120
+    assert 0.85 < final.world.agents["npc_02"].needs.energy < 0.90

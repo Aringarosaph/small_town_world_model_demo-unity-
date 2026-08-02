@@ -10,6 +10,7 @@ from town_core.domain.config_models import BehaviorConfig, CatalogBundle, DeltaB
 from town_core.domain.decision_models import HardCostPreview, OutcomePrediction
 from town_core.domain.enums import (
     BehaviorId,
+    EventType,
     LocationType,
     MoodAxis,
     NeedName,
@@ -17,7 +18,14 @@ from town_core.domain.enums import (
     RoutePlanningCapability,
 )
 from town_core.domain.m3_models import M3CandidateAction
-from town_core.domain.state_models import MoodDelta, NeedDelta, RelationshipDelta, RelationshipState, WorldState
+from town_core.domain.state_models import (
+    MoodDelta,
+    NeedDelta,
+    RelationshipDelta,
+    RelationshipState,
+    WorldEvent,
+    WorldState,
+)
 from town_core.society.models import (
     ConversationRecord,
     ScoredSocietyCandidate,
@@ -26,6 +34,29 @@ from town_core.society.models import (
 )
 
 HEURISTIC_PROVIDER_ID = "M3_CATALOG_BOUNDED_HEURISTIC_V1"
+NEED_CRISIS_RECOVERY_BONUS = 5.0
+HOUSEHOLD_FOOD_SUPPLY_BONUS = 30.0
+CONFLICT_RESPONSE_BONUS = 1.0
+
+_NEED_CRISIS_RECOVERY_PRIORITY = {
+    NeedName.HUNGER: 5.0,
+    NeedName.ENERGY: 4.0,
+    NeedName.SOCIAL: 3.0,
+    NeedName.HYGIENE: 2.0,
+    NeedName.FUN: 1.0,
+}
+_NEED_LIVENESS_FLOOR = {NeedName.SOCIAL: 0.30}
+
+_CONFRONT_TRIGGER_EVENTS = frozenset(
+    {
+        EventType.AWKWARD_INTERACTION,
+        EventType.INVITATION_REJECTED,
+        EventType.APOLOGY_REJECTED,
+        EventType.COWORKER_EXTRA_LOAD,
+        EventType.CONFLICT_STARTED,
+        EventType.CONFLICT_ESCALATED,
+    }
+)
 
 
 @dataclass(frozen=True, slots=True)
@@ -81,6 +112,7 @@ class SocietyRulebook:
         work_session: WorkSessionRecord | None,
         conversations: Mapping[str, ConversationRecord],
         event_importance: Mapping[str, float],
+        events_by_id: Mapping[str, WorldEvent] | None = None,
         reserved_money: int,
         reserved_food: int,
         next_candidate_id: Callable[[], str],
@@ -137,6 +169,7 @@ class SocietyRulebook:
                 or behavior_id is BehaviorId.TAKE_BREAK
                 and self._break_legal(state, agent_id, work_session)
             ):
+                draft_count = len(drafts)
                 self._append_object_draft(
                     drafts,
                     state,
@@ -145,6 +178,17 @@ class SocietyRulebook:
                     agent.assigned_work_location_id,
                     work_session,
                 )
+                if (
+                    behavior_id is BehaviorId.TAKE_BREAK
+                    and len(drafts) > draft_count
+                    and work_session is not None
+                    and not self._break_preserves_completion(
+                        state.game_minute + drafts[-1].travel_minutes,
+                        drafts[-1].duration_minutes,
+                        work_session,
+                    )
+                ):
+                    drafts.pop()
             elif behavior_id is BehaviorId.BUY_GROCERIES:
                 price = self.catalog.economy.groceries.price
                 if household.food_units <= self.catalog.economy.food_low_threshold and available_money >= price:
@@ -211,6 +255,7 @@ class SocietyRulebook:
                     social_targets,
                     incoming_relationship,
                     event_importance,
+                    events_by_id or {},
                 )
             elif behavior_id is BehaviorId.END_CONVERSATION:
                 for conversation in sorted(active_conversations, key=lambda item: item.conversation_id)[:1]:
@@ -403,6 +448,12 @@ class SocietyRulebook:
                 schedule = (2.0 if state.game_minute >= work_session.start_game_minute else 1.0) * (
                     1.0 + actor.personality.discipline
                 )
+            elif candidate.behavior_id is BehaviorId.TAKE_BREAK:
+                # A completion-safe scheduled break is part of the shift rather
+                # than an arbitrary conflict with it. The hard legality check
+                # guarantees the frozen M1 grace/minimum-work settlement still
+                # succeeds if the remaining shift is worked.
+                schedule = 2.0 * (1.0 + actor.personality.discipline)
             elif candidate.schedule_conflict_minutes:
                 schedule = -(candidate.schedule_conflict_minutes / 60.0) * (1.0 + actor.personality.discipline)
         relationship_utility = 0.0
@@ -421,6 +472,42 @@ class SocietyRulebook:
         if candidate.hard_cost_preview.household_money < 0:
             cost_ratio = abs(candidate.hard_cost_preview.household_money) / max(1, household.money)
         repetition = 1.0 if recent_behavior is candidate.behavior_id else 0.0
+        work_due = self._work_candidate_due(state, work_session)
+        available_at_arrival = candidate.destination_location_id is None or self.location_open(
+            candidate.destination_location_id,
+            state.game_minute + candidate.estimated_travel_minutes,
+        )
+        need_crisis_recovery = 0.0
+        for axis, threshold in self.catalog.utility.need_crisis_thresholds.items():
+            recovery_threshold = max(float(threshold), _NEED_LIVENESS_FLOOR.get(axis, 0.0))
+            current = float(getattr(actor.needs, axis.value))
+            delta = float(getattr(prediction.need_delta_preview, axis.value))
+            if (
+                current <= recovery_threshold
+                and delta > 0.0
+                and available_at_arrival
+                and (not work_due or candidate.behavior_id is BehaviorId.TAKE_BREAK or current <= 0.0)
+            ):
+                severity = (recovery_threshold - current) / max(recovery_threshold, 1e-9)
+                need_crisis_recovery += (
+                    NEED_CRISIS_RECOVERY_BONUS * _NEED_CRISIS_RECOVERY_PRIORITY[axis] * (1.0 + severity)
+                )
+        household_food_supply = 0.0
+        if candidate.behavior_id is BehaviorId.BUY_GROCERIES and not work_due and available_at_arrival:
+            shortage = max(0, (self.catalog.economy.food_low_threshold + 1) - household.food_units)
+            household_food_supply = HOUSEHOLD_FOOD_SUPPLY_BONUS * (
+                shortage / max(1, self.catalog.economy.food_low_threshold + 1)
+            )
+        conflict_response = 0.0
+        if (
+            candidate.behavior_id is BehaviorId.CONFRONT
+            and item.selected_context_event_id is not None
+            and available_at_arrival
+        ):
+            conflict_response = CONFLICT_RESPONSE_BONUS + event_importance.get(item.selected_context_event_id, 0.0)
+        critical_need_block = 0.0
+        if candidate.behavior_id is BehaviorId.WORK_SHIFT:
+            critical_need_block = -100.0 * sum(float(getattr(actor.needs, axis.value)) <= 0.0 for axis in NeedName)
         tie = (
             stable_unit(
                 "stwm-m3",
@@ -444,6 +531,10 @@ class SocietyRulebook:
             "travel_cost": -weights.travel_cost * (candidate.estimated_travel_minutes / 60.0),
             "interrupt_cost": 0.0,
             "repetition_penalty": -weights.repetition_penalty * repetition,
+            "need_crisis_recovery": need_crisis_recovery,
+            "household_food_supply": household_food_supply,
+            "conflict_response": conflict_response,
+            "critical_need_block": critical_need_block,
             "idle_penalty": 0.0,
             "deterministic_noise": tie * self.catalog.utility.deterministic_noise_amplitude,
         }
@@ -489,6 +580,17 @@ class SocietyRulebook:
         minimum = max(1, behavior.duration_minutes.base - behavior.duration_minutes.variance)
         maximum = behavior.duration_minutes.base + behavior.duration_minutes.variance
         duration = minimum + int(unit * ((maximum - minimum) + 1))
+        if behavior.behavior_id is BehaviorId.SLEEP and any(
+            axis is not NeedName.ENERGY
+            and float(getattr(agent.needs, axis.value)) <= self.catalog.utility.need_crisis_thresholds[axis]
+            for axis in NeedName
+        ):
+            duration = min(duration, 120)
+        if behavior.behavior_id is BehaviorId.WATCH_TV and agent.needs.social <= 0.0:
+            # Choose the shortest catalog-legal local recovery episode once
+            # social reaches zero. Travel plus a randomized long TV session
+            # otherwise consumes most of the frozen 360-minute recovery bound.
+            duration = minimum
         if behavior.behavior_id is BehaviorId.WORK_SHIFT and work_session is not None:
             perform_start = max(state.game_minute + travel, work_session.start_game_minute)
             duration = max(1, min(behavior.duration_minutes.base, work_session.end_game_minute - perform_start))
@@ -542,6 +644,7 @@ class SocietyRulebook:
         targets: Sequence[str],
         incoming_relationship: Mapping[str, RelationshipState],
         event_importance: Mapping[str, float],
+        events_by_id: Mapping[str, WorldEvent],
     ) -> None:
         agent = state.agents[agent_id]
         for target_id in targets[:2]:
@@ -557,8 +660,17 @@ class SocietyRulebook:
                 continue
             if behavior.behavior_id is BehaviorId.APOLOGIZE and edge.tension < 0.30:
                 continue
+            confront_event_id: str | None = None
             if behavior.behavior_id is BehaviorId.CONFRONT and edge.tension < 0.50:
-                continue
+                confront_event_id = self._target_related_negative_event(
+                    state,
+                    actor_id=agent_id,
+                    target_id=target_id,
+                    relationship=edge,
+                    events_by_id=events_by_id,
+                )
+                if confront_event_id is None:
+                    continue
             anchor_ids = self._social_anchor(state, str(agent.current_location_id))
             if behavior.behavior_id is BehaviorId.SHARE_EVENT:
                 known = sorted(
@@ -600,6 +712,7 @@ class SocietyRulebook:
                         destination=str(agent.current_location_id),
                         target_agent_id=target_id,
                         target_object_ids=anchor_ids,
+                        selected_context_event_id=confront_event_id,
                     )
                 )
 
@@ -659,6 +772,35 @@ class SocietyRulebook:
         )
 
     @staticmethod
+    def _target_related_negative_event(
+        state: WorldState,
+        *,
+        actor_id: str,
+        target_id: str,
+        relationship: RelationshipState,
+        events_by_id: Mapping[str, WorldEvent],
+    ) -> str | None:
+        candidates: list[WorldEvent] = []
+        for event_id in state.agents[actor_id].known_event_ids:
+            event = events_by_id.get(event_id)
+            if event is None or event.event_type not in _CONFRONT_TRIGGER_EVENTS:
+                continue
+            participants = {*event.actor_ids, *event.affected_agent_ids}
+            if actor_id not in participants or target_id not in participants:
+                continue
+            if state.game_minute - event.game_minute > 360:
+                continue
+            if (
+                relationship.last_interaction_minute is not None
+                and event.game_minute < relationship.last_interaction_minute
+            ):
+                continue
+            candidates.append(event)
+        if not candidates:
+            return None
+        return min(candidates, key=lambda event: (-event.game_minute, event.event_id)).event_id
+
+    @staticmethod
     def _social_anchor(state: WorldState, location_id: str) -> list[str]:
         anchors = sorted(
             obj.object_id
@@ -688,6 +830,7 @@ class SocietyRulebook:
         non_idle.sort(
             key=lambda item: (
                 0 if item.behavior_id is BehaviorId.WORK_SHIFT else 1,
+                0 if item.behavior_id is BehaviorId.CONFRONT and item.selected_context_event_id is not None else 1,
                 self._behavior_order[item.behavior_id],
                 item.target_agent_id or "",
                 item.selected_context_event_id or "",
@@ -734,7 +877,22 @@ class SocietyRulebook:
             agent.current_location_id == agent.assigned_work_location_id
             and work_session.start_game_minute + 120 <= state.game_minute < work_session.end_game_minute - 30
             and work_session.effective_work_minutes > 0
+            and not work_session.completed_break_action_ids
         )
+
+    @staticmethod
+    def _break_preserves_completion(
+        break_start: int,
+        duration_minutes: int,
+        work_session: WorkSessionRecord,
+    ) -> bool:
+        break_end = break_start + duration_minutes
+        possible_effective = work_session.effective_work_minutes + max(
+            0,
+            work_session.end_game_minute - break_end,
+        )
+        scheduled = work_session.end_game_minute - work_session.start_game_minute
+        return possible_effective >= scheduled - work_session.grace_minutes
 
     def location_open(self, location_id: str, game_minute: int) -> bool:
         minute_of_day = game_minute % 1440

@@ -138,7 +138,7 @@ def _fixture_checkpoint(
     behavior_id: BehaviorId,
 ) -> AuthorityCheckpoint:
     checkpoint = build_initial_society_checkpoint(catalog, m3_catalogs, seed=12345)
-    minute = 600
+    minute = 485 if behavior_id is BehaviorId.TAKE_BREAK else 600
     agents = {
         agent_id: agent.model_copy(
             update={
@@ -162,7 +162,7 @@ def _fixture_checkpoint(
             start_game_minute=360,
             end_game_minute=840,
             grace_minutes=15,
-            effective_work_minutes=120 if behavior_id is BehaviorId.TAKE_BREAK else 0,
+            effective_work_minutes=125 if behavior_id is BehaviorId.TAKE_BREAK else 0,
         )
     if behavior_id is BehaviorId.TAKE_BREAK:
         checkpoint = _move_agent(
@@ -263,6 +263,7 @@ def _scored_candidate(
         work_session=session,
         conversations=context.conversations,
         event_importance={event.event_id: float(event.importance) for event in context.events},
+        events_by_id={event.event_id: event for event in context.events},
         reserved_money=0,
         reserved_food=0,
         next_candidate_id=lambda: f"candidate_{context.bump('candidate'):08d}",
