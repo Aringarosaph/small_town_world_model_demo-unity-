@@ -213,9 +213,10 @@ exact three keys `status`, `test_ids`, and `assertion_count`.
 
 `authority-evidence.json.qa_matrix_projection` now carries the exact
 `knowledge_permissions` and `joint_action` matrices. Positive direct,
-witnessed, told, accepted-invite, and rejected-invite coverage still comes from
-the canonical production soak; forced negative/terminal booleans cross-check
-the targeted records above. The invitation list is imported from the shared
+witnessed, told, and rejected-invite coverage comes from the canonical
+production soak. Accepted-invite coverage now comes from the real targeted
+production path documented below; forced negative/terminal booleans cross-check
+their targeted records. The invitation list is imported from the shared
 CONTRACTS allowlist, `player_told_record_count` and out-of-scope epistemic graph
 count remain zero, and Unity fields are neither generated nor copied.
 
@@ -695,6 +696,63 @@ After integration, ORCH must produce a fresh complete release matrix; the old
 bundle remains diagnostic-only and its zero occurrence counts must not be
 reused or relabeled. No QA, config, protocol, domain, or Unity-owned path was
 changed.
+
+### M3 targeted invitation-acceptance evidence
+
+The final4 common-RC eleven-run bundle at
+`c005b3645c4b4ff604151fa0c1dcf5a23dfbcdde` passed every SIM matrix except
+`qa_matrix_projection.joint_action.acceptance_covered`. All five unique natural
+release-soak invitations were rejected because their deterministic draws were
+above their independently predicted probabilities; the canonical invitation
+was rejected as well. This was a valid deterministic sample, not a Resolver,
+reservation, lifecycle, or replay failure, so no social utility, probability,
+seed, or authority rule was tuned.
+
+The existing restricted-allowlist lifecycle fixture was suitable for promotion
+because it calls `SocietyEngine.advance_to` with production `idle` and
+`invite_join` enumeration. It does not call `_resolve_and_create(force_joint)`
+or inject a JointAction. A new SIM-owned targeted probe now lets the ordinary
+invite action resolve through `_social_acceptance`; only an accepted outcome
+causes production `_create_invited_joint` to submit the shared action to the
+central Resolver. The probe then follows that JointAction to its real terminal
+phase, checks event/action identity, participant exclusivity, atomic
+reservations and release, invariants, and transaction replay.
+
+The deterministic probe runs only 35 authority ticks. Invite
+`action_00000004` predicted acceptance `0.639483` and drew
+`0.5845987366673191`; it emitted exactly one `INVITATION_ACCEPTED` event and
+created central `watch_tv` JointAction `action_00000008` for `npc_01` and
+`npc_02`. The joint held five reservations (two participant and three object
+slots), completed normally, released every reservation and occupancy, and
+replayed 35 transactions to the same checkpoint, authority-log, and
+transaction-chain hashes.
+
+The QA-facing `qa_matrix_projection.joint_action` shape and the exact four
+`qa_probe_evidence` records are unchanged. The fifth record is exported only as
+SIM-owned `sim_targeted_probe_evidence`, with its raw authority facts in
+`targeted_probe_observations`. `acceptance_covered` requires the PASS record and
+cross-checks the real probability/draw, accepted event source, invite-to-joint
+link, central authority, CREATED and COMPLETED phases, positive transaction
+count, zero reservation remnants, changed checkpoint, and replay match.
+`rejection_covered` continues to require the canonical soak rejection. A
+producer aggregation regression deliberately supplies zero canonical accepted
+invitations and still passes only through the real targeted observation.
+
+No authority engine or run trajectory changed. The final4 compact diagnostic
+set is retained outside the repository at
+`/private/tmp/stwm-m3-final4-reduced-diagnostics-c005b36` (about 348 KiB). It
+contains the seven SIM artifacts, bundle/producer metadata, all eleven job
+summaries and metadata, ten selected-invite extracts, ten corresponding event
+extracts, a source note, and `SHA256SUMS`; all 34 retained files verify. No
+large run or replay output was created by this correction.
+
+The focused targeted-evidence/producer lane passes 190 tests, the full Society
+lane passes 262, and the repository lane passes 417 sandbox-compatible tests
+with the same two QA-owned M2 nodes and the two separately exercised loopback
+nodes deselected. Both real loopback WebSocket tests pass when permitted to bind
+ephemeral `127.0.0.1` ports. Ruff format/check passes over 149 files and strict
+Mypy passes over 102 source files. No eleven-job soak was rerun for this
+evidence-only change.
 
 ## Current responsibility
 

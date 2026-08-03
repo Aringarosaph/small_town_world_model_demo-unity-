@@ -21,7 +21,10 @@ from town_core.domain.config_models import CatalogBundle
 from town_core.domain.enums import ActionPhase, BehaviorId, EventType, KnowledgeAcquisitionType, ProposalResult
 from town_core.domain.m3_catalog_models import M3Catalogs
 from town_core.society.checkpoint import load_checkpoint
-from town_core.society.m3_targeted_evidence import generate_m3_targeted_evidence
+from town_core.society.m3_targeted_evidence import (
+    INVITATION_ACCEPTANCE_PROBE_KEY,
+    generate_m3_targeted_evidence,
+)
 from town_core.society.models import AuthorityCheckpoint
 from town_core.society.replay import verify_society_run
 
@@ -769,6 +772,53 @@ def _latest_attempt(job: Mapping[str, Any]) -> dict[str, Any]:
     return value
 
 
+def _targeted_invitation_acceptance_covered(
+    result: Mapping[str, object],
+    observation: Mapping[str, object],
+) -> bool:
+    probability = observation.get("acceptance_probability")
+    draw = observation.get("deterministic_draw")
+    transaction_count = observation.get("authority_transaction_count")
+    test_ids = result.get("test_ids")
+    assertion_count = result.get("assertion_count")
+    accepted_event_ids = observation.get("invitation_accepted_event_ids")
+    participant_ids = observation.get("participant_ids")
+    reservation_count = observation.get("reservation_count_before")
+    reservation_kinds = observation.get("reservation_kind_counts_before")
+    return (
+        result.get("status") == "PASS"
+        and isinstance(test_ids, list)
+        and bool(test_ids)
+        and isinstance(assertion_count, int)
+        and not isinstance(assertion_count, bool)
+        and assertion_count > 0
+        and isinstance(probability, float)
+        and isinstance(draw, float)
+        and draw <= probability
+        and observation.get("invitation_accepted_event_count") == 1
+        and isinstance(accepted_event_ids, list)
+        and len(accepted_event_ids) == 1
+        and observation.get("invitation_event_source_action_id") == observation.get("invite_action_id")
+        and observation.get("joint_source_invite_action_id") == observation.get("invite_action_id")
+        and observation.get("joint_authority") == "CENTRAL_RESOLVER"
+        and isinstance(participant_ids, list)
+        and len(participant_ids) == 2
+        and isinstance(reservation_count, int)
+        and not isinstance(reservation_count, bool)
+        and reservation_count > 0
+        and isinstance(reservation_kinds, dict)
+        and reservation_kinds.get("PARTICIPANT") == len(participant_ids)
+        and observation.get("joint_created_phase_count") == 1
+        and observation.get("joint_terminal_phase") == ActionPhase.COMPLETED.value
+        and observation.get("reservation_remnant_count") == 0
+        and isinstance(transaction_count, int)
+        and not isinstance(transaction_count, bool)
+        and transaction_count > 0
+        and observation.get("before_checkpoint_hash") != observation.get("after_checkpoint_hash")
+        and observation.get("replay_match") is True
+    )
+
+
 def _aggregate_artifacts(
     *,
     state: Mapping[str, Any],
@@ -791,6 +841,10 @@ def _aggregate_artifacts(
         targeted["behavior_probe_results"],
     )
     authority_probe_results = cast(dict[str, dict[str, object]], targeted["authority_probe_results"])
+    sim_authority_probe_results = cast(
+        dict[str, dict[str, object]],
+        targeted["sim_authority_probe_results"],
+    )
     authority_probe_observations = cast(
         dict[str, dict[str, object]],
         targeted["authority_probe_observations"],
@@ -968,6 +1022,8 @@ def _aggregate_artifacts(
         "joint_action_timeout_release",
     )
     joint_observations = [authority_probe_observations[name] for name in joint_probe_names]
+    acceptance_result = sim_authority_probe_results[INVITATION_ACCEPTANCE_PROBE_KEY]
+    acceptance_observation = authority_probe_observations[INVITATION_ACCEPTANCE_PROBE_KEY]
 
     def targeted_int(item: dict[str, object], key: str) -> int:
         value = item[key]
@@ -982,7 +1038,10 @@ def _aggregate_artifacts(
             and item["reservation_owner_action_ids_before"] == [item["action_id"]]
             for item in joint_observations
         ),
-        "acceptance_covered": int(canonical_observation["joint"]["invitation_accepted_count"]) > 0,
+        "acceptance_covered": _targeted_invitation_acceptance_covered(
+            acceptance_result,
+            acceptance_observation,
+        ),
         "rejection_covered": int(canonical_observation["joint"]["invitation_rejected_count"]) > 0,
         "participant_exclusivity": all(
             targeted_int(item, "participant_ownership_count_before") == len(cast(list[object], item["participant_ids"]))
@@ -1071,6 +1130,7 @@ def _aggregate_artifacts(
         "knowledge_observation": canonical_observation["knowledge"],
         "joint_action_observation": canonical_observation["joint"],
         "qa_probe_evidence": authority_probe_results,
+        "sim_targeted_probe_evidence": sim_authority_probe_results,
         "targeted_probe_observations": authority_probe_observations,
         "not_produced_qa_fields": unsupported,
     }

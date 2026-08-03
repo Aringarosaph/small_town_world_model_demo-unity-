@@ -9,10 +9,12 @@ from town_core.domain.m3_catalog_models import M3Catalogs
 from town_core.society.m3_targeted_evidence import (
     AUTHORITY_PROBE_KEYS,
     BEHAVIOR_PROBE_KEYS,
+    INVITATION_ACCEPTANCE_PROBE_KEY,
     AuthorityProbeKey,
     ProbeKey,
     execute_authority_probe,
     execute_behavior_probe,
+    execute_invitation_acceptance_probe,
     generate_m3_targeted_evidence,
 )
 
@@ -48,6 +50,22 @@ def test_authority_targeted_probe(
     assert observation
 
 
+def test_sim_targeted_invitation_acceptance_probe(
+    catalog: CatalogBundle,
+    m3_catalogs: M3Catalogs,
+) -> None:
+    assertion_count, observation = execute_invitation_acceptance_probe(catalog, m3_catalogs)
+
+    assert assertion_count > 0
+    assert observation["invitation_accepted_event_count"] == 1
+    assert observation["invitation_event_source_action_id"] == observation["invite_action_id"]
+    assert observation["joint_source_invite_action_id"] == observation["invite_action_id"]
+    assert observation["joint_authority"] == "CENTRAL_RESOLVER"
+    assert observation["joint_terminal_phase"] == "COMPLETED"
+    assert observation["reservation_remnant_count"] == 0
+    assert observation["replay_match"] is True
+
+
 def test_targeted_evidence_has_176_distinct_executable_behavior_records_and_real_authority_transactions(
     catalog: CatalogBundle,
     m3_catalogs: M3Catalogs,
@@ -55,6 +73,7 @@ def test_targeted_evidence_has_176_distinct_executable_behavior_records_and_real
     evidence = generate_m3_targeted_evidence(catalog, m3_catalogs)
     behavior_results = cast(dict[str, dict[str, dict[str, object]]], evidence["behavior_probe_results"])
     authority_results = cast(dict[str, dict[str, object]], evidence["authority_probe_results"])
+    sim_authority_results = cast(dict[str, dict[str, object]], evidence["sim_authority_probe_results"])
     observations = cast(dict[str, dict[str, object]], evidence["authority_probe_observations"])
     records = [record for behavior in behavior_results.values() for record in behavior.values()]
     test_ids = [cast(list[str], record["test_ids"])[0] for record in records]
@@ -68,6 +87,9 @@ def test_targeted_evidence_has_176_distinct_executable_behavior_records_and_real
     )
     assert all(cast(int, record["assertion_count"]) > 0 for record in records)
     assert set(authority_results) == set(AUTHORITY_PROBE_KEYS)
+    assert set(sim_authority_results) == {INVITATION_ACCEPTANCE_PROBE_KEY}
+    assert sim_authority_results[INVITATION_ACCEPTANCE_PROBE_KEY]["status"] == "PASS"
+    assert cast(int, sim_authority_results[INVITATION_ACCEPTANCE_PROBE_KEY]["assertion_count"]) > 0
     authority_test_ids = [cast(list[str], record["test_ids"])[0] for record in authority_results.values()]
     assert len(set(authority_test_ids)) == len(AUTHORITY_PROBE_KEYS)
     assert all(
@@ -82,6 +104,13 @@ def test_targeted_evidence_has_176_distinct_executable_behavior_records_and_real
     assert observations["joint_action_cancel_release"]["authority_transaction_count"] == 1
     assert observations["joint_action_failure_release"]["authority_transaction_count"] == 1
     assert cast(int, observations["joint_action_timeout_release"]["authority_transaction_count"]) > 1
+    acceptance = observations[INVITATION_ACCEPTANCE_PROBE_KEY]
+    assert cast(float, acceptance["deterministic_draw"]) <= cast(float, acceptance["acceptance_probability"])
+    assert acceptance["invitation_accepted_event_count"] == 1
+    assert acceptance["joint_created_phase_count"] == 1
+    assert acceptance["joint_terminal_phase"] == "COMPLETED"
+    assert acceptance["reservation_remnant_count"] == 0
+    assert acceptance["replay_match"] is True
     assert all(
         observation["reservation_remnant_count"] == 0
         and observation["replay_match"] is True

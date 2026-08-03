@@ -9,8 +9,11 @@ from types import SimpleNamespace
 from typing import Any, cast
 
 import pytest
+from town_core.domain.config_models import CatalogBundle
 from town_core.domain.enums import BehaviorId
+from town_core.domain.m3_catalog_models import M3Catalogs
 from town_core.society import m3_release_producer as producer
+from town_core.society.m3_targeted_evidence import execute_invitation_acceptance_probe
 
 SOURCE_COMMIT = "a" * 40
 REFERENCE_MACHINE = "unit-test host"
@@ -108,8 +111,8 @@ def _fake_observation(catalog: object, run_path: Path) -> dict[str, Any]:
             "epistemic_graph_count": 0,
         },
         "joint": {
-            "joint_action_count": 1,
-            "invitation_accepted_count": 1,
+            "joint_action_count": 0,
+            "invitation_accepted_count": 0,
             "invitation_rejected_count": 1,
             "split_action_count": 0,
             "terminal_phase_counts": {"COMPLETED": 1},
@@ -164,6 +167,31 @@ def test_release_job_plan_is_exact_fixed_matrix() -> None:
         (60, "CANONICAL_REPEAT"),
         (60, "SOAK"),
     }
+
+
+def test_acceptance_projection_requires_transactional_observation_not_only_pass_record(
+    catalog: CatalogBundle,
+    m3_catalogs: M3Catalogs,
+) -> None:
+    assertion_count, observation = execute_invitation_acceptance_probe(catalog, m3_catalogs)
+    result: dict[str, object] = {
+        "status": "PASS",
+        "test_ids": [
+            "python/tests/society/test_m3_targeted_evidence.py::test_sim_targeted_invitation_acceptance_probe"
+        ],
+        "assertion_count": assertion_count,
+    }
+
+    assert producer._targeted_invitation_acceptance_covered(result, observation)
+    for key, invalid in (
+        ("invitation_accepted_event_count", 0),
+        ("joint_authority", "UNKNOWN"),
+        ("joint_terminal_phase", "FAILED"),
+        ("reservation_remnant_count", 1),
+        ("replay_match", False),
+        ("deterministic_draw", 1.0),
+    ):
+        assert not producer._targeted_invitation_acceptance_covered(result, {**observation, key: invalid})
 
 
 def test_semantic_event_occurrences_distinguish_rearmed_threshold_episodes() -> None:
@@ -358,6 +386,21 @@ def test_release_producer_writes_only_seven_sim_artifacts_and_revalidates_them(
         and record["assertion_count"] > 0
         for record in authority["qa_probe_evidence"].values()
     )
+    assert set(authority["sim_targeted_probe_evidence"]) == {"joint_action_invitation_acceptance"}
+    acceptance_record = authority["sim_targeted_probe_evidence"]["joint_action_invitation_acceptance"]
+    assert set(acceptance_record) == {"status", "test_ids", "assertion_count"}
+    assert acceptance_record["status"] == "PASS"
+    assert acceptance_record["test_ids"] == [
+        "python/tests/society/test_m3_targeted_evidence.py::test_sim_targeted_invitation_acceptance_probe"
+    ]
+    assert acceptance_record["assertion_count"] > 0
+    acceptance_observation = authority["targeted_probe_observations"]["joint_action_invitation_acceptance"]
+    assert acceptance_observation["invitation_accepted_event_count"] == 1
+    assert acceptance_observation["joint_authority"] == "CENTRAL_RESOLVER"
+    assert acceptance_observation["joint_terminal_phase"] == "COMPLETED"
+    assert acceptance_observation["reservation_remnant_count"] == 0
+    assert acceptance_observation["replay_match"] is True
+    assert authority["joint_action_observation"]["invitation_accepted_count"] == 0
     unsupported = {item["qa_field"] for item in authority["not_produced_qa_fields"]}
     assert "matrices.knowledge_permissions.unknown_share_rejected" not in unsupported
     assert "matrices.joint_action.cancel_release|failure_release|timeout_release" not in unsupported

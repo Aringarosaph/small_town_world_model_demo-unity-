@@ -40,6 +40,7 @@ from town_core.society.models import (
     SocietyAdvanceResult,
     WorkSessionRecord,
 )
+from town_core.society.rules import stable_unit
 from town_core.society.transactions import apply_transaction_record
 
 BEHAVIOR_PROBE_KEYS = (
@@ -59,6 +60,7 @@ AUTHORITY_PROBE_KEYS = (
     "joint_action_failure_release",
     "joint_action_timeout_release",
 )
+INVITATION_ACCEPTANCE_PROBE_KEY = "joint_action_invitation_acceptance"
 
 ProbeKey = Literal[
     "legal_candidate",
@@ -647,6 +649,206 @@ def _joint_terminal_probe(
     }
 
 
+def execute_invitation_acceptance_probe(
+    catalog: CatalogBundle,
+    m3_catalogs: M3Catalogs,
+) -> tuple[int, dict[str, object]]:
+    """Drive a real invite decision through acceptance and its JointAction."""
+
+    assertions = _Assertions()
+    initial = build_initial_society_checkpoint(catalog, m3_catalogs, seed=12345)
+    agents = {
+        agent_id: agent.model_copy(
+            update={"needs": NeedValues(hunger=0.5, energy=0.5, hygiene=0.5, fun=0.0, social=0.0)}
+        )
+        for agent_id, agent in initial.world.agents.items()
+    }
+    initial = initial.model_copy(update={"world": initial.world.model_copy(update={"agents": agents})})
+    assert_society_invariants(initial, catalog, m3_catalogs)
+    engine = SocietyEngine(
+        catalog,
+        m3_catalogs,
+        initial,
+        behavior_allowlist=frozenset({BehaviorId.IDLE, BehaviorId.INVITE_JOIN}),
+    )
+    results: list[SocietyAdvanceResult] = []
+    invite_outcomes: dict[str, tuple[float, float, str | None, str | None]] = {}
+    joint_action_id: str | None = None
+    active_joint: AuthorityCheckpoint | None = None
+    accepted_event: WorldEvent | None = None
+
+    for minute in range(1, 121):
+        result = engine.advance_to(minute)
+        results.append(result)
+        checkpoint = engine.export_checkpoint()
+        for runtime in checkpoint.action_runtimes.values():
+            candidate = runtime.candidate.candidate
+            if candidate.behavior_id is not BehaviorId.INVITE_JOIN:
+                continue
+            probability = runtime.prediction.acceptance_probability
+            if probability is None:
+                continue
+            draw = stable_unit(
+                "m3-social-outcome-v1",
+                checkpoint.world.random_seed,
+                runtime.action_id,
+                candidate.behavior_id.value,
+                runtime.actor_id,
+                candidate.target_agent_id,
+            )
+            invite_outcomes[runtime.action_id] = (
+                float(probability),
+                draw,
+                candidate.target_agent_id,
+                runtime.candidate.invited_activity_id.value if runtime.candidate.invited_activity_id else None,
+            )
+        for action_id, record in sorted(checkpoint.joint_actions.items()):
+            matching = next(
+                (
+                    event
+                    for event in checkpoint.events
+                    if event.event_type is EventType.INVITATION_ACCEPTED
+                    and event.source_action_id == record.source_invite_action_id
+                ),
+                None,
+            )
+            if matching is not None:
+                joint_action_id = action_id
+                active_joint = checkpoint
+                accepted_event = matching
+                break
+        if joint_action_id is not None:
+            break
+
+    assertions.require(joint_action_id is not None, "restricted invite fixture produced no accepted JointAction")
+    assertions.require(active_joint is not None, "accepted JointAction has no authority checkpoint")
+    assertions.require(accepted_event is not None, "accepted invitation emitted no INVITATION_ACCEPTED event")
+    if joint_action_id is None or active_joint is None or accepted_event is None:
+        raise TargetedProbeFailure("accepted invitation fixture lost its authority observation")
+    joint_record = active_joint.joint_actions[joint_action_id]
+    joint = joint_record.joint_action
+    invite_action_id = joint_record.source_invite_action_id
+    invite_outcome = invite_outcomes.get(invite_action_id)
+    assertions.require(invite_outcome is not None, "accepted invite did not pass through a scored social outcome")
+    if invite_outcome is None:
+        raise TargetedProbeFailure("accepted invitation fixture lost its deterministic outcome")
+    probability, draw, target_agent_id, invited_activity_id = invite_outcome
+    participant_ids = sorted(item.agent_id for item in joint.participants)
+    reservations = set(active_joint.action_runtimes[joint_action_id].reservation_ids)
+    reservation_records = [active_joint.reservations[item] for item in sorted(reservations)]
+    reservation_kind_counts = {
+        kind: sum(item.kind == kind for item in reservation_records)
+        for kind in ("OBJECT_SLOT", "HOUSEHOLD_RESOURCE", "LOCATION", "PARTICIPANT")
+    }
+    assertions.require(draw <= probability, "accepted invitation draw exceeds its predicted probability")
+    assertions.require(joint.authority is JointActionAuthority.CENTRAL_RESOLVER, "accepted joint is not central")
+    assertions.require(len(participant_ids) == 2, "accepted JointAction does not have two participants")
+    assertions.require(target_agent_id in participant_ids, "accepted invite target is absent from JointAction")
+    assertions.require(bool(reservations), "accepted JointAction created no atomic reservations")
+    assertions.require(
+        {item.owner_action_id for item in reservation_records} == {joint_action_id},
+        "accepted JointAction reservations do not share one authority owner",
+    )
+    assertions.require(
+        reservation_kind_counts["PARTICIPANT"] == len(participant_ids),
+        "accepted JointAction lacks participant reservations",
+    )
+    assertions.require(
+        all(active_joint.world.agents[item].current_action_id == joint_action_id for item in participant_ids),
+        "accepted JointAction does not exclusively own its participants",
+    )
+    joint_created_phase_count = sum(
+        item["action_id"] == joint_action_id and item["phase"] == ActionPhase.CREATED.value
+        for result in results
+        for item in result.actions
+    )
+    assertions.require(
+        joint_created_phase_count == 1,
+        "accepted JointAction lacks one CREATED authority phase",
+    )
+
+    terminal_phase: str | None = None
+    planned_end = active_joint.world.active_actions[joint_action_id].planned_end_game_minute
+    assertions.require(planned_end is not None, "accepted JointAction has no bounded planned end")
+    if planned_end is None:
+        raise TargetedProbeFailure("accepted JointAction fixture lost its planned end")
+    deadline = planned_end + 120
+    for minute in range(active_joint.world.game_minute + 1, deadline + 1):
+        result = engine.advance_to(minute)
+        results.append(result)
+        phases = [
+            str(item["phase"])
+            for item in result.actions
+            if item["action_id"] == joint_action_id
+            and item["phase"]
+            in {
+                ActionPhase.COMPLETED.value,
+                ActionPhase.FAILED.value,
+                ActionPhase.CANCELLED.value,
+                ActionPhase.INTERRUPTED.value,
+            }
+        ]
+        if phases:
+            terminal_phase = phases[-1]
+        if joint_action_id not in engine.export_checkpoint().world.active_actions:
+            break
+
+    final = engine.export_checkpoint()
+    accepted_events = [
+        event
+        for event in final.events
+        if event.event_type is EventType.INVITATION_ACCEPTED and event.source_action_id == invite_action_id
+    ]
+    assertions.require(len(accepted_events) == 1, "accepted invitation event is missing or duplicated")
+    assertions.require(terminal_phase == ActionPhase.COMPLETED.value, "accepted JointAction did not complete")
+    assertions.require(joint_action_id not in final.joint_actions, "completed JointAction remains active")
+    assertions.require(not reservations.intersection(final.reservations), "completed JointAction leaked reservations")
+    assertions.require(
+        all(final.world.agents[item].current_action_id != joint_action_id for item in participant_ids),
+        "completed JointAction retained participant ownership",
+    )
+    assertions.require(
+        all(joint_action_id not in obj.occupied_slots.values() for obj in final.world.objects.values()),
+        "completed JointAction retained object occupancy",
+    )
+    replayed = _replay_results(initial, results)
+    replay_match = checkpoint_hash(replayed) == checkpoint_hash(final)
+    assertions.require(replay_match, "accepted invitation replay checkpoint differs")
+    assertions.require(
+        replayed.authority_log_hash == final.authority_log_hash, "accepted replay authority hash differs"
+    )
+    assertions.require(
+        replayed.transaction_chain_hash == final.transaction_chain_hash,
+        "accepted replay transaction chain differs",
+    )
+    assert_society_invariants(final, catalog, m3_catalogs)
+    assertions.require(True, "accepted invitation invariant failure")
+    return assertions.count, {
+        "invite_action_id": invite_action_id,
+        "joint_action_id": joint_action_id,
+        "invited_activity_id": invited_activity_id,
+        "acceptance_probability": probability,
+        "deterministic_draw": draw,
+        "invitation_accepted_event_count": len(accepted_events),
+        "invitation_accepted_event_ids": [event.event_id for event in accepted_events],
+        "invitation_event_source_action_id": accepted_event.source_action_id,
+        "joint_source_invite_action_id": joint_record.source_invite_action_id,
+        "joint_authority": joint.authority.value,
+        "participant_ids": participant_ids,
+        "reservation_count_before": len(reservations),
+        "reservation_kind_counts_before": reservation_kind_counts,
+        "reservation_remnant_count": len(reservations.intersection(final.reservations)),
+        "joint_created_phase_count": joint_created_phase_count,
+        "joint_terminal_phase": terminal_phase,
+        "before_checkpoint_hash": checkpoint_hash(initial),
+        "after_checkpoint_hash": checkpoint_hash(final),
+        "before_state_version": initial.world.state_version,
+        "after_state_version": final.world.state_version,
+        "authority_transaction_count": sum(len(result.transactions) for result in results),
+        "replay_match": replay_match,
+    }
+
+
 def execute_authority_probe(
     catalog: CatalogBundle,
     m3_catalogs: M3Catalogs,
@@ -682,9 +884,16 @@ def generate_m3_targeted_evidence(
         count, observation = execute_authority_probe(catalog, m3_catalogs, authority_probe)
         authority_results[authority_probe] = _pass_record(_authority_test_id(authority_probe), count)
         observations[authority_probe] = observation
+    acceptance_count, acceptance_observation = execute_invitation_acceptance_probe(catalog, m3_catalogs)
+    acceptance_result = _pass_record(
+        "python/tests/society/test_m3_targeted_evidence.py::test_sim_targeted_invitation_acceptance_probe",
+        acceptance_count,
+    )
+    observations[INVITATION_ACCEPTANCE_PROBE_KEY] = acceptance_observation
     return {
         "behavior_probe_results": behavior_results,
         "authority_probe_results": authority_results,
+        "sim_authority_probe_results": {INVITATION_ACCEPTANCE_PROBE_KEY: acceptance_result},
         "authority_probe_observations": observations,
         "invited_activity_ids": [item.value for item in INVITED_ACTIVITY_ALLOWLIST],
     }
