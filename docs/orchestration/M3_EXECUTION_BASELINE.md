@@ -1,6 +1,7 @@
 # M3 execution baseline
 
-Status: active and frozen by AITOWN-ORCH on 2026-08-02.
+Status: accepted and frozen by AITOWN-ORCH; implementation accepted at
+`cc7f581da0548cb5aebd3d215db3e7bd93575d11` on 2026-08-03.
 
 Base: accepted public `main@7b2618de09bd87eb49716ac40f1d0ba697f00351`.
 
@@ -191,4 +192,3 @@ time and never fabricates Python authority evidence.
 Stop and return to AITOWN-ORCH before changing a frozen ID, numeric direction,
 catalog count, authority owner, or the boundaries above. Other implementation
 choices are delegated to the responsible task owner.
-

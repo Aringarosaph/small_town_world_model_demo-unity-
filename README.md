@@ -17,10 +17,11 @@ Small Town World Model 是一个使用 **Python + Unity** 构建的小型社会�
 - DeepSeek 只负责玩家语言的结构化解析和自然语言表达；
 - 所有关键决策、事件和状态变化都可以追踪、检查和重放。
 
-当前仓库正在开发 **V0 Demo**。M0 契约基线、M1 Headless 单 NPC 垂直切片和
-M2 Unity Bridge 功能灰盒切片均已完成并通过验收。M3 已正式启动，当前目标是
-完成 10 NPC、22 行为、家庭经济、有限社交与事件知识传播，并通过多 seed 的
-7 日与 30 日规则 Soak。M4 神经训练和 M5 DeepSeek 仍未启动。
+当前仓库正在开发 **V0 Demo**。M0 契约基线、M1 Headless 单 NPC 垂直切片、
+M2 Unity Bridge 功能灰盒切片和 M3 完整规则小社会均已完成并通过验收。M3 已
+证明 10 NPC、22 行为、家庭经济、有限社交与事件知识传播能够在固定多 seed
+的 7 日与 30 日规则 Soak 中稳定运行和权威回放。M4 神经训练和 M5 DeepSeek
+仍未启动。
 
 ## 目录
 
@@ -111,7 +112,7 @@ M0 已冻结以下内容规模：
 | M0 规范与仓库基线 | 已完成 | 配置、Schema、协议、CI、冻结清单和 Unity 目录骨架 |
 | M1 Headless 硬规则切片 | 已完成 | 单 NPC 四行为、三日确定性运行、权威日志与事务回放 |
 | M2 Unity Bridge 切片 | 已完成 | 单 NPC 功能灰盒“家 -> 工作 -> 家”、取消、失败、重连与全量重同步 |
-| M3 完整规则小社会 | 进行中 | 10 NPC、22 行为、经济与事件传播、30 日规则 Soak |
+| M3 完整规则小社会 | 已完成 | 10 NPC、22 行为、经济与事件传播、30 日规则 Soak、完整 Unity 灰盒 |
 | M4 社会锚点与世界模型 | 未开始 | 云端训练小型社会 Outcome Model，本地 CPU 推理 |
 | M5 DeepSeek 玩家对话 | 未开始 | 有权限边界的解析、表达、异步与模板回退 |
 | M6 黄金链与展示版 | 未开始 | 两日社会事件链、Unity 预设、自动回放与发布验收 |
@@ -147,6 +148,25 @@ M2 在本机固定环境中新增并通过：
 - M2 的 26 条允许 warning 仅描述 M3 才会补齐的其余地点、NPC 和对象类型；
 - Ruff lint/format 与 strict Mypy 全部通过。
 - GitHub Actions 运行 `30749456317` 的 QA、M0、M1、M2 四个串行作业全部通过。
+
+M3 在同一权威边界上新增并通过：
+
+- 10 NPC、4 households、8 locations、22 behaviors、15 object types 和
+  90 条有向关系边的完整规则社会；
+- 固定五组 7 日、三组 30 日以及 canonical repeat/chunk `1/7/60`，所有
+  final state、ledger、authority log、checkpoint-resume 和 replay 哈希匹配；
+- 22/22 行为既有 targeted authority probes，也在 release soak 中自然出现；
+- JointAction 的真实接受/拒绝、中央解析、原子预约、取消/失败/超时释放与回放；
+- 0 个重复语义事件、预约泄漏、slot 冲突、永久 idle、工作越界、家庭不可恢复
+  或关系边界违规；
+- Unity `6000.4.2f1` EditMode `72/72`、真实 `/town` PlayMode `6/6`，均无
+  失败、跳过或 inconclusive；
+- M3_FULL registry 覆盖 8 地点、10 NpcViews、74 objects、15 types、105
+  slots、14 animation semantics 和 840 routes，0 blocking issues；
+- 最终严格 M3 诊断 `19 pass / 0 pending / 0 fail`。
+
+完整验收边界和外置证据哈希见
+[`docs/orchestration/M3_ACCEPTANCE_RECORD.md`](docs/orchestration/M3_ACCEPTANCE_RECORD.md)。
 
 ## 快速开始
 
@@ -210,7 +230,8 @@ uv run --no-editable python -m town_core.cli \
 ```
 
 这里的 `protocol_version: 0.1.0` 是 `config/v0` 冻结目录的来源版本，不能
-替代在线连接协商结果；M2 Bridge 的活动会话只协商 `0.2.0`。
+替代在线连接协商结果；M2 Bridge 的活动会话只协商 `0.2.0`，M3_FULL
+活动会话只协商 `0.3.0`。
 
 ### 5. 运行完整仓库验收
 
@@ -440,7 +461,7 @@ M1 保留全部 10 名 NPC 与 90 条有向关系边，但只启用 `npc_01`。�
 - 单 NPC 在 Unity 中完成“家 -> 工作 -> 家”；
 - 导航失败、取消和重连都返回 Python 权威核心处理。
 
-### M3：完整规则小社会
+### M3：完整规则小社会（完成）
 
 - 启用全部 10 名 NPC 和 22 种行为；
 - 加入消费、家庭库存、公共场所和有限社交；

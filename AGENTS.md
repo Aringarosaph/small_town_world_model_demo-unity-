@@ -38,11 +38,15 @@ navigation/presentation, cancellation, reconnect/resync, debug UI, and external
 evidence. The producer accepted reproducible local Unity batchmode evidence as
 the release gate; remote licensed Unity CI is optional.
 
-M3 is active under `docs/orchestration/M3_EXECUTION_BASELINE.md` and ADR-0011.
-It is limited to the complete 10-NPC heuristic society, protocol `0.3.0`, the
-full functional greybox, deterministic templates, and 7/30-day rule soak. Keep
-the M1 and M2 compatibility profiles intact. Do not implement neural inference
-or training, call DeepSeek, add player-language authority, start the M6 golden
-chain, or introduce any post-V0 roadmap feature. Changes to frozen M0, accepted
-M1, or accepted M2 contracts require an ADR, version review, regenerated
-evidence, and Orchestrator acceptance.
+M3 is implemented, accepted, and frozen at implementation commit
+`cc7f581da0548cb5aebd3d215db3e7bd93575d11`. Its accepted surface is the
+complete 10-NPC heuristic society, protocol `0.3.0`, the full functional
+greybox, deterministic templates, and fixed 7/30-day rule soak. Keep the M1
+and M2 compatibility profiles intact.
+
+M4 is the next product boundary but is not active until Orchestrator assigns
+it. Do not implement neural inference or training, generate training datasets,
+call DeepSeek, add player-language authority, start the M6 golden chain, or
+introduce any post-V0 roadmap feature without the matching milestone handoff.
+Changes to frozen M0 or accepted M1-M3 contracts require an ADR, version review,
+regenerated evidence, and Orchestrator acceptance.

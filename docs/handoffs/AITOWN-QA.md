@@ -1,5 +1,9 @@
 # AITOWN-QA handoff
 
+Current status: the M3 repository gate, owner-evidence assembler, regression
+producer, and strict release validator are integrated and accepted. The final
+M3 result is 19 pass, 0 pending, and 0 fail; QA is on standby.
+
 ## Responsibility and scope
 
 Long-lived QA/observability owner for **Small Town World Model（STWM）**.

@@ -1,6 +1,12 @@
 # AITOWN-UNITY M2/M3 handoff
 
-## M3 active live/evidence increment
+Current status: the M3 full-town functional greybox and exact Unity owner
+projection are accepted at source
+`cc7f581da0548cb5aebd3d215db3e7bd93575d11`. Final regeneration passed
+EditMode 72/72 and production `/town` PlayMode 6/6 with zero skips; UNITY is on
+standby. M2 observations later in this document remain compatibility history.
+
+## M3 accepted live/evidence increment
 
 ### QA partial-artifact audit correction
 

@@ -46,7 +46,10 @@ external authority evidence, and passing remote Python gates. The producer
 accepted reproducible local Unity batchmode evidence as the M2 release gate;
 a licensed remote Unity lane is optional future infrastructure.
 
-M3 is active under `docs/orchestration/M3_EXECUTION_BASELINE.md` and ADR-0011.
-It adds a compatibility-preserving society runtime, protocol `0.3.0`, the full
-functional greybox, deterministic background templates, and fixed multi-seed
-7/30-day heuristic soak. M4 and later remain closed.
+M3 is accepted and frozen at
+`cc7f581da0548cb5aebd3d215db3e7bd93575d11` under
+`docs/orchestration/M3_EXECUTION_BASELINE.md` and ADR-0011. It includes the
+compatibility-preserving 10-NPC society runtime, protocol `0.3.0`, the full
+functional greybox, deterministic background templates, fixed multi-seed
+7/30-day heuristic soak, and strict external release evidence. M4 is the next
+boundary but remains closed until explicitly activated.

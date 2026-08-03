@@ -119,3 +119,24 @@ with an M0 artifact are frozen inputs to that work.
   checkpoint or private-ledger model.
 - Re-freeze authority: ADR-0011; content commit and final manifest commit are
   reported in cherry-pick order after validation.
+
+## M3 acceptance integration record
+
+- Accepted implementation commit:
+  `cc7f581da0548cb5aebd3d215db3e7bd93575d11`.
+- Protocol/catalog foundation: `bf3a136`, `e27051a`; active M3 protocol is
+  exactly `0.3.0`, with M2 acceptance preserved at exactly `0.2.0`.
+- Society/runtime foundation: `e920187`, followed by the accepted checkpoint,
+  replay, evidence, liveness, performance, event-ledger, behavior-occurrence,
+  and invited-JointAction fixes through `cc7f581`.
+- Independent QA/assembler foundation: `fc26dce`, `46b0bc1`, `2e22a98`,
+  `df48c7d`; the final strict gate is 19 pass / 0 pending / 0 fail.
+- Unity full-town foundation and evidence: `98380ff`, `7a1df95`, `48822bf`,
+  `81d20d9`, `3abdbf9`, `e953d3a`; final Unity evidence was regenerated at the
+  accepted source commit with EditMode 72/72 and live PlayMode 6/6, zero skips.
+- Release matrix: canonical repeat/chunks `1/7/60`, five fixed seven-day seeds,
+  and three fixed thirty-day seeds; all final state, ledger, authority-log,
+  checkpoint-resume, and replay hashes match.
+- Full release evidence and immutable hashes are recorded in
+  `docs/orchestration/M3_ACCEPTANCE_RECORD.md`; raw generated runs remain outside
+  Git.

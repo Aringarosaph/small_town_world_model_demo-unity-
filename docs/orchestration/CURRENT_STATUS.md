@@ -2,15 +2,15 @@
 
 ## Milestone
 
-`M3 - Complete heuristic small society (active)`
+`M3 - Complete heuristic small society (accepted and frozen)`
 
 ## State
 
 - Orchestrator thread: `AITOWN-ORCH`
-- Contracts thread: active for protocol `0.3.0`, shared manifests, and re-freeze
-- QA thread: active for M3 readiness, behavior matrix, soak, and release evidence
-- Simulation thread: active for the M3 heuristic society runtime and checkpoint
-- Unity thread: active for the M3 full-town functional greybox
+- Contracts thread: standby after accepted protocol `0.3.0` and M3 re-freeze
+- QA thread: standby after strict M3 release acceptance
+- Simulation thread: standby after accepted M3 authority/replay implementation
+- Unity thread: standby after accepted full-town functional greybox
 - Accepted base branch: public `main`
 - Active integration branch: `codex/aitown-orch-m3`
 - Remote: `origin`
@@ -95,7 +95,7 @@
 - On 2026-08-02 the producer accepted the reproducible local Unity evidence as
   the M2 release gate. This closes M2 without requiring a remote Unity license.
 
-## M3 activation
+## M3 completion
 
 - [x] Producer authorized M3 on 2026-08-02.
 - [x] Entry audits completed for CONTRACTS, SIM, QA, and UNITY.
@@ -104,12 +104,44 @@
   additive protocol `0.3.0`.
 - [x] Freeze fixed 7/30-day seed lists, pathology/performance thresholds, and
   the full-town semantic capacity policy.
-- [ ] Integrate CONTRACTS protocol/catalog artifacts and re-freeze.
-- [ ] Integrate the ten-NPC heuristic society runtime and M3 replay.
-- [ ] Integrate independent M3 QA readiness and release evidence gates.
-- [ ] Integrate the full-town Unity greybox and multiplayer presentation.
-- [ ] Pass fixed multi-seed soak, local Unity batchmode, and remote Python CI.
-- [ ] Obtain producer acceptance and publish M3 to public `main`.
+- [x] Integrate CONTRACTS protocol/catalog artifacts and re-freeze.
+- [x] Integrate the ten-NPC heuristic society runtime and M3 replay.
+- [x] Integrate independent M3 QA readiness and release evidence gates.
+- [x] Integrate the full-town Unity greybox and multiplayer presentation.
+- [x] Pass fixed multi-seed soak and local zero-skipped Unity batchmode.
+- [x] Pass the strict final M3 gate: 19 pass, 0 pending, 0 fail.
+- [x] Accept implementation commit
+  `cc7f581da0548cb5aebd3d215db3e7bd93575d11` as the frozen M3 product boundary.
+
+## M3 acceptance result
+
+- Exact surface: 10 NPCs, 4 households, 8 locations, 22 behaviors, 15 object
+  types, and 90 directed relationship edges.
+- Release matrix: five fixed 7-day runs, three fixed 30-day runs, and canonical
+  repeat/chunks `1`, `7`, and `60`; every run replays to matching state,
+  checkpoint, ledger, and authority hashes.
+- All 22 behaviors occur naturally in release soaks and pass eight targeted
+  SIM probes; the rarest accepted counts include `end_conversation=1`,
+  `drink_at_bar=3`, and `invite_join=7`.
+- JointAction covers real invitation acceptance and rejection, central
+  resolution, participant exclusivity, atomic reservations, cancel/fail/timeout
+  release, zero split actions, and matching replay.
+- Pathology result: 0 duplicate semantic events, reservation leaks, slot
+  conflicts, permanent-idle agents, work-bound violations, unrecovered
+  households, or relationship-boundary violations. Maximum recoverable
+  zero-need interval is 353 minutes against the 360-minute limit.
+- Worst recorded 30-day performance on the producer Apple-silicon MacBook Air:
+  613.696061 seconds wall time, 83,738,624 bytes peak RSS, 664,443.187542
+  bytes/game-day RSS slope, 21.677417 ms tick p99, and 0.827917 ms decision
+  batch p95.
+- Unity `6000.4.2f1`: EditMode 72/72 and real production `/town` PlayMode 6/6,
+  both with zero skipped, failed, or inconclusive tests. The M3_FULL registry
+  covers 8 locations, 10 NPC views, 74 objects, 15 types, 105 slots, 14
+  animation semantics, and 840 routes with zero blocking issues.
+- M0-M2 strict regressions pass and the final M3 diagnostic reports 19 pass,
+  0 pending, and 0 fail.
+- The external acceptance evidence and its hashes are recorded in
+  `docs/orchestration/M3_ACCEPTANCE_RECORD.md`; raw runs remain outside Git.
 
 ## M3 frozen boundary
 
@@ -124,7 +156,7 @@
 
 ## Blockers
 
-No producer blocker. The next technical gate is the CONTRACTS `0.3.0` and
-semantic-manifest re-freeze required before SIM and UNITY exchange new M3 wire
-artifacts. Final art, DeepSeek credentials, and the cloud training host remain
-intentionally out of scope.
+No M3 blocker remains. M4 is not active: cloud CUDA/PyTorch validation,
+dataset generation, teacher review, training, calibration, and model switching
+must wait for an explicit M4 execution baseline. DeepSeek remains deferred to
+M5, and final art remains outside the functional-greybox acceptance boundary.

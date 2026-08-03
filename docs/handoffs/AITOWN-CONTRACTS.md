@@ -1,5 +1,10 @@
 # AITOWN-CONTRACTS M0/M2/M3 Handoff
 
+Current status: M3 contracts are integrated, accepted, and frozen at the M3
+implementation boundary recorded in
+`docs/orchestration/M3_ACCEPTANCE_RECORD.md`. CONTRACTS is on standby; the
+delivery details below remain the compatibility and reproduction handoff.
+
 ## M3 protocol 0.3.0 and catalog delivery
 
 ADR-0011 makes protocol `0.3.0` the sole M3 session version while preserving

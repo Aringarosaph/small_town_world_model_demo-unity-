@@ -15,3 +15,4 @@
 | M2-RELEASE | Accept reproducible local zero-skipped Unity batchmode, live `/town` interoperability, and external evidence as the M2 Unity release gate; remote licensed Unity CI is optional | Accepted by producer |
 | ADR-0011 | Preserve M1/M2 profiles while M3 adds a society authority checkpoint and protocol 0.3 multiplayer/debug semantics | Accepted |
 | M3-ACTIVATION | Start the complete heuristic society milestone; keep M4 neural and M5 DeepSeek work closed | Accepted by producer |
+| M3-RELEASE | Accept the fixed multi-seed heuristic soak, authoritative replay, full-town local zero-skipped Unity batchmode/live interoperability, and external owner evidence as the complete M3 release gate; keep M4 closed | Accepted by AITOWN-ORCH |

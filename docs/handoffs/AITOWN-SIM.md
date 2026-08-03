@@ -1,5 +1,11 @@
 # AITOWN-SIM Python Authority Handoff
 
+Current status: the M3 society authority, release producer, fixed 7/30-day
+matrix, checkpoint/resume, and authoritative replay are accepted and frozen at
+`cc7f581da0548cb5aebd3d215db3e7bd93575d11`. SIM is on standby; historical M1
+and M2 limitations later in this document describe their compatibility
+profiles, not gaps in the accepted M3 society.
+
 ## M3 society authority increment (2026-08-03)
 
 The scoped M3 branch starts from frozen entry `2a51615` and consumes the
