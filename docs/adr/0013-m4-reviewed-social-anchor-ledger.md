@@ -90,6 +90,11 @@ coverage signatures. Only combinations observed among legal source candidates
 belong to the feasible universe; the selector records structurally absent
 cells instead of fabricating features.
 
+Within each behavior and partition, a directed actor-target pair and an exact
+coverage signature may each appear at most three times. If the validated source
+matrix cannot fill a frozen quota under those caps, selection fails for review;
+it does not silently relax the policy.
+
 Frozen bins:
 
 - familiarity, affinity, trust, tension: low `[0, 1/3)`, middle `[1/3, 2/3)`,

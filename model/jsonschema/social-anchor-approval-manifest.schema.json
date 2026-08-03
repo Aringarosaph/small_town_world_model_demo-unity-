@@ -1,0 +1,263 @@
+{
+  "$defs": {
+    "ArtifactDescriptor": {
+      "additionalProperties": false,
+      "properties": {
+        "bytes": {
+          "minimum": 0,
+          "title": "Bytes",
+          "type": "integer"
+        },
+        "relative_path": {
+          "minLength": 1,
+          "title": "Relative Path",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[a-f0-9]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "relative_path",
+        "sha256",
+        "bytes"
+      ],
+      "title": "ArtifactDescriptor",
+      "type": "object"
+    },
+    "BehaviorId": {
+      "enum": [
+        "idle",
+        "sleep",
+        "eat_at_home",
+        "shower",
+        "watch_tv",
+        "relax_at_home",
+        "work_shift",
+        "take_break",
+        "buy_groceries",
+        "eat_at_cafe",
+        "drink_at_bar",
+        "walk_in_park",
+        "sit_in_park",
+        "greet",
+        "chat",
+        "joke",
+        "compliment",
+        "share_event",
+        "invite_join",
+        "apologize",
+        "confront",
+        "end_conversation"
+      ],
+      "title": "BehaviorId",
+      "type": "string"
+    },
+    "SocialAnchorApprovalEntry": {
+      "additionalProperties": false,
+      "properties": {
+        "acknowledged_advisory_issue_ids": {
+          "items": {
+            "pattern": "^anchor_issue_[a-f0-9]{24}$",
+            "type": "string"
+          },
+          "title": "Acknowledged Advisory Issue Ids",
+          "type": "array"
+        },
+        "advisory_issue_ids": {
+          "items": {
+            "pattern": "^anchor_issue_[a-f0-9]{24}$",
+            "type": "string"
+          },
+          "title": "Advisory Issue Ids",
+          "type": "array"
+        },
+        "anchor_id": {
+          "pattern": "^anchor_[a-f0-9]{24}$",
+          "title": "Anchor Id",
+          "type": "string"
+        },
+        "behavior_id": {
+          "$ref": "#/$defs/BehaviorId"
+        },
+        "blocking_issue_ids": {
+          "items": {
+            "pattern": "^anchor_issue_[a-f0-9]{24}$",
+            "type": "string"
+          },
+          "title": "Blocking Issue Ids",
+          "type": "array"
+        },
+        "decision": {
+          "enum": [
+            "APPROVED",
+            "REJECTED",
+            "DISPUTED"
+          ],
+          "title": "Decision",
+          "type": "string"
+        },
+        "disputed_issue_ids": {
+          "items": {
+            "pattern": "^anchor_issue_[a-f0-9]{24}$",
+            "type": "string"
+          },
+          "title": "Disputed Issue Ids",
+          "type": "array"
+        },
+        "issue_ids": {
+          "items": {
+            "pattern": "^anchor_issue_[a-f0-9]{24}$",
+            "type": "string"
+          },
+          "title": "Issue Ids",
+          "type": "array"
+        },
+        "judgment_id": {
+          "pattern": "^anchor_judgment_[a-f0-9]{24}$",
+          "title": "Judgment Id",
+          "type": "string"
+        },
+        "judgment_sha256": {
+          "pattern": "^[a-f0-9]{64}$",
+          "title": "Judgment Sha256",
+          "type": "string"
+        },
+        "partition": {
+          "enum": [
+            "TRAIN",
+            "VALIDATION",
+            "ANCHOR_HOLDOUT"
+          ],
+          "title": "Partition",
+          "type": "string"
+        },
+        "task_id": {
+          "pattern": "^anchor_task_[a-f0-9]{24}$",
+          "title": "Task Id",
+          "type": "string"
+        },
+        "task_sha256": {
+          "pattern": "^[a-f0-9]{64}$",
+          "title": "Task Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "anchor_id",
+        "task_id",
+        "task_sha256",
+        "judgment_id",
+        "judgment_sha256",
+        "behavior_id",
+        "partition",
+        "decision",
+        "issue_ids",
+        "blocking_issue_ids",
+        "disputed_issue_ids",
+        "advisory_issue_ids",
+        "acknowledged_advisory_issue_ids"
+      ],
+      "title": "SocialAnchorApprovalEntry",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "approval_id": {
+      "pattern": "^anchor_approval_[a-f0-9]{24}$",
+      "title": "Approval Id",
+      "type": "string"
+    },
+    "coverage_policy": {
+      "$ref": "#/$defs/ArtifactDescriptor"
+    },
+    "created_at_utc": {
+      "minLength": 1,
+      "title": "Created At Utc",
+      "type": "string"
+    },
+    "entries": {
+      "items": {
+        "$ref": "#/$defs/SocialAnchorApprovalEntry"
+      },
+      "minItems": 1,
+      "title": "Entries",
+      "type": "array"
+    },
+    "issues": {
+      "$ref": "#/$defs/ArtifactDescriptor"
+    },
+    "judgments": {
+      "$ref": "#/$defs/ArtifactDescriptor"
+    },
+    "previous_approval_manifest_sha256": {
+      "anyOf": [
+        {
+          "pattern": "^[a-f0-9]{64}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Previous Approval Manifest Sha256"
+    },
+    "producer_id": {
+      "minLength": 1,
+      "title": "Producer Id",
+      "type": "string"
+    },
+    "project_name": {
+      "const": "Small Town World Model（STWM）",
+      "default": "Small Town World Model（STWM）",
+      "title": "Project Name",
+      "type": "string"
+    },
+    "reviewer_id": {
+      "minLength": 1,
+      "title": "Reviewer Id",
+      "type": "string"
+    },
+    "schema": {
+      "const": "stwm.model.social-anchor-approval-manifest/v1",
+      "default": "stwm.model.social-anchor-approval-manifest/v1",
+      "title": "Schema",
+      "type": "string"
+    },
+    "source_dataset_manifest_sha256": {
+      "pattern": "^[a-f0-9]{64}$",
+      "title": "Source Dataset Manifest Sha256",
+      "type": "string"
+    },
+    "status": {
+      "enum": [
+        "DRAFT",
+        "FINAL"
+      ],
+      "title": "Status",
+      "type": "string"
+    },
+    "tasks": {
+      "$ref": "#/$defs/ArtifactDescriptor"
+    }
+  },
+  "required": [
+    "approval_id",
+    "status",
+    "created_at_utc",
+    "producer_id",
+    "reviewer_id",
+    "source_dataset_manifest_sha256",
+    "coverage_policy",
+    "tasks",
+    "judgments",
+    "issues",
+    "entries"
+  ],
+  "title": "SocialAnchorApprovalManifest",
+  "type": "object"
+}

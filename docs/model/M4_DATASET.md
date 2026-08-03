@@ -68,6 +68,26 @@ PYTHONPATH=python python -m town_core.modeling.analyze_dataset \
 报告另外记录行为×split 的选中不平衡、组大小和各连续标签轴的正/负/零分布。
 稀有行为的选中样本不足由加权/平衡采样、社会锚点和逐行为指标处理，不允许用总体准确率掩盖。
 
+## 社会锚点任务选择
+
+ADR-0013 在不改写原始 Parquet 和规则教师标签的前提下，冻结恰好 300 条待独立
+审查的社会锚点任务。选择器会先完整复验数据集，再按七个行为和三个既有 split
+执行确定性成对覆盖；输出目录必须位于仓库外且为空：
+
+```bash
+PYTHONPATH=python python -m town_core.modeling.anchors \
+  --dataset /root/autodl-fs/STWM/m4/datasets/m4_teacher_release_raw_v1_73ca45f \
+  --output-root /root/autodl-fs/STWM/m4/anchors/m4_social_anchor_tasks_v1
+```
+
+输出包括冻结 coverage policy、300 行 canonical task JSONL 和覆盖报告。每条 task
+携带源 dataset/shard/example 的 SHA-256、完整 feature、原始 heuristic baseline、
+覆盖签名和不可变 split。`test` 只能映射为 `ANCHOR_HOLDOUT`，不能进入训练、早停、
+校准或超参数选择。选择器不会生成 Codex judgment，也不会把任务冒充为已批准锚点；
+生产者判断、独立 reviewer issue 和最终 approval manifest 是后续分离的哈希链工序。
+
 ## 当前边界
 
-本阶段只生成规则教师 rows。人工社会锚点、连续邻域增强、模型训练和神经 rollout 均在后续独立增量中执行。smoke 数据不能充当 M4 发布数据或最终验收证据。
+规则教师 rows 已生成并完成质量复验；当前增量只冻结并选择社会锚点任务。
+Codex judgment、独立审查、连续邻域增强、模型训练和神经 rollout 均在后续分离
+增量中执行。smoke 数据和未批准的 task 都不能充当 M4 发布数据或最终验收证据。

@@ -2,7 +2,8 @@
 
 from __future__ import annotations
 
-from typing import Annotated, Literal
+from itertools import combinations
+from typing import Annotated, Literal, cast
 
 from pydantic import Field, NonNegativeInt, PositiveInt, model_validator
 
@@ -17,6 +18,11 @@ FEATURE_SCHEMA = "stwm.model.candidate-feature-row/v1"
 LABEL_SCHEMA = "stwm.model.outcome-label/v1"
 TRAINING_EXAMPLE_SCHEMA = "stwm.model.training-example/v1"
 ANCHOR_SCHEMA = "stwm.model.social-anchor/v1"
+ANCHOR_TASK_SCHEMA = "stwm.model.social-anchor-task/v1"
+ANCHOR_JUDGMENT_SCHEMA = "stwm.model.social-anchor-judgment/v1"
+ANCHOR_REVIEW_ISSUE_SCHEMA = "stwm.model.social-anchor-review-issue/v1"
+ANCHOR_APPROVAL_SCHEMA = "stwm.model.social-anchor-approval-manifest/v1"
+ANCHOR_COVERAGE_POLICY_SCHEMA = "stwm.model.social-anchor-coverage-policy/v1"
 DATASET_SCHEMA = "stwm.model.dataset-manifest/v1"
 PACKAGE_SCHEMA = "stwm.model.outcome-package/v1"
 EVALUATION_SCHEMA = "stwm.model.evaluation-report/v1"
@@ -26,6 +32,20 @@ SHA256_PATTERN = r"^[a-f0-9]{64}$"
 COMMIT_PATTERN = r"^[a-f0-9]{40}$"
 
 DatasetSplit = Literal["train", "validation", "test"]
+AnchorPartition = Literal["TRAIN", "VALIDATION", "ANCHOR_HOLDOUT"]
+AnchorReviewDecision = Literal["APPROVED", "REJECTED", "DISPUTED"]
+
+REVIEWED_SOCIAL_BEHAVIORS = frozenset(
+    {
+        BehaviorId.GREET,
+        BehaviorId.CHAT,
+        BehaviorId.JOKE,
+        BehaviorId.COMPLIMENT,
+        BehaviorId.INVITE_JOIN,
+        BehaviorId.APOLOGIZE,
+        BehaviorId.CONFRONT,
+    }
+)
 
 
 class RawActorFeatures(ContractModel):
@@ -226,6 +246,324 @@ class ArtifactDescriptor(ContractModel):
     relative_path: Annotated[str, Field(min_length=1)]
     sha256: Annotated[str, Field(pattern=SHA256_PATTERN)]
     bytes: NonNegativeInt
+
+
+class SocialAnchorCoverageSignature(ContractModel):
+    relationship_direction: Literal["TARGET_TO_ACTOR"] = "TARGET_TO_ACTOR"
+    familiarity_bin: Literal["LOW", "MIDDLE", "HIGH"]
+    affinity_bin: Literal["LOW", "MIDDLE", "HIGH"]
+    trust_bin: Literal["LOW", "MIDDLE", "HIGH"]
+    tension_bin: Literal["LOW", "MIDDLE", "HIGH"]
+    target_stress_bin: Literal["LOW", "HIGH"]
+    actor_sociability_bin: Literal["LOW", "HIGH", "GAP"]
+    actor_irritability_bin: Literal["LOW", "HIGH", "GAP"]
+    privacy_bin: Literal["PRIVATE_HOME", "PUBLIC"]
+    event_context_bin: Literal["NONE", "LIGHT", "HEAVY"]
+    social_identity_bin: Literal["SAME_HOUSEHOLD", "COWORKER", "ACQUAINTANCE"]
+
+
+class SocialAnchorTask(ContractModel):
+    schema_id: Literal["stwm.model.social-anchor-task/v1"] = Field(
+        default="stwm.model.social-anchor-task/v1", alias="schema", serialization_alias="schema"
+    )
+    project_name: Literal["Small Town World Model（STWM）"] = "Small Town World Model（STWM）"
+    task_id: Annotated[str, Field(pattern=r"^anchor_task_[a-f0-9]{24}$")]
+    anchor_id: Annotated[str, Field(pattern=r"^anchor_[a-f0-9]{24}$")]
+    family_id: Annotated[str, Field(pattern=r"^anchor_family_[a-f0-9]{24}$")]
+    batch_id: Annotated[str, Field(pattern=r"^social_[a-z0-9_]+_v1$")]
+    behavior_id: BehaviorId
+    partition: AnchorPartition
+    source_dataset_manifest_sha256: Annotated[str, Field(pattern=SHA256_PATTERN)]
+    source_shard_relative_path: Annotated[str, Field(min_length=1)]
+    source_shard_sha256: Annotated[str, Field(pattern=SHA256_PATTERN)]
+    source_example_sha256: Annotated[str, Field(pattern=SHA256_PATTERN)]
+    actor_target_pair_key: Annotated[str, Field(min_length=1)]
+    coverage_signature: SocialAnchorCoverageSignature
+    feature: CandidateFeatureRow
+    heuristic_baseline: OutcomeLabel
+
+    @model_validator(mode="after")
+    def validate_task_identity(self) -> SocialAnchorTask:
+        if self.behavior_id not in REVIEWED_SOCIAL_BEHAVIORS:
+            raise ValueError("anchor task behavior is outside the reviewed social allowlist")
+        if self.feature.raw_candidate.behavior_id is not self.behavior_id:
+            raise ValueError("anchor task behavior must match its immutable feature")
+        if self.feature.row_id != self.heuristic_baseline.row_id:
+            raise ValueError("anchor task feature and baseline row IDs must match")
+        if self.feature.candidate_id != self.heuristic_baseline.prediction.candidate_id:
+            raise ValueError("anchor task feature and baseline candidate IDs must match")
+        expected_partition = cast(
+            AnchorPartition,
+            {"train": "TRAIN", "validation": "VALIDATION", "test": "ANCHOR_HOLDOUT"}[self.feature.split],
+        )
+        if self.partition != expected_partition:
+            raise ValueError("anchor partition must preserve the immutable raw dataset split")
+        if self.feature.raw_target is None or not self.feature.masks.acceptance_present:
+            raise ValueError("reviewed social anchor tasks require a target and acceptance head")
+        if self.batch_id != f"social_{self.behavior_id.value}_v1":
+            raise ValueError("anchor batch ID must be behavior-local")
+        return self
+
+
+class SocialAnchorTypedAssertion(ContractModel):
+    assertion_id: Annotated[str, Field(pattern=r"^assertion_[a-f0-9]{16}$")]
+    assertion_type: Literal[
+        "ACCEPTANCE_RATIONALE",
+        "DELTA_RATIONALE",
+        "DIRECTION",
+        "EVENT_RATIONALE",
+        "PERSONALITY_MONOTONICITY",
+    ]
+    statement: Annotated[str, Field(min_length=1)]
+    paired_task_id: Annotated[str | None, Field(pattern=r"^anchor_task_[a-f0-9]{24}$")] = None
+    paired_task_sha256: Annotated[str | None, Field(pattern=SHA256_PATTERN)] = None
+    expected_order: Literal["LOWER", "EQUAL", "HIGHER"] | None = None
+
+    @model_validator(mode="after")
+    def validate_pair(self) -> SocialAnchorTypedAssertion:
+        paired = (
+            self.paired_task_id is not None or self.paired_task_sha256 is not None or self.expected_order is not None
+        )
+        if self.assertion_type == "PERSONALITY_MONOTONICITY":
+            if not paired or None in (self.paired_task_id, self.paired_task_sha256, self.expected_order):
+                raise ValueError("personality monotonicity assertions require a complete explicit pair")
+        elif paired:
+            raise ValueError("only personality monotonicity assertions may reference a paired task")
+        return self
+
+
+class SocialAnchorJudgment(ContractModel):
+    schema_id: Literal["stwm.model.social-anchor-judgment/v1"] = Field(
+        default="stwm.model.social-anchor-judgment/v1", alias="schema", serialization_alias="schema"
+    )
+    project_name: Literal["Small Town World Model（STWM）"] = "Small Town World Model（STWM）"
+    judgment_id: Annotated[str, Field(pattern=r"^anchor_judgment_[a-f0-9]{24}$")]
+    task_id: Annotated[str, Field(pattern=r"^anchor_task_[a-f0-9]{24}$")]
+    task_sha256: Annotated[str, Field(pattern=SHA256_PATTERN)]
+    anchor_id: Annotated[str, Field(pattern=r"^anchor_[a-f0-9]{24}$")]
+    family_id: Annotated[str, Field(pattern=r"^anchor_family_[a-f0-9]{24}$")]
+    batch_id: Annotated[str, Field(pattern=r"^social_[a-z0-9_]+_v1$")]
+    behavior_id: BehaviorId
+    partition: AnchorPartition
+    candidate_id: CandidateId
+    producer_id: Annotated[str, Field(min_length=1)]
+    produced_at_utc: Annotated[str, Field(min_length=1)]
+    provider_id: Literal["stwm.codex.anchor-producer/v1"] = "stwm.codex.anchor-producer/v1"
+    revision_of_judgment_sha256: Annotated[str | None, Field(pattern=SHA256_PATTERN)] = None
+    proposed_prediction: OutcomePrediction
+    rationale_tags: Annotated[list[str], Field(min_length=1)]
+    typed_assertions: Annotated[list[SocialAnchorTypedAssertion], Field(min_length=1)]
+
+    @model_validator(mode="after")
+    def validate_judgment_identity(self) -> SocialAnchorJudgment:
+        if self.behavior_id not in REVIEWED_SOCIAL_BEHAVIORS:
+            raise ValueError("anchor judgment behavior is outside the reviewed social allowlist")
+        if self.proposed_prediction.candidate_id != self.candidate_id:
+            raise ValueError("anchor judgment candidate and proposed prediction must match")
+        if self.batch_id != f"social_{self.behavior_id.value}_v1":
+            raise ValueError("anchor judgment batch ID must be behavior-local")
+        if len(self.rationale_tags) != len(set(self.rationale_tags)):
+            raise ValueError("anchor judgment rationale tags must be unique")
+        return self
+
+
+class SocialAnchorReviewIssue(ContractModel):
+    schema_id: Literal["stwm.model.social-anchor-review-issue/v1"] = Field(
+        default="stwm.model.social-anchor-review-issue/v1", alias="schema", serialization_alias="schema"
+    )
+    project_name: Literal["Small Town World Model（STWM）"] = "Small Town World Model（STWM）"
+    issue_id: Annotated[str, Field(pattern=r"^anchor_issue_[a-f0-9]{24}$")]
+    task_id: Annotated[str, Field(pattern=r"^anchor_task_[a-f0-9]{24}$")]
+    task_sha256: Annotated[str, Field(pattern=SHA256_PATTERN)]
+    judgment_id: Annotated[str, Field(pattern=r"^anchor_judgment_[a-f0-9]{24}$")]
+    judgment_sha256: Annotated[str, Field(pattern=SHA256_PATTERN)]
+    reviewer_id: Annotated[str, Field(min_length=1)]
+    reviewed_at_utc: Annotated[str, Field(min_length=1)]
+    severity: Literal["ADVISORY", "BLOCKING", "DISPUTED"]
+    issue_code: Annotated[str, Field(pattern=r"^[A-Z][A-Z0-9_]+$")]
+    message: Annotated[str, Field(min_length=1)]
+    related_anchor_ids: list[Annotated[str, Field(pattern=r"^anchor_[a-f0-9]{24}$")]] = Field(default_factory=list)
+
+
+class SocialAnchorApprovalEntry(ContractModel):
+    anchor_id: Annotated[str, Field(pattern=r"^anchor_[a-f0-9]{24}$")]
+    task_id: Annotated[str, Field(pattern=r"^anchor_task_[a-f0-9]{24}$")]
+    task_sha256: Annotated[str, Field(pattern=SHA256_PATTERN)]
+    judgment_id: Annotated[str, Field(pattern=r"^anchor_judgment_[a-f0-9]{24}$")]
+    judgment_sha256: Annotated[str, Field(pattern=SHA256_PATTERN)]
+    behavior_id: BehaviorId
+    partition: AnchorPartition
+    decision: AnchorReviewDecision
+    issue_ids: list[Annotated[str, Field(pattern=r"^anchor_issue_[a-f0-9]{24}$")]]
+    blocking_issue_ids: list[Annotated[str, Field(pattern=r"^anchor_issue_[a-f0-9]{24}$")]]
+    disputed_issue_ids: list[Annotated[str, Field(pattern=r"^anchor_issue_[a-f0-9]{24}$")]]
+    advisory_issue_ids: list[Annotated[str, Field(pattern=r"^anchor_issue_[a-f0-9]{24}$")]]
+    acknowledged_advisory_issue_ids: list[Annotated[str, Field(pattern=r"^anchor_issue_[a-f0-9]{24}$")]]
+
+    @model_validator(mode="after")
+    def validate_approval(self) -> SocialAnchorApprovalEntry:
+        if self.behavior_id not in REVIEWED_SOCIAL_BEHAVIORS:
+            raise ValueError("anchor approval behavior is outside the reviewed social allowlist")
+        classified = (
+            set(self.blocking_issue_ids),
+            set(self.disputed_issue_ids),
+            set(self.advisory_issue_ids),
+        )
+        if any(left & right for left, right in combinations(classified, 2)):
+            raise ValueError("anchor approval issue severity sets must be disjoint")
+        if set().union(*classified) != set(self.issue_ids):
+            raise ValueError("anchor approval must classify every issue by severity")
+        if self.decision == "APPROVED" and (self.blocking_issue_ids or self.disputed_issue_ids):
+            raise ValueError("approved anchor entries cannot retain blocking or disputed issues")
+        if self.decision == "APPROVED" and set(self.advisory_issue_ids) != set(self.acknowledged_advisory_issue_ids):
+            raise ValueError("approved anchor entries must acknowledge every advisory issue")
+        return self
+
+
+class SocialAnchorBehaviorQuota(ContractModel):
+    behavior_id: BehaviorId
+    approved_target: PositiveInt
+    train: PositiveInt
+    validation: PositiveInt
+    anchor_holdout: PositiveInt
+
+    @model_validator(mode="after")
+    def validate_total(self) -> SocialAnchorBehaviorQuota:
+        if self.approved_target != self.train + self.validation + self.anchor_holdout:
+            raise ValueError("anchor behavior quota partitions must sum to the approved target")
+        return self
+
+
+class SocialAnchorCoveragePolicy(ContractModel):
+    schema_id: Literal["stwm.model.social-anchor-coverage-policy/v1"] = Field(
+        default="stwm.model.social-anchor-coverage-policy/v1", alias="schema", serialization_alias="schema"
+    )
+    project_name: Literal["Small Town World Model（STWM）"] = "Small Town World Model（STWM）"
+    policy_id: Literal["stwm.m4.reviewed-social-anchors-300/v1"] = "stwm.m4.reviewed-social-anchors-300/v1"
+    selector_id: Literal["stwm.m4.greedy-pairwise-selector/v1"] = "stwm.m4.greedy-pairwise-selector/v1"
+    quotas: Annotated[list[SocialAnchorBehaviorQuota], Field(min_length=7, max_length=7)]
+    relation_cut_points: tuple[float, float] = (1.0 / 3.0, 2.0 / 3.0)
+    target_stress_cut_point: float = 0.5
+    sociability_low_maximum: float = 0.5
+    sociability_high_minimum: float = 0.55
+    irritability_low_maximum: float = 0.25
+    irritability_high_minimum: float = 0.3
+    event_heavy_minimum: float = 0.6
+    near_neighbor_linf_maximum: float = 0.1
+    acceptance_dispute_threshold: float = 0.2
+    allowed_delta_absolute_floor: float = 0.04
+    allowed_delta_bound_span_fraction: float = 0.5
+    max_actor_target_pair_repeats_per_behavior_partition: PositiveInt = 3
+    max_exact_coverage_signature_repeats_per_behavior_partition: PositiveInt = 3
+    orchestrator_sample_minimum: PositiveInt = 3
+    orchestrator_sample_fraction: float = 0.1
+
+    @model_validator(mode="after")
+    def validate_frozen_quotas(self) -> SocialAnchorCoveragePolicy:
+        actual = {
+            item.behavior_id: (item.approved_target, item.train, item.validation, item.anchor_holdout)
+            for item in self.quotas
+        }
+        expected = {
+            BehaviorId.GREET: (40, 28, 4, 8),
+            BehaviorId.CHAT: (40, 28, 4, 8),
+            BehaviorId.JOKE: (40, 28, 4, 8),
+            BehaviorId.COMPLIMENT: (40, 28, 4, 8),
+            BehaviorId.INVITE_JOIN: (40, 28, 4, 8),
+            BehaviorId.APOLOGIZE: (50, 35, 5, 10),
+            BehaviorId.CONFRONT: (50, 35, 5, 10),
+        }
+        if actual != expected or len(self.quotas) != len(actual):
+            raise ValueError("anchor coverage policy must use the frozen seven-behavior 300 quota")
+        frozen_scalars = (
+            self.relation_cut_points,
+            self.target_stress_cut_point,
+            self.sociability_low_maximum,
+            self.sociability_high_minimum,
+            self.irritability_low_maximum,
+            self.irritability_high_minimum,
+            self.event_heavy_minimum,
+            self.near_neighbor_linf_maximum,
+            self.acceptance_dispute_threshold,
+            self.allowed_delta_absolute_floor,
+            self.allowed_delta_bound_span_fraction,
+            self.max_actor_target_pair_repeats_per_behavior_partition,
+            self.max_exact_coverage_signature_repeats_per_behavior_partition,
+            self.orchestrator_sample_minimum,
+            self.orchestrator_sample_fraction,
+        )
+        expected_scalars = (
+            (1.0 / 3.0, 2.0 / 3.0),
+            0.5,
+            0.5,
+            0.55,
+            0.25,
+            0.3,
+            0.6,
+            0.1,
+            0.2,
+            0.04,
+            0.5,
+            3,
+            3,
+            3,
+            0.1,
+        )
+        if frozen_scalars != expected_scalars:
+            raise ValueError("anchor coverage policy thresholds are frozen by ADR-0013")
+        return self
+
+
+class SocialAnchorApprovalManifest(ContractModel):
+    schema_id: Literal["stwm.model.social-anchor-approval-manifest/v1"] = Field(
+        default="stwm.model.social-anchor-approval-manifest/v1", alias="schema", serialization_alias="schema"
+    )
+    project_name: Literal["Small Town World Model（STWM）"] = "Small Town World Model（STWM）"
+    approval_id: Annotated[str, Field(pattern=r"^anchor_approval_[a-f0-9]{24}$")]
+    status: Literal["DRAFT", "FINAL"]
+    created_at_utc: Annotated[str, Field(min_length=1)]
+    producer_id: Annotated[str, Field(min_length=1)]
+    reviewer_id: Annotated[str, Field(min_length=1)]
+    source_dataset_manifest_sha256: Annotated[str, Field(pattern=SHA256_PATTERN)]
+    previous_approval_manifest_sha256: Annotated[str | None, Field(pattern=SHA256_PATTERN)] = None
+    coverage_policy: ArtifactDescriptor
+    tasks: ArtifactDescriptor
+    judgments: ArtifactDescriptor
+    issues: ArtifactDescriptor
+    entries: Annotated[list[SocialAnchorApprovalEntry], Field(min_length=1)]
+
+    @model_validator(mode="after")
+    def validate_manifest(self) -> SocialAnchorApprovalManifest:
+        if self.producer_id == self.reviewer_id:
+            raise ValueError("anchor producer and reviewer identities must differ")
+        approved = [item for item in self.entries if item.decision == "APPROVED"]
+        if len({item.anchor_id for item in approved}) != len(approved):
+            raise ValueError("approved anchor IDs must be unique")
+        if len({item.task_sha256 for item in approved}) != len(approved):
+            raise ValueError("approved anchor tasks must be unique")
+        if len({item.judgment_sha256 for item in approved}) != len(approved):
+            raise ValueError("approved anchor judgments must be unique")
+        if self.status == "FINAL":
+            expected: dict[tuple[BehaviorId, AnchorPartition], int] = {}
+            for behavior, train, validation, holdout in (
+                (BehaviorId.GREET, 28, 4, 8),
+                (BehaviorId.CHAT, 28, 4, 8),
+                (BehaviorId.JOKE, 28, 4, 8),
+                (BehaviorId.COMPLIMENT, 28, 4, 8),
+                (BehaviorId.INVITE_JOIN, 28, 4, 8),
+                (BehaviorId.APOLOGIZE, 35, 5, 10),
+                (BehaviorId.CONFRONT, 35, 5, 10),
+            ):
+                expected[(behavior, "TRAIN")] = train
+                expected[(behavior, "VALIDATION")] = validation
+                expected[(behavior, "ANCHOR_HOLDOUT")] = holdout
+            actual = {
+                key: sum(item.behavior_id == key[0] and item.partition == key[1] for item in approved)
+                for key in expected
+            }
+            if len(approved) != 300 or actual != expected:
+                raise ValueError("final anchor approval must select the frozen 300-entry partition matrix")
+        return self
 
 
 class DatasetShard(ArtifactDescriptor):

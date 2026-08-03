@@ -1,0 +1,93 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "issue_code": {
+      "pattern": "^[A-Z][A-Z0-9_]+$",
+      "title": "Issue Code",
+      "type": "string"
+    },
+    "issue_id": {
+      "pattern": "^anchor_issue_[a-f0-9]{24}$",
+      "title": "Issue Id",
+      "type": "string"
+    },
+    "judgment_id": {
+      "pattern": "^anchor_judgment_[a-f0-9]{24}$",
+      "title": "Judgment Id",
+      "type": "string"
+    },
+    "judgment_sha256": {
+      "pattern": "^[a-f0-9]{64}$",
+      "title": "Judgment Sha256",
+      "type": "string"
+    },
+    "message": {
+      "minLength": 1,
+      "title": "Message",
+      "type": "string"
+    },
+    "project_name": {
+      "const": "Small Town World Model（STWM）",
+      "default": "Small Town World Model（STWM）",
+      "title": "Project Name",
+      "type": "string"
+    },
+    "related_anchor_ids": {
+      "items": {
+        "pattern": "^anchor_[a-f0-9]{24}$",
+        "type": "string"
+      },
+      "title": "Related Anchor Ids",
+      "type": "array"
+    },
+    "reviewed_at_utc": {
+      "minLength": 1,
+      "title": "Reviewed At Utc",
+      "type": "string"
+    },
+    "reviewer_id": {
+      "minLength": 1,
+      "title": "Reviewer Id",
+      "type": "string"
+    },
+    "schema": {
+      "const": "stwm.model.social-anchor-review-issue/v1",
+      "default": "stwm.model.social-anchor-review-issue/v1",
+      "title": "Schema",
+      "type": "string"
+    },
+    "severity": {
+      "enum": [
+        "ADVISORY",
+        "BLOCKING",
+        "DISPUTED"
+      ],
+      "title": "Severity",
+      "type": "string"
+    },
+    "task_id": {
+      "pattern": "^anchor_task_[a-f0-9]{24}$",
+      "title": "Task Id",
+      "type": "string"
+    },
+    "task_sha256": {
+      "pattern": "^[a-f0-9]{64}$",
+      "title": "Task Sha256",
+      "type": "string"
+    }
+  },
+  "required": [
+    "issue_id",
+    "task_id",
+    "task_sha256",
+    "judgment_id",
+    "judgment_sha256",
+    "reviewer_id",
+    "reviewed_at_utc",
+    "severity",
+    "issue_code",
+    "message"
+  ],
+  "title": "SocialAnchorReviewIssue",
+  "type": "object"
+}

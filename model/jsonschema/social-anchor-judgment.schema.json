@@ -1,0 +1,453 @@
+{
+  "$defs": {
+    "BehaviorId": {
+      "enum": [
+        "idle",
+        "sleep",
+        "eat_at_home",
+        "shower",
+        "watch_tv",
+        "relax_at_home",
+        "work_shift",
+        "take_break",
+        "buy_groceries",
+        "eat_at_cafe",
+        "drink_at_bar",
+        "walk_in_park",
+        "sit_in_park",
+        "greet",
+        "chat",
+        "joke",
+        "compliment",
+        "share_event",
+        "invite_join",
+        "apologize",
+        "confront",
+        "end_conversation"
+      ],
+      "title": "BehaviorId",
+      "type": "string"
+    },
+    "EventType": {
+      "enum": [
+        "MEAL_CONSUMED",
+        "GROCERIES_PURCHASED",
+        "HOUSEHOLD_FOOD_LOW",
+        "HOUSEHOLD_MONEY_LOW",
+        "NEED_CRISIS",
+        "WORK_STARTED",
+        "WORK_COMPLETED",
+        "WORK_LATE",
+        "WORK_MISSED",
+        "COWORKER_EXTRA_LOAD",
+        "FIRST_GREETING",
+        "POSITIVE_INTERACTION",
+        "AWKWARD_INTERACTION",
+        "INVITATION_ACCEPTED",
+        "INVITATION_REJECTED",
+        "APOLOGY_ACCEPTED",
+        "APOLOGY_REJECTED",
+        "CONFLICT_STARTED",
+        "CONFLICT_ESCALATED",
+        "CONFLICT_REDUCED",
+        "EVENT_SHARED",
+        "CONVERSATION_STARTED",
+        "CONVERSATION_ENDED"
+      ],
+      "title": "EventType",
+      "type": "string"
+    },
+    "MoodDelta": {
+      "additionalProperties": false,
+      "properties": {
+        "stress": {
+          "maximum": 1.0,
+          "minimum": -1.0,
+          "title": "Stress",
+          "type": "number"
+        },
+        "valence": {
+          "maximum": 1.0,
+          "minimum": -1.0,
+          "title": "Valence",
+          "type": "number"
+        }
+      },
+      "required": [
+        "valence",
+        "stress"
+      ],
+      "title": "MoodDelta",
+      "type": "object"
+    },
+    "NeedDelta": {
+      "additionalProperties": false,
+      "properties": {
+        "energy": {
+          "maximum": 1.0,
+          "minimum": -1.0,
+          "title": "Energy",
+          "type": "number"
+        },
+        "fun": {
+          "maximum": 1.0,
+          "minimum": -1.0,
+          "title": "Fun",
+          "type": "number"
+        },
+        "hunger": {
+          "maximum": 1.0,
+          "minimum": -1.0,
+          "title": "Hunger",
+          "type": "number"
+        },
+        "hygiene": {
+          "maximum": 1.0,
+          "minimum": -1.0,
+          "title": "Hygiene",
+          "type": "number"
+        },
+        "social": {
+          "maximum": 1.0,
+          "minimum": -1.0,
+          "title": "Social",
+          "type": "number"
+        }
+      },
+      "required": [
+        "hunger",
+        "energy",
+        "hygiene",
+        "fun",
+        "social"
+      ],
+      "title": "NeedDelta",
+      "type": "object"
+    },
+    "OutcomePrediction": {
+      "additionalProperties": false,
+      "properties": {
+        "acceptance_probability": {
+          "anyOf": [
+            {
+              "maximum": 1.0,
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Acceptance Probability"
+        },
+        "actor_mood_delta": {
+          "$ref": "#/$defs/MoodDelta"
+        },
+        "candidate_id": {
+          "pattern": "^candidate_[0-9]+$",
+          "title": "Candidate Id",
+          "type": "string"
+        },
+        "event_probabilities": {
+          "additionalProperties": {
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "type": "number"
+          },
+          "propertyNames": {
+            "$ref": "#/$defs/EventType"
+          },
+          "title": "Event Probabilities",
+          "type": "object"
+        },
+        "need_delta_preview": {
+          "$ref": "#/$defs/NeedDelta"
+        },
+        "prediction_id": {
+          "pattern": "^prediction_[0-9]+$",
+          "title": "Prediction Id",
+          "type": "string"
+        },
+        "relationship_delta_target_to_actor": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/RelationshipDelta"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "relationship_direction": {
+          "const": "TARGET_TO_ACTOR",
+          "title": "Relationship Direction",
+          "type": "string"
+        },
+        "target_mood_delta": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/MoodDelta"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "prediction_id",
+        "candidate_id",
+        "need_delta_preview",
+        "actor_mood_delta",
+        "target_mood_delta",
+        "relationship_direction",
+        "relationship_delta_target_to_actor",
+        "acceptance_probability",
+        "event_probabilities"
+      ],
+      "title": "OutcomePrediction",
+      "type": "object"
+    },
+    "RelationshipDelta": {
+      "additionalProperties": false,
+      "properties": {
+        "affinity": {
+          "maximum": 1.0,
+          "minimum": -1.0,
+          "title": "Affinity",
+          "type": "number"
+        },
+        "familiarity": {
+          "maximum": 1.0,
+          "minimum": -1.0,
+          "title": "Familiarity",
+          "type": "number"
+        },
+        "tension": {
+          "maximum": 1.0,
+          "minimum": -1.0,
+          "title": "Tension",
+          "type": "number"
+        },
+        "trust": {
+          "maximum": 1.0,
+          "minimum": -1.0,
+          "title": "Trust",
+          "type": "number"
+        }
+      },
+      "required": [
+        "familiarity",
+        "affinity",
+        "trust",
+        "tension"
+      ],
+      "title": "RelationshipDelta",
+      "type": "object"
+    },
+    "SocialAnchorTypedAssertion": {
+      "additionalProperties": false,
+      "properties": {
+        "assertion_id": {
+          "pattern": "^assertion_[a-f0-9]{16}$",
+          "title": "Assertion Id",
+          "type": "string"
+        },
+        "assertion_type": {
+          "enum": [
+            "ACCEPTANCE_RATIONALE",
+            "DELTA_RATIONALE",
+            "DIRECTION",
+            "EVENT_RATIONALE",
+            "PERSONALITY_MONOTONICITY"
+          ],
+          "title": "Assertion Type",
+          "type": "string"
+        },
+        "expected_order": {
+          "anyOf": [
+            {
+              "enum": [
+                "LOWER",
+                "EQUAL",
+                "HIGHER"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Expected Order"
+        },
+        "paired_task_id": {
+          "anyOf": [
+            {
+              "pattern": "^anchor_task_[a-f0-9]{24}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Paired Task Id"
+        },
+        "paired_task_sha256": {
+          "anyOf": [
+            {
+              "pattern": "^[a-f0-9]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Paired Task Sha256"
+        },
+        "statement": {
+          "minLength": 1,
+          "title": "Statement",
+          "type": "string"
+        }
+      },
+      "required": [
+        "assertion_id",
+        "assertion_type",
+        "statement"
+      ],
+      "title": "SocialAnchorTypedAssertion",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "anchor_id": {
+      "pattern": "^anchor_[a-f0-9]{24}$",
+      "title": "Anchor Id",
+      "type": "string"
+    },
+    "batch_id": {
+      "pattern": "^social_[a-z0-9_]+_v1$",
+      "title": "Batch Id",
+      "type": "string"
+    },
+    "behavior_id": {
+      "$ref": "#/$defs/BehaviorId"
+    },
+    "candidate_id": {
+      "pattern": "^candidate_[0-9]+$",
+      "title": "Candidate Id",
+      "type": "string"
+    },
+    "family_id": {
+      "pattern": "^anchor_family_[a-f0-9]{24}$",
+      "title": "Family Id",
+      "type": "string"
+    },
+    "judgment_id": {
+      "pattern": "^anchor_judgment_[a-f0-9]{24}$",
+      "title": "Judgment Id",
+      "type": "string"
+    },
+    "partition": {
+      "enum": [
+        "TRAIN",
+        "VALIDATION",
+        "ANCHOR_HOLDOUT"
+      ],
+      "title": "Partition",
+      "type": "string"
+    },
+    "produced_at_utc": {
+      "minLength": 1,
+      "title": "Produced At Utc",
+      "type": "string"
+    },
+    "producer_id": {
+      "minLength": 1,
+      "title": "Producer Id",
+      "type": "string"
+    },
+    "project_name": {
+      "const": "Small Town World Model（STWM）",
+      "default": "Small Town World Model（STWM）",
+      "title": "Project Name",
+      "type": "string"
+    },
+    "proposed_prediction": {
+      "$ref": "#/$defs/OutcomePrediction"
+    },
+    "provider_id": {
+      "const": "stwm.codex.anchor-producer/v1",
+      "default": "stwm.codex.anchor-producer/v1",
+      "title": "Provider Id",
+      "type": "string"
+    },
+    "rationale_tags": {
+      "items": {
+        "type": "string"
+      },
+      "minItems": 1,
+      "title": "Rationale Tags",
+      "type": "array"
+    },
+    "revision_of_judgment_sha256": {
+      "anyOf": [
+        {
+          "pattern": "^[a-f0-9]{64}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Revision Of Judgment Sha256"
+    },
+    "schema": {
+      "const": "stwm.model.social-anchor-judgment/v1",
+      "default": "stwm.model.social-anchor-judgment/v1",
+      "title": "Schema",
+      "type": "string"
+    },
+    "task_id": {
+      "pattern": "^anchor_task_[a-f0-9]{24}$",
+      "title": "Task Id",
+      "type": "string"
+    },
+    "task_sha256": {
+      "pattern": "^[a-f0-9]{64}$",
+      "title": "Task Sha256",
+      "type": "string"
+    },
+    "typed_assertions": {
+      "items": {
+        "$ref": "#/$defs/SocialAnchorTypedAssertion"
+      },
+      "minItems": 1,
+      "title": "Typed Assertions",
+      "type": "array"
+    }
+  },
+  "required": [
+    "judgment_id",
+    "task_id",
+    "task_sha256",
+    "anchor_id",
+    "family_id",
+    "batch_id",
+    "behavior_id",
+    "partition",
+    "candidate_id",
+    "producer_id",
+    "produced_at_utc",
+    "proposed_prediction",
+    "rationale_tags",
+    "typed_assertions"
+  ],
+  "title": "SocialAnchorJudgment",
+  "type": "object"
+}

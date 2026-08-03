@@ -1,0 +1,201 @@
+{
+  "$defs": {
+    "BehaviorId": {
+      "enum": [
+        "idle",
+        "sleep",
+        "eat_at_home",
+        "shower",
+        "watch_tv",
+        "relax_at_home",
+        "work_shift",
+        "take_break",
+        "buy_groceries",
+        "eat_at_cafe",
+        "drink_at_bar",
+        "walk_in_park",
+        "sit_in_park",
+        "greet",
+        "chat",
+        "joke",
+        "compliment",
+        "share_event",
+        "invite_join",
+        "apologize",
+        "confront",
+        "end_conversation"
+      ],
+      "title": "BehaviorId",
+      "type": "string"
+    },
+    "SocialAnchorBehaviorQuota": {
+      "additionalProperties": false,
+      "properties": {
+        "anchor_holdout": {
+          "exclusiveMinimum": 0,
+          "title": "Anchor Holdout",
+          "type": "integer"
+        },
+        "approved_target": {
+          "exclusiveMinimum": 0,
+          "title": "Approved Target",
+          "type": "integer"
+        },
+        "behavior_id": {
+          "$ref": "#/$defs/BehaviorId"
+        },
+        "train": {
+          "exclusiveMinimum": 0,
+          "title": "Train",
+          "type": "integer"
+        },
+        "validation": {
+          "exclusiveMinimum": 0,
+          "title": "Validation",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "behavior_id",
+        "approved_target",
+        "train",
+        "validation",
+        "anchor_holdout"
+      ],
+      "title": "SocialAnchorBehaviorQuota",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "acceptance_dispute_threshold": {
+      "default": 0.2,
+      "title": "Acceptance Dispute Threshold",
+      "type": "number"
+    },
+    "allowed_delta_absolute_floor": {
+      "default": 0.04,
+      "title": "Allowed Delta Absolute Floor",
+      "type": "number"
+    },
+    "allowed_delta_bound_span_fraction": {
+      "default": 0.5,
+      "title": "Allowed Delta Bound Span Fraction",
+      "type": "number"
+    },
+    "event_heavy_minimum": {
+      "default": 0.6,
+      "title": "Event Heavy Minimum",
+      "type": "number"
+    },
+    "irritability_high_minimum": {
+      "default": 0.3,
+      "title": "Irritability High Minimum",
+      "type": "number"
+    },
+    "irritability_low_maximum": {
+      "default": 0.25,
+      "title": "Irritability Low Maximum",
+      "type": "number"
+    },
+    "max_actor_target_pair_repeats_per_behavior_partition": {
+      "default": 3,
+      "exclusiveMinimum": 0,
+      "title": "Max Actor Target Pair Repeats Per Behavior Partition",
+      "type": "integer"
+    },
+    "max_exact_coverage_signature_repeats_per_behavior_partition": {
+      "default": 3,
+      "exclusiveMinimum": 0,
+      "title": "Max Exact Coverage Signature Repeats Per Behavior Partition",
+      "type": "integer"
+    },
+    "near_neighbor_linf_maximum": {
+      "default": 0.1,
+      "title": "Near Neighbor Linf Maximum",
+      "type": "number"
+    },
+    "orchestrator_sample_fraction": {
+      "default": 0.1,
+      "title": "Orchestrator Sample Fraction",
+      "type": "number"
+    },
+    "orchestrator_sample_minimum": {
+      "default": 3,
+      "exclusiveMinimum": 0,
+      "title": "Orchestrator Sample Minimum",
+      "type": "integer"
+    },
+    "policy_id": {
+      "const": "stwm.m4.reviewed-social-anchors-300/v1",
+      "default": "stwm.m4.reviewed-social-anchors-300/v1",
+      "title": "Policy Id",
+      "type": "string"
+    },
+    "project_name": {
+      "const": "Small Town World Model（STWM）",
+      "default": "Small Town World Model（STWM）",
+      "title": "Project Name",
+      "type": "string"
+    },
+    "quotas": {
+      "items": {
+        "$ref": "#/$defs/SocialAnchorBehaviorQuota"
+      },
+      "maxItems": 7,
+      "minItems": 7,
+      "title": "Quotas",
+      "type": "array"
+    },
+    "relation_cut_points": {
+      "default": [
+        0.3333333333333333,
+        0.6666666666666666
+      ],
+      "maxItems": 2,
+      "minItems": 2,
+      "prefixItems": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "number"
+        }
+      ],
+      "title": "Relation Cut Points",
+      "type": "array"
+    },
+    "schema": {
+      "const": "stwm.model.social-anchor-coverage-policy/v1",
+      "default": "stwm.model.social-anchor-coverage-policy/v1",
+      "title": "Schema",
+      "type": "string"
+    },
+    "selector_id": {
+      "const": "stwm.m4.greedy-pairwise-selector/v1",
+      "default": "stwm.m4.greedy-pairwise-selector/v1",
+      "title": "Selector Id",
+      "type": "string"
+    },
+    "sociability_high_minimum": {
+      "default": 0.55,
+      "title": "Sociability High Minimum",
+      "type": "number"
+    },
+    "sociability_low_maximum": {
+      "default": 0.5,
+      "title": "Sociability Low Maximum",
+      "type": "number"
+    },
+    "target_stress_cut_point": {
+      "default": 0.5,
+      "title": "Target Stress Cut Point",
+      "type": "number"
+    }
+  },
+  "required": [
+    "quotas"
+  ],
+  "title": "SocialAnchorCoveragePolicy",
+  "type": "object"
+}

@@ -9,6 +9,11 @@
     "outcome-label": "stwm.model.outcome-label/v1",
     "outcome-package": "stwm.model.outcome-package/v1",
     "social-anchor": "stwm.model.social-anchor/v1",
+    "social-anchor-approval-manifest": "stwm.model.social-anchor-approval-manifest/v1",
+    "social-anchor-coverage-policy": "stwm.model.social-anchor-coverage-policy/v1",
+    "social-anchor-judgment": "stwm.model.social-anchor-judgment/v1",
+    "social-anchor-review-issue": "stwm.model.social-anchor-review-issue/v1",
+    "social-anchor-task": "stwm.model.social-anchor-task/v1",
     "training-example": "stwm.model.training-example/v1"
   }
 }
