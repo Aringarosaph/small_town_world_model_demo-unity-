@@ -75,13 +75,14 @@ ranking labels are highly imbalanced; candidate-level outcome coverage remains
 complete. Use grouped weighting/balancing, per-behavior metrics, and anchor
 holdouts rather than aggregate selection accuracy.
 
-The next data increment is exactly 300 independently reviewed social anchors
+The reviewed-data increment is exactly 300 independently reviewed social anchors
 under ADR-0013: 40 each for `greet`, `chat`, `joke`, `compliment`, and
 `invite_join`, plus 50 each for `apologize` and `confront`. Their frozen split is
 210 TRAIN, 30 VALIDATION, and 60 ANCHOR_HOLDOUT. Tasks, Codex judgments, review
 issues, approval manifests, and coverage policies are separate hash-chained
-artifacts; raw labels and Parquet rows remain immutable. Raw rows alone do not
-authorize release training.
+artifacts; raw labels and Parquet rows remain immutable. The completed FINAL
+approval and fit-only manifest now authorize bounded training work, but they do
+not constitute an accepted model package.
 
 ## Pause/resume
 
@@ -90,8 +91,8 @@ At each safe point update the durable
 Generated data/model artifacts are external and referenced by relative path,
 SHA-256, byte size, schema, source commit, and parent artifact hashes.
 
-Current source stage: `M4_THREE_ANCHOR_BATCHES_REVIEWED`; next stage:
-`M4_REMAINING_FOUR_CODEX_SOCIAL_ANCHOR_JUDGMENTS`.
+Current durable stage: `M4_REVIEWED_SOCIAL_ANCHORS_APPROVED`; next stage:
+`M4_QUOTA_SAFE_TORCH_SMOKE_TRAINING`.
 
 ADR-0013 is the anchor-stage authority. Implement its additive Python-private
 schemas and deterministic task selector before any producer judgment batch.
@@ -123,9 +124,9 @@ named bounded soft targets; ANCHOR_HOLDOUT remains evaluation-only.
 - Every task and coverage row regenerated identically from the accepted raw
   dataset. Actor-target maximum repeat is 3; exact signature maximum repeat is
   2. The packet is explicitly `TASKS_ONLY_VALIDATED_NOT_JUDGED`.
-- Next: produce seven immutable Codex judgment batches, independently review
-  their hashes/issues, and assemble the exact final approval matrix. Do not
-  expose holdout judgments to training or start long training beforehand.
+- The seven immutable Codex judgment batches and exact final approval matrix
+  are complete below. Do not expose holdout judgments to fitting, calibration,
+  early stopping, or hyperparameter selection.
 
 ## M4 anchor-judgment provenance refinement
 
@@ -164,19 +165,48 @@ judgment SHA-256 is
 `71dc227664505e9bf3d6d6e2855bcceb5605029bdcad2546dbd8e93cd81eebd2`;
 independent review response SHA-256 is
 `dadad81f30de73fb3a1195f7e9be72ac4eaa294793d5282a0095093ac736a651`.
-Two more behavior-local batches also passed the same independent chain:
+The other six behavior-local batches also passed the same independent chain:
 
 - `chat`: 40/40 approved; manifest SHA-256
   `55378fff806923990c254e6dcdc19b306df522b81c4f86bfae8cf4844ffc6462`;
 - `joke`: 40/40 approved; manifest SHA-256
-  `2e6067c736d1420b5e69b9a4fd08295b372f42d80a265348b2a15eb26e92d746`.
+  `2e6067c736d1420b5e69b9a4fd08295b372f42d80a265348b2a15eb26e92d746`;
+- `compliment`: 40/40 approved; manifest SHA-256
+  `631984ebbec4376355a827f1d5803a798e8b2d1591cb3acd7b443aef4f5c50ed`;
+- `invite_join`: 40/40 approved; manifest SHA-256
+  `82c34d0f4c7b74b49a14eac36d3c40f8318904a4441c54a13a0a2e9795e3069a`;
+- `apologize`: 50/50 approved; manifest SHA-256
+  `6b234a8f1d28436d8a8cda61fb6161487f401bc94f5f7e4c33b542a91875e007`;
+- `confront`: 50/50 approved; manifest SHA-256
+  `8be1ccb27bd602ac8de02488b3c1f6084bb11cbab5e01e5da6109955f8480b01`.
 
-AITOWN-ORCH reproduced both assemblies and sampled four entries from each,
-including the `joke` acceptance shift of `-0.21` and positive/negative holdout
-cases. Their durable directories are siblings of the `greet` batch under
-`/root/autodl-fs/STWM/m4/anchors`.
+AITOWN-ORCH reproduced all producer/reviewer assemblies byte for byte and
+sampled 32 entries across the seven batches. The final `confront` audit covers
+the complete seven-entry high-risk union: all no-event, lower-clipped,
+severe-tension, and dual-high-stress cases. Events remain context evidence,
+not proof of guilt, blame, sincerity, or factual responsibility.
 
-All behavior-local approvals remain DRAFT and `training_eligible=false` until
-all seven batches form the exact final 300-entry approval manifest. The current
-reviewed count is 120/300; four behavior batches remain and long training stays
-blocked.
+Every behavior-local approval remains immutable DRAFT evidence. Source
+`6112f96c5026a67d4e238c04a3e0abdd1df80817` adds the strict aggregate
+finalizer and the private
+`stwm.model.social-anchor-training-input-manifest/v1` contract. It validates
+all packaged producer/reviewer reports, source hashes, decisions, issue
+acknowledgements, catalog-safe judgments, and the exact partition matrix.
+
+The formal durable aggregate is
+`/root/autodl-fs/STWM/m4/anchors/m4_reviewed_social_anchors_final_6112f96`:
+
+- FINAL approval: 300/300 = 210 TRAIN + 30 VALIDATION + 60 ANCHOR_HOLDOUT;
+- final approval SHA-256:
+  `3b9ea65572707105b259d0a9e81a75d076d0d0602ba7ebbddccc7761b15f5900`;
+- fitting file: exactly 240 judgments = 210 TRAIN + 30 VALIDATION and zero
+  ANCHOR_HOLDOUT; SHA-256
+  `46a53fd603542413f5d11b19464c65767b65d73bb424b10c8e676b726f1ea7e5`;
+- training-input manifest SHA-256:
+  `1c9d0655a0c553db2a786077bd1ae7604580b1b8426f6c5e3976637127b2c398`.
+
+Long training has not started. The next increment is only the locked
+TorchOutcomeModel/data-loader implementation plus bounded shape/finite-value
+smoke. Recheck quota before any long run; prepare a durable pause at about 2%
+remaining and never consume either manual reset credit without producer
+approval. The latest official snapshot remains 95% used / about 5% remaining.

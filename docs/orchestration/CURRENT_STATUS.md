@@ -176,10 +176,10 @@
   independent review, approval, coverage, and holdout boundary.
 - [x] Select and independently regenerate the exact 300 immutable anchor tasks
   from the validated raw Parquet matrix.
-- [x] Complete provenance-safe `greet`, `chat`, and `joke` batches: 120/300
-  independently reviewed judgments approved, with heuristic need/event
-  passthrough kept immutable.
-- [ ] Complete the independently reviewed social-anchor flow.
+- [x] Complete all seven provenance-safe social batches: 300/300 independently
+  reviewed judgments approved, with heuristic need/event passthrough immutable.
+- [x] Freeze the exact FINAL approval and a holdout-safe fitting manifest:
+  210 TRAIN + 30 VALIDATION included, 60 ANCHOR_HOLDOUT excluded.
 - [ ] Implement/train/evaluate the 1M-3M TorchOutcomeModel.
 - [ ] Integrate provider switching, deterministic neural sampling, fallback,
   CPU inference, neural rollout, QA evidence, and M0-M3 regressions.
@@ -244,7 +244,7 @@
 - These were task inputs only at freeze. They remain immutable and are joined
   to separately hash-chained judgments rather than rewritten.
 
-## M4 reviewed-anchor progress
+## M4 reviewed-anchor result
 
 - Source `ae05aedc8dd08858f8d800553c910930bf177956` separates the paths that
   Codex reviews from the ADR-0012 heuristic passthrough heads and adds an
@@ -262,26 +262,41 @@
   `/root/autodl-fs/STWM/m4/anchors/greet-reviewed-batch-ae05aed`;
   manifest SHA-256:
   `de33b1c2cc5900444ccaa934f923056a35d35639292b0ed020b90b31de06a128`.
-- `chat` and `joke` also pass 40/40 independent review and four-entry
-  Orchestrator sampling. Their durable manifest SHA-256 values are
+- `chat` and `joke` pass 40/40 independent review and four-entry Orchestrator
+  sampling. Their durable manifest SHA-256 values are
   `55378fff806923990c254e6dcdc19b306df522b81c4f86bfae8cf4844ffc6462`
   and `2e6067c736d1420b5e69b9a4fd08295b372f42d80a265348b2a15eb26e92d746`.
   The `joke` sample explicitly includes the largest acceptance adjustment
   (`-0.21`) plus positive and negative holdout cases.
-- All three behavior-local approvals are DRAFT and not training eligible.
-  Current progress is 120/300; four behavior batches and the exact final
-  approval matrix remain before training.
-- Latest official Codex quota snapshot is 94% used / about 6% remaining. The
+- `compliment` and `invite_join` pass 40/40; `apologize` and `confront` pass
+  50/50. Their manifest SHA-256 values are, respectively,
+  `631984ebbec4376355a827f1d5803a798e8b2d1591cb3acd7b443aef4f5c50ed`,
+  `82c34d0f4c7b74b49a14eac36d3c40f8318904a4441c54a13a0a2e9795e3069a`,
+  `6b234a8f1d28436d8a8cda61fb6161487f401bc94f5f7e4c33b542a91875e007`,
+  and `8be1ccb27bd602ac8de02488b3c1f6084bb11cbab5e01e5da6109955f8480b01`.
+- AITOWN-ORCH independently reproduced every assembly and audited 32 total
+  anchors, including the complete seven-entry high-risk `confront` union.
+- Source `6112f96c5026a67d4e238c04a3e0abdd1df80817` adds the strict aggregate
+  finalizer. The durable FINAL package is
+  `/root/autodl-fs/STWM/m4/anchors/m4_reviewed_social_anchors_final_6112f96`.
+- Final approval: 300/300 = 210 TRAIN + 30 VALIDATION + 60 ANCHOR_HOLDOUT;
+  SHA-256
+  `3b9ea65572707105b259d0a9e81a75d076d0d0602ba7ebbddccc7761b15f5900`.
+- The fitting overlay contains exactly 240 judgments, only TRAIN and
+  VALIDATION; SHA-256
+  `46a53fd603542413f5d11b19464c65767b65d73bb424b10c8e676b726f1ea7e5`.
+  The training-input manifest SHA-256 is
+  `1c9d0655a0c553db2a786077bd1ae7604580b1b8426f6c5e3976637127b2c398`.
+- Latest official Codex quota snapshot is 95% used / about 5% remaining. The
   pause boundary remains about 2% remaining; both manual reset credits remain
   untouched.
 
 ## Blockers
 
-No M3 blocker remains. The contracts, provider, raw-data, persistence, and
-quality gates have passed. ADR-0013 freezes the remaining dependency as exactly
-300 independently reviewed social anchors: 210 TRAIN, 30 VALIDATION, and 60
-ANCHOR_HOLDOUT across seven social behaviors. The immutable task packet passes
-deterministic regeneration and the first three 40-entry batches pass independent
-review; four batches and the final approval matrix remain. Long training has
-not started. DeepSeek remains deferred to M5, and final art remains outside the
-functional-greybox acceptance boundary.
+No M3 or M4 data-input blocker remains. The contracts, provider, raw-data,
+persistence, quality, seven independent review batches, FINAL 300-entry
+approval, and holdout-safe fitting manifest pass. Long training has not
+started. The next bounded increment is TorchOutcomeModel/data-loader
+implementation and smoke validation, followed by another quota check. DeepSeek
+remains deferred to M5, and final art remains outside the functional-greybox
+acceptance boundary.
