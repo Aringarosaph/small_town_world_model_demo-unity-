@@ -110,8 +110,8 @@ class CandidateFeatureEncoder:
             for item in attempts
             if isinstance(item, dict) and "candidate_id" in item and "result" in item
         }
-        scenario_group_id = f"m3_seed_{seed}"
         episode_id = f"m3_seed_{seed}_day_{state.game_minute // 1440:03d}"
+        scenario_group_id = episode_id
         split = split_for_scenario_group(scenario_group_id)
         result: list[TrainingExample] = []
         for rank, item in enumerate(candidates):

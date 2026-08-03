@@ -77,9 +77,11 @@ def test_feature_capture_is_deterministic_and_authority_neutral() -> None:
     assert capture.examples
     assert observed.export_checkpoint() == baseline.export_checkpoint()
     assert all(item.feature.source_commit == source_commit for item in capture.examples)
-    assert all(item.feature.decision_group_id.startswith("m3_seed_12345:") for item in capture.examples)
+    assert all(item.feature.decision_group_id.startswith("m3_seed_12345_day_") for item in capture.examples)
     assert len({item.feature.row_id for item in capture.examples}) == len(capture.examples)
-    assert all(item.feature.split == split_for_scenario_group("m3_seed_12345") for item in capture.examples)
+    assert all(
+        item.feature.split == split_for_scenario_group(item.feature.scenario_group_id) for item in capture.examples
+    )
 
     adapter = HeuristicOutcomeModel(catalog)
     reproduced = adapter.predict_batch([item.feature for item in capture.examples])
