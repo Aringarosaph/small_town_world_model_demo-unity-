@@ -720,6 +720,19 @@ class SocietyEngine:
             prepared,
             key=lambda item: self._resolver_priority(item.candidates[0]),
         )
+        observer_source_state: WorldState | None = None
+        observer_events: Mapping[str, WorldEvent] = events_by_id
+        observer_knowledge: Mapping[str, KnowledgeRecord] = context.knowledge_records
+        observer_conversations: Mapping[str, ConversationRecord] = context.conversations
+        if self.decision_observer is not None:
+            # Pydantic's frozen model prevents attribute replacement but its
+            # mapping containers still share the tick context. Capture once
+            # before Resolver mutations so every row in this batch sees the
+            # exact state that was scored.
+            observer_source_state = WorldState.model_validate(source_state.model_dump(mode="json", exclude_none=False))
+            observer_events = dict(events_by_id)
+            observer_knowledge = dict(context.knowledge_records)
+            observer_conversations = dict(context.conversations)
         by_actor = {item.actor_id: item for item in prepared}
         outcomes: dict[str, dict[str, object]] = {}
         for prepared_decision in queue:
@@ -788,12 +801,14 @@ class SocietyEngine:
             }
             context.decisions.append(decision_record)
             if self.decision_observer is not None:
+                if observer_source_state is None:
+                    raise RuntimeError("M4 decision observer source snapshot was not initialized")
                 self.decision_observer.record_decision(
-                    source_state=source_state,
+                    source_state=observer_source_state,
                     decision=decision_record,
-                    events=events_by_id,
-                    knowledge_records=context.knowledge_records,
-                    conversations=context.conversations,
+                    events=observer_events,
+                    knowledge_records=observer_knowledge,
+                    conversations=observer_conversations,
                     recent_behavior=prepared_decision.recent_behavior,
                 )
             context.changes.append(f"decision_committed:{prepared_decision.decision_id}:{agent_id}")

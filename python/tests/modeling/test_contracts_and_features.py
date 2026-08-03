@@ -70,7 +70,7 @@ def test_feature_capture_is_deterministic_and_authority_neutral() -> None:
     observed = SocietyEngine(catalog, m3_catalogs, initial, decision_observer=capture)
     baseline = SocietyEngine(catalog, m3_catalogs, initial)
 
-    target = initial.world.game_minute + 30
+    target = initial.world.game_minute + 240
     observed.advance_to(target)
     baseline.advance_to(target)
 
