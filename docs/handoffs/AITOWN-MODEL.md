@@ -17,7 +17,7 @@ task after quota reset if useful.
   `cc7f581da0548cb5aebd3d215db3e7bd93575d11`;
 - M3 release record: `docs/orchestration/M3_ACCEPTANCE_RECORD.md`;
 - M4 baseline: `docs/orchestration/M4_EXECUTION_BASELINE.md`;
-- model boundary: ADR-0005 and ADR-0012;
+- model boundary: ADR-0005, ADR-0012, and ADR-0013;
 - active feature/label versions: `v0.1` / `v0.1`;
 - active online protocol remains `0.3.0`;
 - DeepSeek and all language work remain M5.
@@ -75,9 +75,13 @@ ranking labels are highly imbalanced; candidate-level outcome coverage remains
 complete. Use grouped weighting/balancing, per-behavior metrics, and anchor
 holdouts rather than aggregate selection accuracy.
 
-The next data increment is 300-1,000 independently reviewed social anchors over
-the seven acceptance behaviors and frozen coverage dimensions. Raw rows alone
-do not authorize release training.
+The next data increment is exactly 300 independently reviewed social anchors
+under ADR-0013: 40 each for `greet`, `chat`, `joke`, `compliment`, and
+`invite_join`, plus 50 each for `apologize` and `confront`. Their frozen split is
+210 TRAIN, 30 VALIDATION, and 60 ANCHOR_HOLDOUT. Tasks, Codex judgments, review
+issues, approval manifests, and coverage policies are separate hash-chained
+artifacts; raw labels and Parquet rows remain immutable. Raw rows alone do not
+authorize release training.
 
 ## Pause/resume
 
@@ -88,3 +92,14 @@ SHA-256, byte size, schema, source commit, and parent artifact hashes.
 
 Current source stage: `M4_RAW_DATA_VALIDATED`; next stage:
 `M4_REVIEWED_SOCIAL_ANCHORS`.
+
+ADR-0013 is the anchor-stage authority. Implement its additive Python-private
+schemas and deterministic task selector before any producer judgment batch.
+Holdout judgments cannot be exposed to training, early stopping, calibration,
+or hyperparameter selection.
+
+The first approval manifest must select the frozen 300 entries. Producer task
+and judgment artifacts stay immutable; reviewer issues and approvals reference
+their canonical SHA-256 values. Revisions create new judgment artifacts rather
+than overwriting drafts. Only approved TRAIN/VALIDATION judgments may overlay
+named bounded soft targets; ANCHOR_HOLDOUT remains evaluation-only.

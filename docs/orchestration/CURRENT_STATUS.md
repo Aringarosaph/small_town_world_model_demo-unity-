@@ -7,7 +7,7 @@
 ## State
 
 - Orchestrator thread: `AITOWN-ORCH`
-- Contracts thread: standby; M4 uses additive Python-private contracts under ADR-0012
+- Contracts thread: standby; M4 uses additive Python-private contracts under ADR-0012 and ADR-0013
 - QA thread: standby pending M4 contracts/evidence increment
 - Simulation thread: standby pending injected OutcomeModel increment
 - Unity thread: standby after accepted full-town functional greybox
@@ -172,6 +172,8 @@
 - [x] Complete and independently validate the five-seed raw teacher dataset matrix.
 - [x] Pass the formal training-input quality audit for grouped coverage, masks,
   teacher selection, label axes, and split leakage.
+- [x] Accept ADR-0013 and freeze the hash-chained 300-anchor task, judgment,
+  independent review, approval, coverage, and holdout boundary.
 - [ ] Complete the independently reviewed social-anchor flow.
 - [ ] Implement/train/evaluate the 1M-3M TorchOutcomeModel.
 - [ ] Integrate provider switching, deterministic neural sampling, fallback,
@@ -223,7 +225,8 @@
 ## Blockers
 
 No M3 blocker remains. The contracts, provider, raw-data, persistence, and
-quality gates have passed. The next dependency is 300-1,000 independently
-reviewed social anchors plus their named holdout/coverage manifests. Long
-training has not started. DeepSeek remains deferred to M5, and final art remains
-outside the functional-greybox acceptance boundary.
+quality gates have passed. ADR-0013 freezes the next dependency as exactly 300
+independently reviewed social anchors: 210 TRAIN, 30 VALIDATION, and 60
+ANCHOR_HOLDOUT across seven social behaviors. Long training has not started.
+DeepSeek remains deferred to M5, and final art remains outside the
+functional-greybox acceptance boundary.

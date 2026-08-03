@@ -10,7 +10,7 @@
 | Semantic asset registry | CONTRACTS / UNITY | SIM, QA | M2 scoped profile; M3 shared full-town manifest | Catalog re-freeze + dual Python/Unity validation |
 | Movement/presentation reports | CONTRACTS | SIM, UNITY, QA | M2 directional `0.2.0`; M3 structured `0.3.0` | ADR + direction/version/idempotency tests |
 | OutcomeModel DTO | CONTRACTS | SIM, MODEL, QA | M0 protocol only | Feature/model version + regression |
-| M4 feature/label/anchor contracts | MODEL / ORCH | SIM, QA | ADR-0012 Python-private v1 schemas | Schema identity + feature/label version + grouped-split tests |
+| M4 feature/label/anchor contracts | MODEL / ORCH | SIM, QA | ADR-0012 raw contracts + ADR-0013 reviewed-anchor ledger | Schema identity + feature/label version + grouped-split/hash-chain/review tests |
 | M4 model package and providers | MODEL | SIM, QA | ADR-0012 package/provider boundary | Package hashes + CPU inference + fallback + rollout |
 | Knowledge/SpeechPlan | CONTRACTS | SIM, DIALOGUE, UNITY, QA | M0 schema | Schema + permission tests |
 | Decision trace and run layout | QA | All | M0 docs/checks | Observability review |
@@ -163,7 +163,7 @@ with an M0 artifact are frozen inputs to that work.
   `main@02b9e53b8ec11b06235be704dec7d5fcd7495945`.
 - Integration branch: `codex/aitown-orch-m4`.
 - Execution baseline: `docs/orchestration/M4_EXECUTION_BASELINE.md`.
-- Model decision: ADR-0005 and ADR-0012.
+- Model decision: ADR-0005, ADR-0012, and ADR-0013.
 - Active online protocol remains exactly `0.3.0`; there is no M4 wire bump.
 - Active internal feature/label versions are exactly `v0.1` / `v0.1`.
 - Generated rows, checkpoints, weights, reports, and runs remain outside Git.
@@ -184,3 +184,14 @@ with an M0 artifact are frozen inputs to that work.
   `298f7dc159cace7c6a607324e90107ea10c117ebdf33a3c49a8d29855c0c5231`.
 - Durable artifacts remain under `/root/autodl-fs/STWM/m4`; no rows, runs,
   weights, reports, caches, or credentials entered Git.
+
+## M4 reviewed-anchor decision record
+
+- ADR-0013 freezes exactly 300 approved anchors: 210 TRAIN, 30 VALIDATION, and
+  60 ANCHOR_HOLDOUT across seven independent social-behavior batches.
+- Anchor tasks retain immutable source feature/baseline-label hashes; Codex
+  judgments, reviewer issues, and approval manifests are separate immutable
+  artifacts with explicit producer/reviewer provenance.
+- The approved overlay may replace only bounded soft targets for its named
+  suite. Raw Parquet rows, heuristic ranking labels, public authority, M3, and
+  protocol `0.3.0` remain unchanged.
