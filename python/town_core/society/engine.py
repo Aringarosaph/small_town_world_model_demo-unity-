@@ -730,9 +730,35 @@ class SocietyEngine:
             # before Resolver mutations so every row in this batch sees the
             # exact state that was scored.
             observer_source_state = WorldState.model_validate(source_state.model_dump(mode="json", exclude_none=False))
-            observer_events = dict(events_by_id)
-            observer_knowledge = dict(context.knowledge_records)
-            observer_conversations = dict(context.conversations)
+            referenced_event_ids: set[str] = set()
+            referenced_knowledge_keys: set[str] = set()
+            relevant_agent_ids: set[str] = set()
+            for decision in prepared:
+                relevant_agent_ids.add(decision.actor_id)
+                for scored in decision.candidates:
+                    candidate = scored.candidate.candidate
+                    referenced_event_ids.update(candidate.context_event_ids)
+                    if candidate.target_agent_id is not None:
+                        relevant_agent_ids.add(candidate.target_agent_id)
+                        if candidate.selected_context_event_id is not None:
+                            referenced_knowledge_keys.add(
+                                knowledge_key(candidate.target_agent_id, candidate.selected_context_event_id)
+                            )
+            observer_events = {
+                event_id: events_by_id[event_id]
+                for event_id in sorted(referenced_event_ids)
+                if event_id in events_by_id
+            }
+            observer_knowledge = {
+                key: context.knowledge_records[key]
+                for key in sorted(referenced_knowledge_keys)
+                if key in context.knowledge_records
+            }
+            observer_conversations = {
+                key: conversation
+                for key, conversation in context.conversations.items()
+                if conversation.active and relevant_agent_ids.intersection(conversation.participant_ids)
+            }
         by_actor = {item.actor_id: item for item in prepared}
         outcomes: dict[str, dict[str, object]] = {}
         for prepared_decision in queue:
