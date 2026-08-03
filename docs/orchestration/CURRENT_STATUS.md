@@ -2,7 +2,7 @@
 
 ## Milestone
 
-`M4 - Distilled social outcome model (active: raw teacher data)`
+`M4 - Distilled social outcome model (active: reviewed social anchors)`
 
 ## State
 
@@ -169,7 +169,10 @@
   heuristic providers, schemas, and focused tests.
 - [x] Implement deterministic feature extraction, authority-neutral observation,
   bounded Parquet shards, strict validation, and a resumable raw-data producer.
-- [ ] Complete the five-seed raw dataset matrix and reviewed anchor flow.
+- [x] Complete and independently validate the five-seed raw teacher dataset matrix.
+- [x] Pass the formal training-input quality audit for grouped coverage, masks,
+  teacher selection, label axes, and split leakage.
+- [ ] Complete the independently reviewed social-anchor flow.
 - [ ] Implement/train/evaluate the 1M-3M TorchOutcomeModel.
 - [ ] Integrate provider switching, deterministic neural sampling, fallback,
   CPU inference, neural rollout, QA evidence, and M0-M3 regressions.
@@ -184,7 +187,7 @@
   `main@02b9e53b8ec11b06235be704dec7d5fcd7495945`, clean at entry.
 - Durable M4 root: `/root/autodl-fs/STWM/m4`; generated data/weights remain
   external and hash-addressed.
-- Account quota remains 91% used / about 9% remaining after the data foundation.
+- Account quota was 92% used / about 8% remaining at the raw-data safe point.
   The producer explicitly moved the stop boundary to about 2% remaining;
   manual reset credits are not consumed without producer approval.
 - AutoDL smoke dataset `m4_teacher_smoke_seed12345_abb9d92` passed strict
@@ -192,10 +195,35 @@
   and a 1.86MB Parquet shard. Its manifest SHA-256 is
   `5308a7436e172e82924bd11c6bb209a5f892ab3f9872561263dbeb456098a899`.
 
+## M4 raw teacher data result
+
+- Data source: `73ca45fa6de7708a2213db124633b419a62d6df9`; quality-tool source:
+  `881a023611ad3f7331c286fe88e78514b923982a`.
+- Five frozen seeds ran as isolated workers under one state/aggregation owner.
+  This changed wall scheduling only; seed, grouping, row, shard, validation, and
+  aggregation semantics remained unchanged.
+- Formal generation completed in about 29 minutes with 499,978 candidate rows,
+  71,636 decision groups, 23 Parquet shards, and all 22 behaviors.
+- Split rows: train 390,326; validation 54,344; test 55,308. All behavior
+  candidate cells and all seven acceptance-behavior cells are nonzero in every
+  split; each decision group has exactly one teacher-selected candidate.
+- Dataset manifest SHA-256:
+  `e256ecf426d4d0b2ab4bfb63060873e88233c1aaeb14498cc536ef7f3161eccb`.
+- Quality report SHA-256:
+  `298f7dc159cace7c6a607324e90107ea10c117ebdf33a3c49a8d29855c0c5231`.
+- The 88MB validated durable copy is
+  `/root/autodl-fs/STWM/m4/datasets/m4_teacher_release_raw_v1_73ca45f`;
+  generated rows and reports remain outside Git.
+- Teacher-selection frequency is intentionally recorded as an imbalance
+  warning: some auxiliary ranking labels are rare or absent from one split,
+  while counterfactual outcome candidates remain fully covered. Training must
+  use per-head/per-behavior metrics, weighting or balanced sampling, and the
+  independent social-anchor suites instead of aggregate accuracy alone.
+
 ## Blockers
 
-No M3 blocker remains. The contracts/provider/data smoke gate has passed. The
-next dependency is the resumable five-seed raw teacher matrix, followed by
-independently reviewed social anchors. Long training has not started. DeepSeek
-remains deferred to M5, and final art remains outside the functional-greybox
-acceptance boundary.
+No M3 blocker remains. The contracts, provider, raw-data, persistence, and
+quality gates have passed. The next dependency is 300-1,000 independently
+reviewed social anchors plus their named holdout/coverage manifests. Long
+training has not started. DeepSeek remains deferred to M5, and final art remains
+outside the functional-greybox acceptance boundary.

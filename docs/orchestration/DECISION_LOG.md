@@ -19,3 +19,4 @@
 | M4-ACTIVATION | Start the distilled social Outcome Model milestone from accepted public `main@02b9e53`; preserve hard authority, protocol 0.3, M1-M3 compatibility, and M5/M6 exclusions | Accepted by producer |
 | ADR-0012 | Freeze additive internal feature/label/package contracts, injected batch providers, catalog postprocessing, deterministic neural sampling, and mandatory heuristic fallback | Accepted |
 | M4-DATA-MATRIX | Produce raw teacher data as five resumable 60-day runs over the frozen seeds, group by complete 7-day episodes, cap each seed at 100k rows, and retain the separate 5×7d + 3×30d neural rollout gate | Accepted by AITOWN-ORCH after measured smoke |
+| M4-RAW-DATA | Accept the 499,978-row, 71,636-group, 23-shard raw rule-teacher matrix after producer plus independent active/durable validation and the formal quality report; seed-isolated five-worker scheduling changes wall time only, not deterministic data semantics | Accepted by AITOWN-ORCH |

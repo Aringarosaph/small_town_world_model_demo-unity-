@@ -49,19 +49,35 @@ The first M4 source increment now provides:
 6. an external bounded Parquet producer using locked `pyarrow==19.0.1`;
 7. focused contracts/provider/authority-neutrality tests.
 
-The next action is to generate and inspect the 10,000-row AutoDL smoke dataset.
-Do not start PyTorch architecture work until its manifest, shard hashes,
-teacher reproduction, grouping, and coverage report pass. Do not change public
-protocol or accepted M3 behavior.
-
 The smoke is now complete at source `abb9d92`: 9,996 rows, 1,435 complete
 decision groups, all 22 behaviors, strict train/validation/test grouping, and
 matching manifest/shard hashes. The durable copy is
 `/root/autodl-fs/STWM/m4/datasets/m4_teacher_smoke_seed12345_abb9d92`.
 
-The next data increment is the resumable raw matrix: all five frozen seeds,
-60 days per seed, 100,000-row cap per seed, 25,000 rows per shard, and complete
-seven-day episode grouping. This does not authorize model training.
+The raw matrix is complete at source `73ca45f`: all five frozen seeds, a
+100,000-row cap per seed, 499,978 total rows, 71,636 decision groups, 23 shards,
+and 22/22 behavior coverage. Seed-isolated `--max-workers 5` execution completed
+in about 29 minutes; only the parent wrote producer state and aggregation.
+
+The durable dataset is
+`/root/autodl-fs/STWM/m4/datasets/m4_teacher_release_raw_v1_73ca45f`.
+Its manifest SHA-256 is
+`e256ecf426d4d0b2ab4bfb63060873e88233c1aaeb14498cc536ef7f3161eccb`.
+The strict dataset validator passed at production, active-copy recheck,
+durable-copy recheck, and formal quality-analysis entry.
+
+The quality tool at source `881a023` emitted
+`/root/autodl-fs/STWM/m4/reports/m4_teacher_release_raw_v1_73ca45f-quality.json`
+with SHA-256
+`298f7dc159cace7c6a607324e90107ea10c117ebdf33a3c49a8d29855c0c5231`.
+All formal raw-data gates pass. The report warns that teacher-selected auxiliary
+ranking labels are highly imbalanced; candidate-level outcome coverage remains
+complete. Use grouped weighting/balancing, per-behavior metrics, and anchor
+holdouts rather than aggregate selection accuracy.
+
+The next data increment is 300-1,000 independently reviewed social anchors over
+the seven acceptance behaviors and frozen coverage dimensions. Raw rows alone
+do not authorize release training.
 
 ## Pause/resume
 
@@ -70,4 +86,5 @@ At each safe point update the durable
 Generated data/model artifacts are external and referenced by relative path,
 SHA-256, byte size, schema, source commit, and parent artifact hashes.
 
-Current source stage: `M4_DATA_FOUNDATION`.
+Current source stage: `M4_RAW_DATA_VALIDATED`; next stage:
+`M4_REVIEWED_SOCIAL_ANCHORS`.

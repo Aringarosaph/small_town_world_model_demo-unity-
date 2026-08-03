@@ -167,3 +167,20 @@ with an M0 artifact are frozen inputs to that work.
 - Active online protocol remains exactly `0.3.0`; there is no M4 wire bump.
 - Active internal feature/label versions are exactly `v0.1` / `v0.1`.
 - Generated rows, checkpoints, weights, reports, and runs remain outside Git.
+
+## M4 raw-data integration record
+
+- Data contracts/generator source: `fc60364`, corrected snapshot `7eb0ba8`,
+  grouped validator `abb9d92`, resumable matrix `8950d97`, bounded projection
+  `42926be`, and isolated parallel scheduler `73ca45f`.
+- Formal dataset source: `73ca45fa6de7708a2213db124633b419a62d6df9`;
+  quality analyzer source: `881a023611ad3f7331c286fe88e78514b923982a`.
+- Formal matrix: five fixed seeds, 499,978 rows, 71,636 decision groups,
+  23 Parquet shards, train/validation/test 390,326/54,344/55,308, and 22/22
+  behavior candidate coverage.
+- Dataset manifest SHA-256:
+  `e256ecf426d4d0b2ab4bfb63060873e88233c1aaeb14498cc536ef7f3161eccb`.
+- Quality report SHA-256:
+  `298f7dc159cace7c6a607324e90107ea10c117ebdf33a3c49a8d29855c0c5231`.
+- Durable artifacts remain under `/root/autodl-fs/STWM/m4`; no rows, runs,
+  weights, reports, caches, or credentials entered Git.
