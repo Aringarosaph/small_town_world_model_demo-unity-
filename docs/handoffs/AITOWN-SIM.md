@@ -633,6 +633,69 @@ canonical repeat/chunk jobs after integration; no prior SIM bundle may be
 reused or relabeled. No QA, config, protocol, domain, or Unity-owned path was
 changed.
 
+### M3 final behavior-occurrence correction
+
+The final common-RC bundle at `bcd6f9f9efc7bb8cdd7aef0809113be9c5ef37b1`
+passed performance, replay, invariants, and pathology but observed no created
+`drink_at_bar` or `invite_join` action in the eight release-soak runs. The raw
+decision and resolver logs prove two separate heuristic scheduling causes:
+
+- `drink_at_bar` was legal in 5,441 decision rows but never ranked first, so it
+  was never presented to the central Resolver. Its closest observed gap was
+  `0.064328413946` at seed `24680`, minute `32885`: `npc_04` was already at the
+  open `cafe_bar`, but a nine-minute trip home for `watch_tv` still won. A
+  bounded `0.10` local-bar opportunity term now applies only when the actor is
+  already at the open destination and no work occurrence is due. Closed,
+  remote, and due-work candidates receive zero. Catalog eligibility, opening
+  hours, resources, slots, settlement, and Resolver checks remain unchanged.
+- `invite_join` appeared in 15,014 candidate instances across 7,697 decision
+  rows. It ranked first only seven times. In all seven cases the target had
+  already been committed to an ordinary same-snapshot action earlier in the
+  resolver queue; six diagnostic selections referenced that target action and
+  none created an invitation. The deterministic batch order is now due work,
+  then a top-scored invitation, then other discretionary actions. This only
+  decides which otherwise-identical same-snapshot proposal gets first access to
+  participants; every invitation still passes the unchanged participant,
+  binding, location, relationship, reservation, and lifecycle rules.
+
+The production engine was continued from two retained real release
+checkpoints, without editing their authority state. Seed `12345` checkpoint
+minute `7560` created `invite_join` action `action_00001624` at minute `7710`
+for `npc_06` and `npc_07`; it resolved at minute `7716`, emitted the real
+`INVITATION_REJECTED` outcome, and released its reservations. Seed `24680`
+checkpoint minute `32760` created `drink_at_bar` action `action_00007956` at
+minute `32885`; it resolved at minute `32962`, atomically deducted the catalog
+price of `600` minor units, persisted its settlement key, and released all
+reservations. These are authority transactions, not targeted-count projection
+or synthetic evidence.
+
+SIM did not modify or delete the original approximately 20 GiB ORCH bundle. Its
+sufficient diagnostic subset is stored outside the repository at
+`/private/tmp/stwm-m3-final3-reduced-diagnostics-bcd6f9f` (about 4.1 MiB). It
+contains the seven aggregate artifacts, producer metadata, the two checkpoint
+files, both suppression/priority diagnostics, and a SHA-256 manifest with
+schema `stwm.simulation.m3-reduced-diagnostics-manifest/v1`. The detailed
+suppression diagnostic is also at
+`/tmp/stwm-m3-final3-behavior-suppression-diagnostic.json`, SHA-256
+`80e84cb0e1e3b2f7a2659534b1746bd49a77c3c66c25c3b43433bd1f09aee5b0`.
+ORCH independently verified all 13 reduced-manifest hashes and then removed the
+superseded source bundle and old detached worktree. The reduced directory is
+therefore the retained diagnostic authority for this correction.
+
+The focused regressions cover the bounded venue term and its due-work/closed
+negative cases, plus a real same-snapshot invitation that wins its target over
+an ordinary action. The society suite passes 260 tests. The repository suite
+passes 415 sandbox-compatible tests with the same two incompatible QA-owned M2
+nodes deselected; both real loopback WebSocket tests pass separately when
+allowed to bind ephemeral `127.0.0.1` ports. Ruff format/check passes over 149
+files, and strict Mypy passes over 102 source files.
+
+Both scheduling corrections intentionally change M3 authority trajectories.
+After integration, ORCH must produce a fresh complete release matrix; the old
+bundle remains diagnostic-only and its zero occurrence counts must not be
+reused or relabeled. No QA, config, protocol, domain, or Unity-owned path was
+changed.
+
 ## Current responsibility
 
 AITOWN-SIM owns the Python authority and local runtime-adapter side of the M2

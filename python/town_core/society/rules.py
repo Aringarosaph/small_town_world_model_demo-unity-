@@ -37,6 +37,7 @@ HEURISTIC_PROVIDER_ID = "M3_CATALOG_BOUNDED_HEURISTIC_V1"
 NEED_CRISIS_RECOVERY_BONUS = 5.0
 HOUSEHOLD_FOOD_SUPPLY_BONUS = 30.0
 CONFLICT_RESPONSE_BONUS = 1.0
+LOCAL_BAR_OPPORTUNITY_BONUS = 0.10
 
 _NEED_CRISIS_RECOVERY_PRIORITY = {
     NeedName.HUNGER: 5.0,
@@ -514,6 +515,18 @@ class SocietyRulebook:
             and available_at_arrival
         ):
             conflict_response = CONFLICT_RESPONSE_BONUS + event_importance.get(item.selected_context_event_id, 0.0)
+        local_bar_opportunity = 0.0
+        if (
+            candidate.behavior_id is BehaviorId.DRINK_AT_BAR
+            and candidate.destination_location_id == actor.current_location_id
+            and available_at_arrival
+            and not work_due
+        ):
+            # A local bar action was otherwise strictly dominated by generic
+            # at-home fun recovery even while the actor was already at the
+            # open cafe/bar. Keep this smaller than the frozen idle and
+            # repetition penalties and never bypass location/work legality.
+            local_bar_opportunity = LOCAL_BAR_OPPORTUNITY_BONUS
         zero_needs = [axis for axis in NeedName if float(getattr(actor.needs, axis.value)) <= 0.0]
         critical_need_block = 0.0
         blocks_for_work = candidate.behavior_id is BehaviorId.WORK_SHIFT and bool(zero_needs)
@@ -552,6 +565,7 @@ class SocietyRulebook:
             "need_crisis_recovery": need_crisis_recovery,
             "household_food_supply": household_food_supply,
             "conflict_response": conflict_response,
+            "local_bar_opportunity": local_bar_opportunity,
             "critical_need_block": critical_need_block,
             "idle_penalty": 0.0,
             "deterministic_noise": tie * self.catalog.utility.deterministic_noise_amplitude,

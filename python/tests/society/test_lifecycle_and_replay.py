@@ -403,6 +403,42 @@ def test_joint_action_cancel_releases_every_participant_and_reservation(
     assert_society_invariants(final, catalog, m3_catalogs)
 
 
+def test_same_snapshot_invitation_precedes_target_discretionary_action(
+    catalog: CatalogBundle,
+    m3_catalogs: M3Catalogs,
+) -> None:
+    checkpoint = build_initial_society_checkpoint(catalog, m3_catalogs, seed=12345)
+    agents = {}
+    for agent_id, agent in checkpoint.world.agents.items():
+        needs = NeedValues(hunger=0.5, energy=0.5, hygiene=0.5, fun=1.0, social=0.5)
+        agents[agent_id] = agent.model_copy(
+            update={
+                "needs": needs,
+                "decision_due_at": 0 if agent_id in {"npc_01", "npc_02"} else 1000,
+            }
+        )
+    checkpoint = checkpoint.model_copy(
+        update={
+            "world": checkpoint.world.model_copy(update={"agents": agents}),
+            "recent_behaviors": {"npc_01": BehaviorId.WATCH_TV},
+        }
+    )
+    engine = SocietyEngine(
+        catalog,
+        m3_catalogs,
+        checkpoint,
+        behavior_allowlist=frozenset({BehaviorId.IDLE, BehaviorId.INVITE_JOIN, BehaviorId.WATCH_TV}),
+    )
+
+    result = engine.advance_to(1)
+    created = [item for item in result.actions if item["phase"] == "CREATED"]
+    invite = next(item for item in created if item["behavior_id"] == BehaviorId.INVITE_JOIN.value)
+
+    assert invite["agent_ids"] == ["npc_01", "npc_02"]
+    target_decision = next(item for item in result.decisions if item["agent_id"] == "npc_02")
+    assert target_decision["resolver_attempts"] == [{"result": "SOCIAL_TARGET_COMMITTED"}]
+
+
 def test_relationship_direction_witness_and_told_permissions_use_real_social_actions(
     catalog: CatalogBundle,
     m3_catalogs: M3Catalogs,

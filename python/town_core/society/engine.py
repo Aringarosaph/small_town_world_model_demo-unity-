@@ -1982,6 +1982,7 @@ class SocietyEngine:
         candidate = scored.candidate.candidate
         return (
             0 if candidate.behavior_id is BehaviorId.WORK_SHIFT else 1,
+            0 if candidate.behavior_id is BehaviorId.INVITE_JOIN else 1,
             -scored.total_score,
             -scored.tie_break,
             candidate.actor_id,

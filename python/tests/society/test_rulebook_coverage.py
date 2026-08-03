@@ -8,7 +8,7 @@ from town_core.domain.enums import BehaviorId, EventType, EventWitnessScope
 from town_core.domain.m3_catalog_models import M3Catalogs
 from town_core.domain.state_models import RelationshipState, WorldEvent, WorldState
 from town_core.society.initialization import build_initial_society_checkpoint
-from town_core.society.models import ConversationRecord, WorkSessionRecord
+from town_core.society.models import ConversationRecord, ScoredSocietyCandidate, WorkSessionRecord
 from town_core.society.rules import SocietyRulebook
 
 
@@ -436,6 +436,119 @@ def test_low_social_need_bounds_sleep_before_zero(
 
     sleep = next(item for item in candidates if item.candidate.behavior_id is BehaviorId.SLEEP)
     assert sleep.candidate.estimated_duration_minutes <= 120
+
+
+def test_local_open_bar_opportunity_is_bounded_by_location_and_work(
+    catalog: CatalogBundle,
+    m3_catalogs: M3Catalogs,
+) -> None:
+    checkpoint = build_initial_society_checkpoint(catalog, m3_catalogs, seed=24680)
+    actor = checkpoint.world.agents["npc_01"]
+    agents = dict(checkpoint.world.agents)
+    locations = dict(checkpoint.world.locations)
+    home = locations[actor.home_location_id]
+    bar = locations["cafe_bar"]
+    agents[actor.agent_id] = actor.model_copy(
+        update={
+            "current_location_id": "cafe_bar",
+            "needs": actor.needs.model_copy(update={"energy": 0.57, "fun": 0.77}),
+        }
+    )
+    locations[home.location_id] = home.model_copy(
+        update={"current_agent_ids": [item for item in home.current_agent_ids if item != actor.agent_id]}
+    )
+    locations[bar.location_id] = bar.model_copy(
+        update={"current_agent_ids": sorted([*bar.current_agent_ids, actor.agent_id])}
+    )
+    state = checkpoint.world.model_copy(
+        update={
+            "game_minute": 600,
+            "state_version": 600,
+            "agents": agents,
+            "locations": locations,
+        }
+    )
+    rulebook = SocietyRulebook(catalog)
+    candidate_number = 0
+
+    def next_id() -> str:
+        nonlocal candidate_number
+        candidate_number += 1
+        return f"candidate_{candidate_number:08d}"
+
+    def score(work_session: WorkSessionRecord | None) -> dict[BehaviorId, ScoredSocietyCandidate]:
+        candidates = rulebook.enumerate_candidates(
+            state,
+            actor.agent_id,
+            work_session=work_session,
+            conversations={},
+            event_importance={},
+            reserved_money=0,
+            reserved_food=0,
+            next_candidate_id=next_id,
+            behavior_allowlist=frozenset({BehaviorId.IDLE, BehaviorId.DRINK_AT_BAR, BehaviorId.WATCH_TV}),
+        )
+        predictions = {
+            item.candidate.candidate_id: rulebook.predict(
+                state,
+                item,
+                prediction_id=f"prediction_{index:08d}",
+            )
+            for index, item in enumerate(candidates, start=1)
+        }
+        return {
+            item.candidate.candidate.behavior_id: item
+            for item in rulebook.score_candidates(
+                state,
+                candidates,
+                predictions,
+                work_session=work_session,
+                recent_behavior=None,
+                event_importance={},
+            )
+        }
+
+    available = score(None)
+    assert available[BehaviorId.DRINK_AT_BAR].utility_terms["local_bar_opportunity"] == 0.10
+    assert available[BehaviorId.DRINK_AT_BAR].total_score > available[BehaviorId.WATCH_TV].total_score
+
+    due_work = WorkSessionRecord(
+        session_id="work_session_npc_01_day_0000",
+        agent_id=actor.agent_id,
+        day=0,
+        start_game_minute=360,
+        end_game_minute=840,
+        grace_minutes=15,
+    )
+    during_work = score(due_work)
+    assert during_work[BehaviorId.DRINK_AT_BAR].utility_terms["local_bar_opportunity"] == 0.0
+
+    closed_state = state.model_copy(update={"game_minute": 120, "state_version": 120})
+    closed_candidate = next(
+        item
+        for item in rulebook.enumerate_candidates(
+            closed_state,
+            actor.agent_id,
+            work_session=None,
+            conversations={},
+            event_importance={},
+            reserved_money=0,
+            reserved_food=0,
+            next_candidate_id=next_id,
+            behavior_allowlist=frozenset({BehaviorId.DRINK_AT_BAR}),
+        )
+        if item.candidate.behavior_id is BehaviorId.DRINK_AT_BAR
+    )
+    closed_prediction = rulebook.predict(closed_state, closed_candidate, prediction_id="prediction_99999999")
+    closed_score = rulebook.score_candidates(
+        closed_state,
+        [closed_candidate],
+        {closed_candidate.candidate.candidate_id: closed_prediction},
+        work_session=None,
+        recent_behavior=None,
+        event_importance={},
+    )[0]
+    assert closed_score.utility_terms["local_bar_opportunity"] == 0.0
 
 
 def test_zero_need_recovery_blocks_work_and_bounds_discretionary_duration(
