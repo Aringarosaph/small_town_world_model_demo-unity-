@@ -3,14 +3,18 @@ from __future__ import annotations
 import hashlib
 import json
 from collections import Counter
+from pathlib import Path
 
 import pytest
 from pydantic import ValidationError
+from town_core.catalogs import load_catalog
 from town_core.domain.config_models import MoodValues, NeedValues, PersonalityValues
 from town_core.domain.decision_models import HardCostPreview, OutcomePrediction
 from town_core.domain.enums import BehaviorId, LocationType, RelationshipDirection, RelationshipRole
 from town_core.domain.state_models import MoodDelta, NeedDelta, RelationshipDelta
+from town_core.modeling.anchor_review import assemble_producer_judgments
 from town_core.modeling.anchors import (
+    REPOSITORY_ROOT,
     AnchorSourceCandidate,
     _source_candidate,
     default_coverage_policy,
@@ -34,6 +38,7 @@ from town_core.modeling.contracts import (
     SocialAnchorTypedAssertion,
     TrainingExample,
 )
+from town_core.modeling.postprocess import CatalogOutcomePostprocessor
 
 BEHAVIORS = (
     BehaviorId.GREET,
@@ -350,3 +355,114 @@ def test_coverage_policy_rejects_threshold_or_quota_drift() -> None:
     policy["quotas"][0]["train"] = 27
     with pytest.raises(ValidationError):
         SocialAnchorCoveragePolicy.model_validate(policy)
+
+
+def _write_greet_producer_inputs(tmp_path: Path) -> tuple[Path, Path]:
+    tasks, _ = select_anchor_tasks(
+        _candidate_matrix(),
+        dataset_manifest_sha256="c" * 64,
+        policy=default_coverage_policy(),
+    )
+    postprocessor = CatalogOutcomePostprocessor(load_catalog(REPOSITORY_ROOT / "config" / "v0"))
+    tasks = [
+        task.model_copy(
+            update={
+                "heuristic_baseline": task.heuristic_baseline.model_copy(
+                    update={"prediction": postprocessor.process(task.feature, task.heuristic_baseline.prediction)[0]}
+                )
+            }
+        )
+        for task in tasks
+    ]
+    tasks_path = tmp_path / "anchor-tasks.jsonl"
+    task_lines = [
+        json.dumps(
+            task.model_dump(mode="json", by_alias=True, exclude_none=False),
+            ensure_ascii=False,
+            separators=(",", ":"),
+            sort_keys=True,
+        )
+        for task in tasks
+    ]
+    tasks_path.write_text("\n".join(task_lines) + "\n", encoding="utf-8")
+    responses = []
+    for task, line in zip(tasks, task_lines, strict=True):
+        if task.behavior_id is not BehaviorId.GREET:
+            continue
+        prediction, _ = postprocessor.process(task.feature, task.heuristic_baseline.prediction)
+        assert prediction.target_mood_delta is not None
+        assert prediction.relationship_delta_target_to_actor is not None
+        responses.append(
+            {
+                "task_id": task.task_id,
+                "task_sha256": hashlib.sha256(line.encode()).hexdigest(),
+                "need_delta_preview": prediction.need_delta_preview.model_dump(mode="json"),
+                "actor_mood_delta": prediction.actor_mood_delta.model_dump(mode="json"),
+                "target_mood_delta": prediction.target_mood_delta.model_dump(mode="json"),
+                "relationship_delta_target_to_actor": prediction.relationship_delta_target_to_actor.model_dump(
+                    mode="json"
+                ),
+                "acceptance_probability": prediction.acceptance_probability,
+                "event_probabilities": prediction.event_probabilities,
+                "rationale_tags": ["heuristic_baseline_reviewed"],
+                "typed_assertions": [
+                    {
+                        "assertion_type": "DIRECTION",
+                        "statement": "Relationship effects remain Target-to-Actor.",
+                        "paired_task_id": None,
+                        "paired_task_sha256": None,
+                        "expected_order": None,
+                    }
+                ],
+            }
+        )
+    responses_path = tmp_path / "greet-producer-responses.jsonl"
+    responses_path.write_text(
+        "".join(
+            json.dumps(item, ensure_ascii=False, separators=(",", ":"), sort_keys=True) + "\n" for item in responses
+        ),
+        encoding="utf-8",
+    )
+    return tasks_path, responses_path
+
+
+def test_producer_assembler_requires_exact_hashes_masks_and_bounds(tmp_path: Path) -> None:
+    tasks_path, responses_path = _write_greet_producer_inputs(tmp_path)
+    report = assemble_producer_judgments(
+        config_path=REPOSITORY_ROOT / "config" / "v0",
+        tasks_path=tasks_path,
+        responses_path=responses_path,
+        output_root=tmp_path / "valid-output",
+        behavior_id=BehaviorId.GREET,
+        producer_id="AITOWN-ANCHOR-PRODUCER",
+        produced_at_utc="2026-08-04T00:00:00Z",
+    )
+    assert report["judgment_count"] == 40
+    assert report["retained_heuristic_count"] == 40
+    assert report["changed_from_heuristic_count"] == 0
+    judgments = (tmp_path / "valid-output" / "greet-judgments.jsonl").read_text(encoding="utf-8").splitlines()
+    assert len(judgments) == 40
+    assert all(
+        SocialAnchorJudgment.model_validate_json(line).provider_id == "stwm.codex.anchor-producer/v1"
+        for line in judgments
+    )
+
+    response_rows = [json.loads(line) for line in responses_path.read_text(encoding="utf-8").splitlines()]
+    response_rows[0]["actor_mood_delta"]["valence"] = 0.9
+    invalid_path = tmp_path / "invalid-responses.jsonl"
+    invalid_path.write_text(
+        "".join(
+            json.dumps(item, ensure_ascii=False, separators=(",", ":"), sort_keys=True) + "\n" for item in response_rows
+        ),
+        encoding="utf-8",
+    )
+    with pytest.raises(ValueError, match="forbidden mask/bounds repair"):
+        assemble_producer_judgments(
+            config_path=REPOSITORY_ROOT / "config" / "v0",
+            tasks_path=tasks_path,
+            responses_path=invalid_path,
+            output_root=tmp_path / "invalid-output",
+            behavior_id=BehaviorId.GREET,
+            producer_id="AITOWN-ANCHOR-PRODUCER",
+            produced_at_utc="2026-08-04T00:00:00Z",
+        )
