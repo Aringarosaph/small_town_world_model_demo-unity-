@@ -176,8 +176,9 @@
   independent review, approval, coverage, and holdout boundary.
 - [x] Select and independently regenerate the exact 300 immutable anchor tasks
   from the validated raw Parquet matrix.
-- [x] Complete the provenance-safe `greet` pilot: 40/40 independently reviewed
-  judgments approved, with heuristic need/event passthrough kept immutable.
+- [x] Complete provenance-safe `greet`, `chat`, and `joke` batches: 120/300
+  independently reviewed judgments approved, with heuristic need/event
+  passthrough kept immutable.
 - [ ] Complete the independently reviewed social-anchor flow.
 - [ ] Implement/train/evaluate the 1M-3M TorchOutcomeModel.
 - [ ] Integrate provider switching, deterministic neural sampling, fallback,
@@ -243,7 +244,7 @@
 - These were task inputs only at freeze. They remain immutable and are joined
   to separately hash-chained judgments rather than rewritten.
 
-## M4 reviewed-anchor pilot result
+## M4 reviewed-anchor progress
 
 - Source `ae05aedc8dd08858f8d800553c910930bf177956` separates the paths that
   Codex reviews from the ADR-0012 heuristic passthrough heads and adds an
@@ -261,8 +262,15 @@
   `/root/autodl-fs/STWM/m4/anchors/greet-reviewed-batch-ae05aed`;
   manifest SHA-256:
   `de33b1c2cc5900444ccaa934f923056a35d35639292b0ed020b90b31de06a128`.
-- This behavior-local approval is DRAFT and not training eligible. Six behavior
-  batches and the exact final 300-entry approval matrix remain before training.
+- `chat` and `joke` also pass 40/40 independent review and four-entry
+  Orchestrator sampling. Their durable manifest SHA-256 values are
+  `55378fff806923990c254e6dcdc19b306df522b81c4f86bfae8cf4844ffc6462`
+  and `2e6067c736d1420b5e69b9a4fd08295b372f42d80a265348b2a15eb26e92d746`.
+  The `joke` sample explicitly includes the largest acceptance adjustment
+  (`-0.21`) plus positive and negative holdout cases.
+- All three behavior-local approvals are DRAFT and not training eligible.
+  Current progress is 120/300; four behavior batches and the exact final
+  approval matrix remain before training.
 - Latest official Codex quota snapshot is 94% used / about 6% remaining. The
   pause boundary remains about 2% remaining; both manual reset credits remain
   untouched.
@@ -273,7 +281,7 @@ No M3 blocker remains. The contracts, provider, raw-data, persistence, and
 quality gates have passed. ADR-0013 freezes the remaining dependency as exactly
 300 independently reviewed social anchors: 210 TRAIN, 30 VALIDATION, and 60
 ANCHOR_HOLDOUT across seven social behaviors. The immutable task packet passes
-deterministic regeneration and the first 40-entry `greet` batch passes
-independent review; six batches and the final approval matrix remain. Long
-training has not started. DeepSeek remains deferred to M5, and final art remains
-outside the functional-greybox acceptance boundary.
+deterministic regeneration and the first three 40-entry batches pass independent
+review; four batches and the final approval matrix remain. Long training has
+not started. DeepSeek remains deferred to M5, and final art remains outside the
+functional-greybox acceptance boundary.

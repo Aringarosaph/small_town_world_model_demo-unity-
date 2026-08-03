@@ -90,8 +90,8 @@ At each safe point update the durable
 Generated data/model artifacts are external and referenced by relative path,
 SHA-256, byte size, schema, source commit, and parent artifact hashes.
 
-Current source stage: `M4_GREET_ANCHOR_PILOT_REVIEWED`; next stage:
-`M4_REMAINING_CODEX_SOCIAL_ANCHOR_JUDGMENTS`.
+Current source stage: `M4_THREE_ANCHOR_BATCHES_REVIEWED`; next stage:
+`M4_REMAINING_FOUR_CODEX_SOCIAL_ANCHOR_JUDGMENTS`.
 
 ADR-0013 is the anchor-stage authority. Implement its additive Python-private
 schemas and deterministic task selector before any producer judgment batch.
@@ -164,6 +164,19 @@ judgment SHA-256 is
 `71dc227664505e9bf3d6d6e2855bcceb5605029bdcad2546dbd8e93cd81eebd2`;
 independent review response SHA-256 is
 `dadad81f30de73fb3a1195f7e9be72ac4eaa294793d5282a0095093ac736a651`.
-The behavior-local approval remains DRAFT and `training_eligible=false` until
-all seven batches form the exact final 300-entry approval manifest. Six behavior
-batches remain; long training remains blocked.
+Two more behavior-local batches also passed the same independent chain:
+
+- `chat`: 40/40 approved; manifest SHA-256
+  `55378fff806923990c254e6dcdc19b306df522b81c4f86bfae8cf4844ffc6462`;
+- `joke`: 40/40 approved; manifest SHA-256
+  `2e6067c736d1420b5e69b9a4fd08295b372f42d80a265348b2a15eb26e92d746`.
+
+AITOWN-ORCH reproduced both assemblies and sampled four entries from each,
+including the `joke` acceptance shift of `-0.21` and positive/negative holdout
+cases. Their durable directories are siblings of the `greet` batch under
+`/root/autodl-fs/STWM/m4/anchors`.
+
+All behavior-local approvals remain DRAFT and `training_eligible=false` until
+all seven batches form the exact final 300-entry approval manifest. The current
+reviewed count is 120/300; four behavior batches remain and long training stays
+blocked.
