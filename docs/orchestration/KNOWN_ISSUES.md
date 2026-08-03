@@ -1,8 +1,14 @@
 # Known issues
 
-## Open after M3 acceptance
+## Open during M4
 
-- The neural training environment will be audited when the M4 cloud host is available.
+- The M4 feature/label/package contracts and provider injection are frozen by
+  baseline but not yet implemented.
+- The cloud base image intentionally lacks the project data/training packages;
+  an isolated lock-derived environment will be created after the contracts
+  increment rather than mutating the base image ad hoc.
+- Reviewed social anchors, generated Parquet data, trained weights, calibration,
+  CPU inference, and neural rollout evidence are pending M4 increments.
 - The implementation specification contains both prefixed and unprefixed
   behavior-ID examples. M0 freezes the broadly used unprefixed form such as
   `sleep`, `work_shift`, and `apologize`; changing it requires migration review.
@@ -27,9 +33,16 @@
 - M3 raw run evidence is intentionally stored outside Git. The acceptance
   record preserves the external artifact paths, hashes, sizes, and final gate.
 
-## Explicitly deferred
+## Closed at M4 entry
 
-- Neural training and generated datasets: M4.
+- The AutoDL training host was audited: RTX 4090 24GB, 16 CPU, 120GB RAM,
+  Python 3.12.3, PyTorch 2.5.1+cu124/CUDA 12.4, 30GB system disk, 50GB local
+  data disk, and mounted 200GB file storage all pass.
+- SSH key login, GitHub access through AutoDL network acceleration, the cloud
+  repository clone, GPU compute smoke, and persistence across restart pass.
+
+## Explicitly deferred beyond M4
+
 - Real DeepSeek calls: M5.
 - Golden-chain demo publication: M6.
 - Claim/Belief, Commitment, graph models, institutions, and other roadmap stages: post-V0.

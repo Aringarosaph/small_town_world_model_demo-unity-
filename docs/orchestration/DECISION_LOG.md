@@ -16,3 +16,5 @@
 | ADR-0011 | Preserve M1/M2 profiles while M3 adds a society authority checkpoint and protocol 0.3 multiplayer/debug semantics | Accepted |
 | M3-ACTIVATION | Start the complete heuristic society milestone; keep M4 neural and M5 DeepSeek work closed | Accepted by producer |
 | M3-RELEASE | Accept the fixed multi-seed heuristic soak, authoritative replay, full-town local zero-skipped Unity batchmode/live interoperability, and external owner evidence as the complete M3 release gate; keep M4 closed | Accepted by AITOWN-ORCH |
+| M4-ACTIVATION | Start the distilled social Outcome Model milestone from accepted public `main@02b9e53`; preserve hard authority, protocol 0.3, M1-M3 compatibility, and M5/M6 exclusions | Accepted by producer |
+| ADR-0012 | Freeze additive internal feature/label/package contracts, injected batch providers, catalog postprocessing, deterministic neural sampling, and mandatory heuristic fallback | Accepted |

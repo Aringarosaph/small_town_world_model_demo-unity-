@@ -2,20 +2,21 @@
 
 ## Milestone
 
-`M3 - Complete heuristic small society (accepted and frozen)`
+`M4 - Distilled social outcome model (active: execution baseline)`
 
 ## State
 
 - Orchestrator thread: `AITOWN-ORCH`
-- Contracts thread: standby after accepted protocol `0.3.0` and M3 re-freeze
-- QA thread: standby after strict M3 release acceptance
-- Simulation thread: standby after accepted M3 authority/replay implementation
+- Contracts thread: standby; M4 uses additive Python-private contracts under ADR-0012
+- QA thread: standby pending M4 contracts/evidence increment
+- Simulation thread: standby pending injected OutcomeModel increment
 - Unity thread: standby after accepted full-town functional greybox
+- Model responsibility: active under `AITOWN-ORCH`; separate task deferred during quota-constrained entry
 - Accepted base branch: public `main`
-- Active integration branch: `codex/aitown-orch-m3`
+- Active integration branch: `codex/aitown-orch-m4`
 - Remote: `origin`
 - Unity version: `6000.4.2f1`
-- Training environment: deferred to M4 cloud validation
+- Training environment: AutoDL RTX 4090 entry audit passed; 50GB local data and 200GB file storage mounted
 - DeepSeek: deferred to M5; `.env` secret not present in the repository
 
 ## M0 complete
@@ -147,16 +148,47 @@
 
 - M3 activates exactly 10 NPCs, 22 behaviors, 4 households, 8 locations,
   15 object types, and 90 directed relationship edges.
-- The only outcome provider is the deterministic HeuristicOutcomeModel.
+- The accepted M3 profile continues to use only the deterministic HeuristicOutcomeModel.
 - Protocol `0.3.0` is mandatory for M3; protocol `0.2.0` remains the immutable
   M2 compatibility profile.
 - M3 includes deterministic background templates but no DeepSeek or player
   language authority.
-- M4 neural work, M5 DeepSeek, and M6 golden-chain release work remain closed.
+- M4 may consume this boundary but cannot change its hard authority or accepted
+  heuristic behavior. M5 DeepSeek and M6 golden-chain release remain closed.
+
+## M4 activation
+
+- [x] Producer authorized M4 on 2026-08-04.
+- [x] Create integration branch `codex/aitown-orch-m4` from accepted public main.
+- [x] Audit SSH, RTX 4090/CUDA/PyTorch, real container limits, GitHub access,
+  local data storage, and restart-persistent file storage.
+- [x] Accept ADR-0012 and freeze `docs/orchestration/M4_EXECUTION_BASELINE.md`.
+- [x] Freeze feature/label/package identities, grouped splits, model/fallback
+  authority, metrics, external artifact ownership, and quota-safe pause points.
+- [ ] Implement M4 contracts, postprocessor, provider protocol, recorded and
+  heuristic providers, schemas, and focused tests.
+- [ ] Implement resumable grouped dataset generation and reviewed anchor flow.
+- [ ] Implement/train/evaluate the 1M-3M TorchOutcomeModel.
+- [ ] Integrate provider switching, deterministic neural sampling, fallback,
+  CPU inference, neural rollout, QA evidence, and M0-M3 regressions.
+
+## M4 entry result
+
+- Cloud: Ubuntu 22.04, Python 3.12.3, PyTorch 2.5.1+cu124, CUDA 12.4,
+  RTX 4090 24GB, BF16 and CUDA smoke passed.
+- Limits: 16 CPU, 120GB RAM, 30GB system disk, 50GB local data disk, and
+  mounted read/write 200GB file storage.
+- Cloud repository: `/root/autodl-tmp/STWM` at public
+  `main@02b9e53b8ec11b06235be704dec7d5fcd7495945`, clean at entry.
+- Durable M4 root: `/root/autodl-fs/STWM/m4`; generated data/weights remain
+  external and hash-addressed.
+- Account quota at activation was read as 90% used / about 10% remaining.
+  Work must close an atomic increment and pause before exhaustion; manual reset
+  credits are not consumed without producer approval.
 
 ## Blockers
 
-No M3 blocker remains. M4 is not active: cloud CUDA/PyTorch validation,
-dataset generation, teacher review, training, calibration, and model switching
-must wait for an explicit M4 execution baseline. DeepSeek remains deferred to
+No M3 blocker remains. M4 entry infrastructure and policy are ready. The next
+dependency is the M4 internal contracts/provider increment; dataset generation
+and training remain intentionally gated behind it. DeepSeek remains deferred to
 M5, and final art remains outside the functional-greybox acceptance boundary.

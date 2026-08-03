@@ -51,5 +51,10 @@ M3 is accepted and frozen at
 `docs/orchestration/M3_EXECUTION_BASELINE.md` and ADR-0011. It includes the
 compatibility-preserving 10-NPC society runtime, protocol `0.3.0`, the full
 functional greybox, deterministic background templates, fixed multi-seed
-7/30-day heuristic soak, and strict external release evidence. M4 is the next
-boundary but remains closed until explicitly activated.
+7/30-day heuristic soak, and strict external release evidence.
+
+M4 was activated by the producer on 2026-08-04 under
+`docs/orchestration/M4_EXECUTION_BASELINE.md` and ADR-0012. It is additive: the
+current work is limited to bounded social Outcome Model features, reviewed
+anchors, external data/training, evaluation, provider switching, local CPU
+inference, and heuristic fallback. M5 DeepSeek and M6 release work remain closed.

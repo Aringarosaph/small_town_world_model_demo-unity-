@@ -10,6 +10,8 @@
 | Semantic asset registry | CONTRACTS / UNITY | SIM, QA | M2 scoped profile; M3 shared full-town manifest | Catalog re-freeze + dual Python/Unity validation |
 | Movement/presentation reports | CONTRACTS | SIM, UNITY, QA | M2 directional `0.2.0`; M3 structured `0.3.0` | ADR + direction/version/idempotency tests |
 | OutcomeModel DTO | CONTRACTS | SIM, MODEL, QA | M0 protocol only | Feature/model version + regression |
+| M4 feature/label/anchor contracts | MODEL / ORCH | SIM, QA | ADR-0012 Python-private v1 schemas | Schema identity + feature/label version + grouped-split tests |
+| M4 model package and providers | MODEL | SIM, QA | ADR-0012 package/provider boundary | Package hashes + CPU inference + fallback + rollout |
 | Knowledge/SpeechPlan | CONTRACTS | SIM, DIALOGUE, UNITY, QA | M0 schema | Schema + permission tests |
 | Decision trace and run layout | QA | All | M0 docs/checks | Observability review |
 | M3 authority checkpoint | SIM | QA, replay | ADR-0011 sidecar v1 | Checkpoint schema + resume/replay hashes |
@@ -140,3 +142,28 @@ with an M0 artifact are frozen inputs to that work.
 - Full release evidence and immutable hashes are recorded in
   `docs/orchestration/M3_ACCEPTANCE_RECORD.md`; raw generated runs remain outside
   Git.
+
+## Merge order for M4
+
+1. Orchestrator activation baseline, ADR-0012, cloud audit, metrics, storage,
+   and quota-safe pause policy.
+2. MODEL internal feature/label/anchor/package contracts, postprocessor,
+   provider interface, heuristic/recorded providers, schemas, and tests.
+3. MODEL grouped dataset and independent anchor production/review increments.
+4. MODEL architecture, smoke training, checkpoint/resume/export, evaluation,
+   and external artifact manifests.
+5. SIM injected neural provider, deterministic sampling, runtime fallback,
+   debug provenance, replay, and neural rollout.
+6. QA independent data/package/calibration/safety/CPU/rollout gates followed by
+   Orchestrator M0-M4 regression, acceptance record, and publication.
+
+## M4 activation record
+
+- Accepted base: public
+  `main@02b9e53b8ec11b06235be704dec7d5fcd7495945`.
+- Integration branch: `codex/aitown-orch-m4`.
+- Execution baseline: `docs/orchestration/M4_EXECUTION_BASELINE.md`.
+- Model decision: ADR-0005 and ADR-0012.
+- Active online protocol remains exactly `0.3.0`; there is no M4 wire bump.
+- Active internal feature/label versions are exactly `v0.1` / `v0.1`.
+- Generated rows, checkpoints, weights, reports, and runs remain outside Git.

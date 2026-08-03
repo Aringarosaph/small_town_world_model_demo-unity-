@@ -44,9 +44,12 @@ complete 10-NPC heuristic society, protocol `0.3.0`, the full functional
 greybox, deterministic templates, and fixed 7/30-day rule soak. Keep the M1
 and M2 compatibility profiles intact.
 
-M4 is the next product boundary but is not active until Orchestrator assigns
-it. Do not implement neural inference or training, generate training datasets,
-call DeepSeek, add player-language authority, start the M6 golden chain, or
-introduce any post-V0 roadmap feature without the matching milestone handoff.
-Changes to frozen M0 or accepted M1-M3 contracts require an ADR, version review,
-regenerated evidence, and Orchestrator acceptance.
+M4 is active under `docs/orchestration/M4_EXECUTION_BASELINE.md` and ADR-0012.
+Its only writable product boundary is the distilled, bounded social Outcome
+Model: versioned features/labels/anchors, external generated data, small PyTorch
+training/evaluation, injected providers, catalog postprocessing, model switching,
+CPU inference, and heuristic fallback. Protocol `0.3.0`, hard authority, and the
+accepted M1-M3 compatibility profiles remain frozen. Do not call DeepSeek, add
+player-language authority, start the M6 golden chain, or introduce post-V0 work.
+Changes to frozen M0-M3 contracts require an ADR, version review, regenerated
+evidence, and Orchestrator acceptance.
