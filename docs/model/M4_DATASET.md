@@ -51,6 +51,23 @@ PYTHONPATH=python python -m town_core.modeling.release_dataset \
   --max-workers 5
 ```
 
+## 训练输入质量审查
+
+正式数据集在训练前必须用独立工具复验严格 manifest/shard 校验，并输出仓库外的
+`stwm.model.dataset-quality-report/v1`：
+
+```bash
+PYTHONPATH=python python -m town_core.modeling.analyze_dataset \
+  --config config/v0 \
+  --dataset /root/autodl-fs/STWM/m4/datasets/m4_teacher_release_raw_v1 \
+  --output /root/autodl-fs/STWM/m4/reports/m4_teacher_release_raw_v1-quality.json
+```
+
+质量门检查最小行/决策组、22 行为在三个 split 的候选覆盖、7 个 acceptance
+行为覆盖、每组唯一 teacher 选中、分组无泄漏、feature mask 双态及事件上下文覆盖。
+报告另外记录行为×split 的选中不平衡、组大小和各连续标签轴的正/负/零分布。
+稀有行为的选中样本不足由加权/平衡采样、社会锚点和逐行为指标处理，不允许用总体准确率掩盖。
+
 ## 当前边界
 
 本阶段只生成规则教师 rows。人工社会锚点、连续邻域增强、模型训练和神经 rollout 均在后续独立增量中执行。smoke 数据不能充当 M4 发布数据或最终验收证据。
