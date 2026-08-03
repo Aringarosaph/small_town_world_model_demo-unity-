@@ -7,9 +7,9 @@ import hashlib
 import json
 import math
 from collections import Counter
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from pathlib import Path
-from typing import Annotated, Literal
+from typing import Annotated, Any, Literal
 
 from pydantic import Field, model_validator
 
@@ -74,6 +74,24 @@ class SocialAnchorProducerResponse(ContractModel):
     rationale_tags: list[str] = Field(min_length=1)
     typed_assertions: list[ProducerAssertionResponse] = Field(min_length=1)
 
+    @model_validator(mode="before")
+    @classmethod
+    def flatten_proposed_soft_values(cls, value: Any) -> Any:
+        if not isinstance(value, Mapping) or "proposed_soft_values" not in value:
+            return value
+        flattened = dict(value)
+        proposed = flattened.pop("proposed_soft_values")
+        if not isinstance(proposed, Mapping):
+            raise TypeError("proposed_soft_values must be an object")
+        proposed_values = dict(proposed)
+        direction = proposed_values.pop("relationship_direction", "TARGET_TO_ACTOR")
+        if direction != "TARGET_TO_ACTOR":
+            raise ValueError("producer relationship direction must remain Target-to-Actor")
+        if set(flattened) & set(proposed_values):
+            raise ValueError("producer response cannot duplicate proposed soft fields")
+        flattened.update(proposed_values)
+        return flattened
+
     @model_validator(mode="after")
     def validate_response(self) -> SocialAnchorProducerResponse:
         if len(self.rationale_tags) != len(set(self.rationale_tags)):
@@ -123,8 +141,9 @@ def _load_responses(path: Path) -> list[SocialAnchorProducerResponse]:
         raise ValueError("producer response JSONL must be newline-terminated without blank records")
     responses: list[SocialAnchorProducerResponse] = []
     for line in payload.splitlines():
-        response = SocialAnchorProducerResponse.model_validate_json(line)
-        canonical = _canonical(response.model_dump(mode="json", exclude_none=False))
+        raw = json.loads(line)
+        response = SocialAnchorProducerResponse.model_validate(raw)
+        canonical = _canonical(raw)
         if line != canonical:
             raise ValueError(f"producer response is not canonical JSON: {response.task_id}")
         responses.append(response)
