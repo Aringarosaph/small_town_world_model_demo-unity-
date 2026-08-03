@@ -1,0 +1,296 @@
+{
+  "$defs": {
+    "EventType": {
+      "enum": [
+        "MEAL_CONSUMED",
+        "GROCERIES_PURCHASED",
+        "HOUSEHOLD_FOOD_LOW",
+        "HOUSEHOLD_MONEY_LOW",
+        "NEED_CRISIS",
+        "WORK_STARTED",
+        "WORK_COMPLETED",
+        "WORK_LATE",
+        "WORK_MISSED",
+        "COWORKER_EXTRA_LOAD",
+        "FIRST_GREETING",
+        "POSITIVE_INTERACTION",
+        "AWKWARD_INTERACTION",
+        "INVITATION_ACCEPTED",
+        "INVITATION_REJECTED",
+        "APOLOGY_ACCEPTED",
+        "APOLOGY_REJECTED",
+        "CONFLICT_STARTED",
+        "CONFLICT_ESCALATED",
+        "CONFLICT_REDUCED",
+        "EVENT_SHARED",
+        "CONVERSATION_STARTED",
+        "CONVERSATION_ENDED"
+      ],
+      "title": "EventType",
+      "type": "string"
+    },
+    "MoodDelta": {
+      "additionalProperties": false,
+      "properties": {
+        "stress": {
+          "maximum": 1.0,
+          "minimum": -1.0,
+          "title": "Stress",
+          "type": "number"
+        },
+        "valence": {
+          "maximum": 1.0,
+          "minimum": -1.0,
+          "title": "Valence",
+          "type": "number"
+        }
+      },
+      "required": [
+        "valence",
+        "stress"
+      ],
+      "title": "MoodDelta",
+      "type": "object"
+    },
+    "NeedDelta": {
+      "additionalProperties": false,
+      "properties": {
+        "energy": {
+          "maximum": 1.0,
+          "minimum": -1.0,
+          "title": "Energy",
+          "type": "number"
+        },
+        "fun": {
+          "maximum": 1.0,
+          "minimum": -1.0,
+          "title": "Fun",
+          "type": "number"
+        },
+        "hunger": {
+          "maximum": 1.0,
+          "minimum": -1.0,
+          "title": "Hunger",
+          "type": "number"
+        },
+        "hygiene": {
+          "maximum": 1.0,
+          "minimum": -1.0,
+          "title": "Hygiene",
+          "type": "number"
+        },
+        "social": {
+          "maximum": 1.0,
+          "minimum": -1.0,
+          "title": "Social",
+          "type": "number"
+        }
+      },
+      "required": [
+        "hunger",
+        "energy",
+        "hygiene",
+        "fun",
+        "social"
+      ],
+      "title": "NeedDelta",
+      "type": "object"
+    },
+    "OutcomePrediction": {
+      "additionalProperties": false,
+      "properties": {
+        "acceptance_probability": {
+          "anyOf": [
+            {
+              "maximum": 1.0,
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Acceptance Probability"
+        },
+        "actor_mood_delta": {
+          "$ref": "#/$defs/MoodDelta"
+        },
+        "candidate_id": {
+          "pattern": "^candidate_[0-9]+$",
+          "title": "Candidate Id",
+          "type": "string"
+        },
+        "event_probabilities": {
+          "additionalProperties": {
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "type": "number"
+          },
+          "propertyNames": {
+            "$ref": "#/$defs/EventType"
+          },
+          "title": "Event Probabilities",
+          "type": "object"
+        },
+        "need_delta_preview": {
+          "$ref": "#/$defs/NeedDelta"
+        },
+        "prediction_id": {
+          "pattern": "^prediction_[0-9]+$",
+          "title": "Prediction Id",
+          "type": "string"
+        },
+        "relationship_delta_target_to_actor": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/RelationshipDelta"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "relationship_direction": {
+          "const": "TARGET_TO_ACTOR",
+          "title": "Relationship Direction",
+          "type": "string"
+        },
+        "target_mood_delta": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/MoodDelta"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "prediction_id",
+        "candidate_id",
+        "need_delta_preview",
+        "actor_mood_delta",
+        "target_mood_delta",
+        "relationship_direction",
+        "relationship_delta_target_to_actor",
+        "acceptance_probability",
+        "event_probabilities"
+      ],
+      "title": "OutcomePrediction",
+      "type": "object"
+    },
+    "RelationshipDelta": {
+      "additionalProperties": false,
+      "properties": {
+        "affinity": {
+          "maximum": 1.0,
+          "minimum": -1.0,
+          "title": "Affinity",
+          "type": "number"
+        },
+        "familiarity": {
+          "maximum": 1.0,
+          "minimum": -1.0,
+          "title": "Familiarity",
+          "type": "number"
+        },
+        "tension": {
+          "maximum": 1.0,
+          "minimum": -1.0,
+          "title": "Tension",
+          "type": "number"
+        },
+        "trust": {
+          "maximum": 1.0,
+          "minimum": -1.0,
+          "title": "Trust",
+          "type": "number"
+        }
+      },
+      "required": [
+        "familiarity",
+        "affinity",
+        "trust",
+        "tension"
+      ],
+      "title": "RelationshipDelta",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "label_version": {
+      "const": "v0.1",
+      "default": "v0.1",
+      "title": "Label Version",
+      "type": "string"
+    },
+    "prediction": {
+      "$ref": "#/$defs/OutcomePrediction"
+    },
+    "resolver_attempted": {
+      "title": "Resolver Attempted",
+      "type": "boolean"
+    },
+    "resolver_result": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Resolver Result"
+    },
+    "row_id": {
+      "pattern": "^row_[a-f0-9]{24}$",
+      "title": "Row Id",
+      "type": "string"
+    },
+    "schema": {
+      "const": "stwm.model.outcome-label/v1",
+      "default": "stwm.model.outcome-label/v1",
+      "title": "Schema",
+      "type": "string"
+    },
+    "selected_by_teacher": {
+      "title": "Selected By Teacher",
+      "type": "boolean"
+    },
+    "teacher_provider_id": {
+      "const": "stwm.heuristic.m3/v1",
+      "default": "stwm.heuristic.m3/v1",
+      "title": "Teacher Provider Id",
+      "type": "string"
+    },
+    "tie_break": {
+      "title": "Tie Break",
+      "type": "number"
+    },
+    "total_score": {
+      "title": "Total Score",
+      "type": "number"
+    },
+    "utility_terms": {
+      "additionalProperties": {
+        "type": "number"
+      },
+      "title": "Utility Terms",
+      "type": "object"
+    }
+  },
+  "required": [
+    "row_id",
+    "prediction",
+    "utility_terms",
+    "total_score",
+    "tie_break",
+    "selected_by_teacher",
+    "resolver_attempted",
+    "resolver_result"
+  ],
+  "title": "OutcomeLabel",
+  "type": "object"
+}

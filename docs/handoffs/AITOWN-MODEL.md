@@ -35,18 +35,24 @@ task after quota reset if useful.
 Do not place credentials in the repository or handoff. Source AutoDL's official
 `/etc/network_turbo` only for outbound dependency/GitHub access.
 
-## First implementation package
+## Implemented data foundation
 
-The next coherent increment owns only:
+The first M4 source increment now provides:
 
-1. internal M4 Pydantic contracts and generated JSON Schemas;
-2. `OutcomeModel` batch Protocol;
-3. `RecordedOutcomeModel` and a heuristic adapter that reproduces M3 exactly;
-4. catalog mask/bounds postprocessing;
-5. focused contracts/provider tests and an updated handoff.
+1. internal M4 Pydantic contracts and committed JSON Schemas;
+2. `OutcomeModel` batch Protocol, `RecordedOutcomeModel`, and an exact M3
+   heuristic row adapter;
+3. catalog mask/bounds/finite postprocessing;
+4. deterministic feature extraction and group-owned split keys;
+5. a default-off read-only `SocietyDecisionObserver` seam whose enabled and
+   disabled authority checkpoints are regression-equal;
+6. an external bounded Parquet producer using locked `pyarrow==19.0.1`;
+7. focused contracts/provider/authority-neutrality tests.
 
-Do not start dataset generation or PyTorch architecture work before that commit
-passes. Do not change public protocol or accepted M3 behavior.
+The next action is to generate and inspect the 10,000-row AutoDL smoke dataset.
+Do not start PyTorch architecture work until its manifest, shard hashes,
+teacher reproduction, grouping, and coverage report pass. Do not change public
+protocol or accepted M3 behavior.
 
 ## Pause/resume
 
@@ -55,4 +61,4 @@ At each safe point update the durable
 Generated data/model artifacts are external and referenced by relative path,
 SHA-256, byte size, schema, source commit, and parent artifact hashes.
 
-Current entry stage: `M4_ACTIVATION_BASELINE`.
+Current source stage: `M4_DATA_FOUNDATION`.

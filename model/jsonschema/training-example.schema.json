@@ -1,0 +1,1262 @@
+{
+  "$defs": {
+    "BehaviorId": {
+      "enum": [
+        "idle",
+        "sleep",
+        "eat_at_home",
+        "shower",
+        "watch_tv",
+        "relax_at_home",
+        "work_shift",
+        "take_break",
+        "buy_groceries",
+        "eat_at_cafe",
+        "drink_at_bar",
+        "walk_in_park",
+        "sit_in_park",
+        "greet",
+        "chat",
+        "joke",
+        "compliment",
+        "share_event",
+        "invite_join",
+        "apologize",
+        "confront",
+        "end_conversation"
+      ],
+      "title": "BehaviorId",
+      "type": "string"
+    },
+    "CandidateFeatureRow": {
+      "additionalProperties": false,
+      "properties": {
+        "actor_id": {
+          "pattern": "^npc_[0-9]{2}$",
+          "title": "Actor Id",
+          "type": "string"
+        },
+        "candidate_id": {
+          "pattern": "^candidate_[0-9]+$",
+          "title": "Candidate Id",
+          "type": "string"
+        },
+        "candidate_rank": {
+          "minimum": 0,
+          "title": "Candidate Rank",
+          "type": "integer"
+        },
+        "categorical": {
+          "$ref": "#/$defs/CategoricalFeatures"
+        },
+        "decision_group_id": {
+          "minLength": 1,
+          "title": "Decision Group Id",
+          "type": "string"
+        },
+        "decision_id": {
+          "minLength": 1,
+          "title": "Decision Id",
+          "type": "string"
+        },
+        "episode_id": {
+          "minLength": 1,
+          "title": "Episode Id",
+          "type": "string"
+        },
+        "feature_version": {
+          "const": "v0.1",
+          "default": "v0.1",
+          "title": "Feature Version",
+          "type": "string"
+        },
+        "game_minute": {
+          "minimum": 0,
+          "title": "Game Minute",
+          "type": "integer"
+        },
+        "masks": {
+          "$ref": "#/$defs/FeatureMasks"
+        },
+        "numeric": {
+          "$ref": "#/$defs/NumericFeatures"
+        },
+        "project_name": {
+          "const": "Small Town World Model（STWM）",
+          "default": "Small Town World Model（STWM）",
+          "title": "Project Name",
+          "type": "string"
+        },
+        "raw_actor": {
+          "$ref": "#/$defs/RawActorFeatures"
+        },
+        "raw_candidate": {
+          "$ref": "#/$defs/RawCandidateFeatures"
+        },
+        "raw_events": {
+          "items": {
+            "$ref": "#/$defs/RawEventFeatures"
+          },
+          "maxItems": 4,
+          "title": "Raw Events",
+          "type": "array"
+        },
+        "raw_target": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/RawTargetFeatures"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "row_id": {
+          "pattern": "^row_[a-f0-9]{24}$",
+          "title": "Row Id",
+          "type": "string"
+        },
+        "scenario_group_id": {
+          "minLength": 1,
+          "title": "Scenario Group Id",
+          "type": "string"
+        },
+        "schema": {
+          "const": "stwm.model.candidate-feature-row/v1",
+          "default": "stwm.model.candidate-feature-row/v1",
+          "title": "Schema",
+          "type": "string"
+        },
+        "seed": {
+          "minimum": 0,
+          "title": "Seed",
+          "type": "integer"
+        },
+        "source_commit": {
+          "pattern": "^[a-f0-9]{40}$",
+          "title": "Source Commit",
+          "type": "string"
+        },
+        "source_state_version": {
+          "minimum": 0,
+          "title": "Source State Version",
+          "type": "integer"
+        },
+        "split": {
+          "enum": [
+            "train",
+            "validation",
+            "test"
+          ],
+          "title": "Split",
+          "type": "string"
+        }
+      },
+      "required": [
+        "row_id",
+        "source_commit",
+        "seed",
+        "episode_id",
+        "scenario_group_id",
+        "split",
+        "decision_group_id",
+        "decision_id",
+        "candidate_id",
+        "actor_id",
+        "source_state_version",
+        "game_minute",
+        "candidate_rank",
+        "raw_actor",
+        "raw_candidate",
+        "raw_target",
+        "raw_events",
+        "numeric",
+        "categorical",
+        "masks"
+      ],
+      "title": "CandidateFeatureRow",
+      "type": "object"
+    },
+    "CategoricalFeatures": {
+      "additionalProperties": false,
+      "properties": {
+        "actor_current_location_index": {
+          "minimum": 0,
+          "title": "Actor Current Location Index",
+          "type": "integer"
+        },
+        "actor_home_location_index": {
+          "minimum": 0,
+          "title": "Actor Home Location Index",
+          "type": "integer"
+        },
+        "actor_work_location_index": {
+          "minimum": 0,
+          "title": "Actor Work Location Index",
+          "type": "integer"
+        },
+        "behavior_index": {
+          "minimum": 0,
+          "title": "Behavior Index",
+          "type": "integer"
+        },
+        "capability_indices": {
+          "items": {
+            "minimum": 0,
+            "type": "integer"
+          },
+          "title": "Capability Indices",
+          "type": "array"
+        },
+        "destination_location_type_index": {
+          "title": "Destination Location Type Index",
+          "type": "integer"
+        },
+        "event_type_indices": {
+          "items": {
+            "type": "integer"
+          },
+          "maxItems": 4,
+          "minItems": 4,
+          "title": "Event Type Indices",
+          "type": "array"
+        },
+        "object_type_indices": {
+          "items": {
+            "minimum": 0,
+            "type": "integer"
+          },
+          "title": "Object Type Indices",
+          "type": "array"
+        },
+        "relationship_role_indices": {
+          "items": {
+            "minimum": 0,
+            "type": "integer"
+          },
+          "title": "Relationship Role Indices",
+          "type": "array"
+        }
+      },
+      "required": [
+        "behavior_index",
+        "actor_current_location_index",
+        "actor_home_location_index",
+        "actor_work_location_index",
+        "destination_location_type_index",
+        "object_type_indices",
+        "capability_indices",
+        "relationship_role_indices",
+        "event_type_indices"
+      ],
+      "title": "CategoricalFeatures",
+      "type": "object"
+    },
+    "EventType": {
+      "enum": [
+        "MEAL_CONSUMED",
+        "GROCERIES_PURCHASED",
+        "HOUSEHOLD_FOOD_LOW",
+        "HOUSEHOLD_MONEY_LOW",
+        "NEED_CRISIS",
+        "WORK_STARTED",
+        "WORK_COMPLETED",
+        "WORK_LATE",
+        "WORK_MISSED",
+        "COWORKER_EXTRA_LOAD",
+        "FIRST_GREETING",
+        "POSITIVE_INTERACTION",
+        "AWKWARD_INTERACTION",
+        "INVITATION_ACCEPTED",
+        "INVITATION_REJECTED",
+        "APOLOGY_ACCEPTED",
+        "APOLOGY_REJECTED",
+        "CONFLICT_STARTED",
+        "CONFLICT_ESCALATED",
+        "CONFLICT_REDUCED",
+        "EVENT_SHARED",
+        "CONVERSATION_STARTED",
+        "CONVERSATION_ENDED"
+      ],
+      "title": "EventType",
+      "type": "string"
+    },
+    "FeatureMasks": {
+      "additionalProperties": false,
+      "properties": {
+        "acceptance_present": {
+          "title": "Acceptance Present",
+          "type": "boolean"
+        },
+        "event_mask": {
+          "items": {
+            "type": "boolean"
+          },
+          "maxItems": 4,
+          "minItems": 4,
+          "title": "Event Mask",
+          "type": "array"
+        },
+        "relationship_delta_present": {
+          "title": "Relationship Delta Present",
+          "type": "boolean"
+        },
+        "relationship_present": {
+          "title": "Relationship Present",
+          "type": "boolean"
+        },
+        "target_mood_present": {
+          "title": "Target Mood Present",
+          "type": "boolean"
+        },
+        "target_present": {
+          "title": "Target Present",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "target_present",
+        "relationship_present",
+        "acceptance_present",
+        "target_mood_present",
+        "relationship_delta_present",
+        "event_mask"
+      ],
+      "title": "FeatureMasks",
+      "type": "object"
+    },
+    "HardCostPreview": {
+      "additionalProperties": false,
+      "properties": {
+        "household_food_units": {
+          "default": 0,
+          "title": "Household Food Units",
+          "type": "integer"
+        },
+        "household_money": {
+          "default": 0,
+          "title": "Household Money",
+          "type": "integer"
+        }
+      },
+      "title": "HardCostPreview",
+      "type": "object"
+    },
+    "LocationType": {
+      "enum": [
+        "HOME",
+        "CAFE_BAR",
+        "SHOP",
+        "WORKPLACE",
+        "PARK"
+      ],
+      "title": "LocationType",
+      "type": "string"
+    },
+    "MoodDelta": {
+      "additionalProperties": false,
+      "properties": {
+        "stress": {
+          "maximum": 1.0,
+          "minimum": -1.0,
+          "title": "Stress",
+          "type": "number"
+        },
+        "valence": {
+          "maximum": 1.0,
+          "minimum": -1.0,
+          "title": "Valence",
+          "type": "number"
+        }
+      },
+      "required": [
+        "valence",
+        "stress"
+      ],
+      "title": "MoodDelta",
+      "type": "object"
+    },
+    "MoodValues": {
+      "additionalProperties": false,
+      "properties": {
+        "stress": {
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "title": "Stress",
+          "type": "number"
+        },
+        "valence": {
+          "maximum": 1.0,
+          "minimum": -1.0,
+          "title": "Valence",
+          "type": "number"
+        }
+      },
+      "required": [
+        "valence",
+        "stress"
+      ],
+      "title": "MoodValues",
+      "type": "object"
+    },
+    "NeedDelta": {
+      "additionalProperties": false,
+      "properties": {
+        "energy": {
+          "maximum": 1.0,
+          "minimum": -1.0,
+          "title": "Energy",
+          "type": "number"
+        },
+        "fun": {
+          "maximum": 1.0,
+          "minimum": -1.0,
+          "title": "Fun",
+          "type": "number"
+        },
+        "hunger": {
+          "maximum": 1.0,
+          "minimum": -1.0,
+          "title": "Hunger",
+          "type": "number"
+        },
+        "hygiene": {
+          "maximum": 1.0,
+          "minimum": -1.0,
+          "title": "Hygiene",
+          "type": "number"
+        },
+        "social": {
+          "maximum": 1.0,
+          "minimum": -1.0,
+          "title": "Social",
+          "type": "number"
+        }
+      },
+      "required": [
+        "hunger",
+        "energy",
+        "hygiene",
+        "fun",
+        "social"
+      ],
+      "title": "NeedDelta",
+      "type": "object"
+    },
+    "NeedValues": {
+      "additionalProperties": false,
+      "properties": {
+        "energy": {
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "title": "Energy",
+          "type": "number"
+        },
+        "fun": {
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "title": "Fun",
+          "type": "number"
+        },
+        "hunger": {
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "title": "Hunger",
+          "type": "number"
+        },
+        "hygiene": {
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "title": "Hygiene",
+          "type": "number"
+        },
+        "social": {
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "title": "Social",
+          "type": "number"
+        }
+      },
+      "required": [
+        "hunger",
+        "energy",
+        "hygiene",
+        "fun",
+        "social"
+      ],
+      "title": "NeedValues",
+      "type": "object"
+    },
+    "NumericFeatures": {
+      "additionalProperties": false,
+      "properties": {
+        "actor_mood": {
+          "$ref": "#/$defs/MoodValues"
+        },
+        "actor_needs": {
+          "$ref": "#/$defs/NeedValues"
+        },
+        "actor_personality": {
+          "$ref": "#/$defs/PersonalityValues"
+        },
+        "decision_overdue_ratio": {
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "title": "Decision Overdue Ratio",
+          "type": "number"
+        },
+        "duration_ratio": {
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "title": "Duration Ratio",
+          "type": "number"
+        },
+        "event_age_ratio": {
+          "items": {
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "type": "number"
+          },
+          "maxItems": 4,
+          "minItems": 4,
+          "title": "Event Age Ratio",
+          "type": "array"
+        },
+        "event_importance": {
+          "items": {
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "type": "number"
+          },
+          "maxItems": 4,
+          "minItems": 4,
+          "title": "Event Importance",
+          "type": "array"
+        },
+        "food_cost_ratio": {
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "title": "Food Cost Ratio",
+          "type": "number"
+        },
+        "household_food_ratio": {
+          "maximum": 20.0,
+          "minimum": 0.0,
+          "title": "Household Food Ratio",
+          "type": "number"
+        },
+        "household_money_ratio": {
+          "maximum": 20.0,
+          "minimum": 0.0,
+          "title": "Household Money Ratio",
+          "type": "number"
+        },
+        "known_event_count_ratio": {
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "title": "Known Event Count Ratio",
+          "type": "number"
+        },
+        "local_population_ratio": {
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "title": "Local Population Ratio",
+          "type": "number"
+        },
+        "minute_of_day_cos": {
+          "maximum": 1.0,
+          "minimum": -1.0,
+          "title": "Minute Of Day Cos",
+          "type": "number"
+        },
+        "minute_of_day_sin": {
+          "maximum": 1.0,
+          "minimum": -1.0,
+          "title": "Minute Of Day Sin",
+          "type": "number"
+        },
+        "money_cost_ratio": {
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "title": "Money Cost Ratio",
+          "type": "number"
+        },
+        "schedule_conflict_ratio": {
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "title": "Schedule Conflict Ratio",
+          "type": "number"
+        },
+        "target_interaction_age_ratio": {
+          "anyOf": [
+            {
+              "maximum": 1.0,
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Target Interaction Age Ratio"
+        },
+        "target_mood": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/MoodValues"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "target_needs": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/NeedValues"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "target_relationship": {
+          "anyOf": [
+            {
+              "items": {
+                "maximum": 1.0,
+                "minimum": 0.0,
+                "type": "number"
+              },
+              "maxItems": 4,
+              "minItems": 4,
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Target Relationship"
+        },
+        "travel_ratio": {
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "title": "Travel Ratio",
+          "type": "number"
+        },
+        "weekday_cos": {
+          "maximum": 1.0,
+          "minimum": -1.0,
+          "title": "Weekday Cos",
+          "type": "number"
+        },
+        "weekday_sin": {
+          "maximum": 1.0,
+          "minimum": -1.0,
+          "title": "Weekday Sin",
+          "type": "number"
+        }
+      },
+      "required": [
+        "actor_needs",
+        "actor_mood",
+        "actor_personality",
+        "household_money_ratio",
+        "household_food_ratio",
+        "minute_of_day_sin",
+        "minute_of_day_cos",
+        "weekday_sin",
+        "weekday_cos",
+        "local_population_ratio",
+        "known_event_count_ratio",
+        "decision_overdue_ratio",
+        "travel_ratio",
+        "duration_ratio",
+        "schedule_conflict_ratio",
+        "money_cost_ratio",
+        "food_cost_ratio",
+        "target_needs",
+        "target_mood",
+        "target_relationship",
+        "target_interaction_age_ratio",
+        "event_importance",
+        "event_age_ratio"
+      ],
+      "title": "NumericFeatures",
+      "type": "object"
+    },
+    "OutcomeLabel": {
+      "additionalProperties": false,
+      "properties": {
+        "label_version": {
+          "const": "v0.1",
+          "default": "v0.1",
+          "title": "Label Version",
+          "type": "string"
+        },
+        "prediction": {
+          "$ref": "#/$defs/OutcomePrediction"
+        },
+        "resolver_attempted": {
+          "title": "Resolver Attempted",
+          "type": "boolean"
+        },
+        "resolver_result": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Resolver Result"
+        },
+        "row_id": {
+          "pattern": "^row_[a-f0-9]{24}$",
+          "title": "Row Id",
+          "type": "string"
+        },
+        "schema": {
+          "const": "stwm.model.outcome-label/v1",
+          "default": "stwm.model.outcome-label/v1",
+          "title": "Schema",
+          "type": "string"
+        },
+        "selected_by_teacher": {
+          "title": "Selected By Teacher",
+          "type": "boolean"
+        },
+        "teacher_provider_id": {
+          "const": "stwm.heuristic.m3/v1",
+          "default": "stwm.heuristic.m3/v1",
+          "title": "Teacher Provider Id",
+          "type": "string"
+        },
+        "tie_break": {
+          "title": "Tie Break",
+          "type": "number"
+        },
+        "total_score": {
+          "title": "Total Score",
+          "type": "number"
+        },
+        "utility_terms": {
+          "additionalProperties": {
+            "type": "number"
+          },
+          "title": "Utility Terms",
+          "type": "object"
+        }
+      },
+      "required": [
+        "row_id",
+        "prediction",
+        "utility_terms",
+        "total_score",
+        "tie_break",
+        "selected_by_teacher",
+        "resolver_attempted",
+        "resolver_result"
+      ],
+      "title": "OutcomeLabel",
+      "type": "object"
+    },
+    "OutcomePrediction": {
+      "additionalProperties": false,
+      "properties": {
+        "acceptance_probability": {
+          "anyOf": [
+            {
+              "maximum": 1.0,
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Acceptance Probability"
+        },
+        "actor_mood_delta": {
+          "$ref": "#/$defs/MoodDelta"
+        },
+        "candidate_id": {
+          "pattern": "^candidate_[0-9]+$",
+          "title": "Candidate Id",
+          "type": "string"
+        },
+        "event_probabilities": {
+          "additionalProperties": {
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "type": "number"
+          },
+          "propertyNames": {
+            "$ref": "#/$defs/EventType"
+          },
+          "title": "Event Probabilities",
+          "type": "object"
+        },
+        "need_delta_preview": {
+          "$ref": "#/$defs/NeedDelta"
+        },
+        "prediction_id": {
+          "pattern": "^prediction_[0-9]+$",
+          "title": "Prediction Id",
+          "type": "string"
+        },
+        "relationship_delta_target_to_actor": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/RelationshipDelta"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "relationship_direction": {
+          "const": "TARGET_TO_ACTOR",
+          "title": "Relationship Direction",
+          "type": "string"
+        },
+        "target_mood_delta": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/MoodDelta"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "prediction_id",
+        "candidate_id",
+        "need_delta_preview",
+        "actor_mood_delta",
+        "target_mood_delta",
+        "relationship_direction",
+        "relationship_delta_target_to_actor",
+        "acceptance_probability",
+        "event_probabilities"
+      ],
+      "title": "OutcomePrediction",
+      "type": "object"
+    },
+    "PersonalityValues": {
+      "additionalProperties": false,
+      "properties": {
+        "discipline": {
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "title": "Discipline",
+          "type": "number"
+        },
+        "frugality": {
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "title": "Frugality",
+          "type": "number"
+        },
+        "irritability": {
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "title": "Irritability",
+          "type": "number"
+        },
+        "sociability": {
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "title": "Sociability",
+          "type": "number"
+        }
+      },
+      "required": [
+        "sociability",
+        "discipline",
+        "frugality",
+        "irritability"
+      ],
+      "title": "PersonalityValues",
+      "type": "object"
+    },
+    "RawActorFeatures": {
+      "additionalProperties": false,
+      "properties": {
+        "assigned_work_location_id": {
+          "pattern": "^[a-z][a-z0-9_]*$",
+          "title": "Assigned Work Location Id",
+          "type": "string"
+        },
+        "current_location_id": {
+          "pattern": "^[a-z][a-z0-9_]*$",
+          "title": "Current Location Id",
+          "type": "string"
+        },
+        "decision_overdue_minutes": {
+          "minimum": 0,
+          "title": "Decision Overdue Minutes",
+          "type": "integer"
+        },
+        "home_location_id": {
+          "pattern": "^[a-z][a-z0-9_]*$",
+          "title": "Home Location Id",
+          "type": "string"
+        },
+        "household_food_units": {
+          "minimum": 0,
+          "title": "Household Food Units",
+          "type": "integer"
+        },
+        "household_money": {
+          "minimum": 0,
+          "title": "Household Money",
+          "type": "integer"
+        },
+        "known_event_count": {
+          "minimum": 0,
+          "title": "Known Event Count",
+          "type": "integer"
+        },
+        "local_population": {
+          "minimum": 0,
+          "title": "Local Population",
+          "type": "integer"
+        },
+        "mood": {
+          "$ref": "#/$defs/MoodValues"
+        },
+        "needs": {
+          "$ref": "#/$defs/NeedValues"
+        },
+        "personality": {
+          "$ref": "#/$defs/PersonalityValues"
+        }
+      },
+      "required": [
+        "needs",
+        "mood",
+        "personality",
+        "household_money",
+        "household_food_units",
+        "current_location_id",
+        "home_location_id",
+        "assigned_work_location_id",
+        "local_population",
+        "known_event_count",
+        "decision_overdue_minutes"
+      ],
+      "title": "RawActorFeatures",
+      "type": "object"
+    },
+    "RawCandidateFeatures": {
+      "additionalProperties": false,
+      "properties": {
+        "behavior_id": {
+          "$ref": "#/$defs/BehaviorId"
+        },
+        "capability_values": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Capability Values",
+          "type": "array"
+        },
+        "crosses_location": {
+          "title": "Crosses Location",
+          "type": "boolean"
+        },
+        "destination_location_id": {
+          "anyOf": [
+            {
+              "pattern": "^[a-z][a-z0-9_]*$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Destination Location Id"
+        },
+        "destination_location_type": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/LocationType"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "estimated_duration_minutes": {
+          "minimum": 0,
+          "title": "Estimated Duration Minutes",
+          "type": "integer"
+        },
+        "estimated_travel_minutes": {
+          "minimum": 0,
+          "title": "Estimated Travel Minutes",
+          "type": "integer"
+        },
+        "hard_cost_preview": {
+          "$ref": "#/$defs/HardCostPreview"
+        },
+        "joint_action_candidate": {
+          "title": "Joint Action Candidate",
+          "type": "boolean"
+        },
+        "object_type_values": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Object Type Values",
+          "type": "array"
+        },
+        "repeats_previous_behavior": {
+          "title": "Repeats Previous Behavior",
+          "type": "boolean"
+        },
+        "schedule_conflict_minutes": {
+          "minimum": 0,
+          "title": "Schedule Conflict Minutes",
+          "type": "integer"
+        },
+        "target_object_ids": {
+          "items": {
+            "pattern": "^[a-z][a-z0-9_]*_[0-9]{2}$",
+            "type": "string"
+          },
+          "title": "Target Object Ids",
+          "type": "array"
+        }
+      },
+      "required": [
+        "behavior_id",
+        "destination_location_id",
+        "destination_location_type",
+        "target_object_ids",
+        "object_type_values",
+        "capability_values",
+        "estimated_travel_minutes",
+        "estimated_duration_minutes",
+        "schedule_conflict_minutes",
+        "hard_cost_preview",
+        "repeats_previous_behavior",
+        "crosses_location",
+        "joint_action_candidate"
+      ],
+      "title": "RawCandidateFeatures",
+      "type": "object"
+    },
+    "RawEventFeatures": {
+      "additionalProperties": false,
+      "properties": {
+        "actor_is_participant": {
+          "title": "Actor Is Participant",
+          "type": "boolean"
+        },
+        "age_minutes": {
+          "minimum": 0,
+          "title": "Age Minutes",
+          "type": "integer"
+        },
+        "event_id": {
+          "pattern": "^event_[0-9]+$",
+          "title": "Event Id",
+          "type": "string"
+        },
+        "event_type": {
+          "$ref": "#/$defs/EventType"
+        },
+        "importance": {
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "title": "Importance",
+          "type": "number"
+        },
+        "same_location": {
+          "title": "Same Location",
+          "type": "boolean"
+        },
+        "target_is_participant": {
+          "title": "Target Is Participant",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "event_id",
+        "event_type",
+        "importance",
+        "age_minutes",
+        "actor_is_participant",
+        "target_is_participant",
+        "same_location"
+      ],
+      "title": "RawEventFeatures",
+      "type": "object"
+    },
+    "RawTargetFeatures": {
+      "additionalProperties": false,
+      "properties": {
+        "active_conversation": {
+          "title": "Active Conversation",
+          "type": "boolean"
+        },
+        "agent_id": {
+          "pattern": "^npc_[0-9]{2}$",
+          "title": "Agent Id",
+          "type": "string"
+        },
+        "coworker": {
+          "title": "Coworker",
+          "type": "boolean"
+        },
+        "knows_selected_event": {
+          "title": "Knows Selected Event",
+          "type": "boolean"
+        },
+        "minutes_since_interaction": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Minutes Since Interaction"
+        },
+        "mood": {
+          "$ref": "#/$defs/MoodValues"
+        },
+        "needs": {
+          "$ref": "#/$defs/NeedValues"
+        },
+        "relationship_affinity": {
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "title": "Relationship Affinity",
+          "type": "number"
+        },
+        "relationship_familiarity": {
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "title": "Relationship Familiarity",
+          "type": "number"
+        },
+        "relationship_roles_target_to_actor": {
+          "items": {
+            "$ref": "#/$defs/RelationshipRole"
+          },
+          "title": "Relationship Roles Target To Actor",
+          "type": "array"
+        },
+        "relationship_tension": {
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "title": "Relationship Tension",
+          "type": "number"
+        },
+        "relationship_trust": {
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "title": "Relationship Trust",
+          "type": "number"
+        },
+        "same_household": {
+          "title": "Same Household",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "agent_id",
+        "needs",
+        "mood",
+        "relationship_roles_target_to_actor",
+        "relationship_familiarity",
+        "relationship_affinity",
+        "relationship_trust",
+        "relationship_tension",
+        "minutes_since_interaction",
+        "same_household",
+        "coworker",
+        "active_conversation",
+        "knows_selected_event"
+      ],
+      "title": "RawTargetFeatures",
+      "type": "object"
+    },
+    "RelationshipDelta": {
+      "additionalProperties": false,
+      "properties": {
+        "affinity": {
+          "maximum": 1.0,
+          "minimum": -1.0,
+          "title": "Affinity",
+          "type": "number"
+        },
+        "familiarity": {
+          "maximum": 1.0,
+          "minimum": -1.0,
+          "title": "Familiarity",
+          "type": "number"
+        },
+        "tension": {
+          "maximum": 1.0,
+          "minimum": -1.0,
+          "title": "Tension",
+          "type": "number"
+        },
+        "trust": {
+          "maximum": 1.0,
+          "minimum": -1.0,
+          "title": "Trust",
+          "type": "number"
+        }
+      },
+      "required": [
+        "familiarity",
+        "affinity",
+        "trust",
+        "tension"
+      ],
+      "title": "RelationshipDelta",
+      "type": "object"
+    },
+    "RelationshipRole": {
+      "enum": [
+        "HOUSEHOLD_MEMBER",
+        "COWORKER",
+        "NEIGHBOR",
+        "ACQUAINTANCE"
+      ],
+      "title": "RelationshipRole",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "feature": {
+      "$ref": "#/$defs/CandidateFeatureRow"
+    },
+    "label": {
+      "$ref": "#/$defs/OutcomeLabel"
+    },
+    "schema": {
+      "const": "stwm.model.training-example/v1",
+      "default": "stwm.model.training-example/v1",
+      "title": "Schema",
+      "type": "string"
+    }
+  },
+  "required": [
+    "feature",
+    "label"
+  ],
+  "title": "TrainingExample",
+  "type": "object"
+}

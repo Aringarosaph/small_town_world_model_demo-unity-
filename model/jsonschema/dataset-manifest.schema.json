@@ -1,0 +1,276 @@
+{
+  "$defs": {
+    "BehaviorId": {
+      "enum": [
+        "idle",
+        "sleep",
+        "eat_at_home",
+        "shower",
+        "watch_tv",
+        "relax_at_home",
+        "work_shift",
+        "take_break",
+        "buy_groceries",
+        "eat_at_cafe",
+        "drink_at_bar",
+        "walk_in_park",
+        "sit_in_park",
+        "greet",
+        "chat",
+        "joke",
+        "compliment",
+        "share_event",
+        "invite_join",
+        "apologize",
+        "confront",
+        "end_conversation"
+      ],
+      "title": "BehaviorId",
+      "type": "string"
+    },
+    "DatasetShard": {
+      "additionalProperties": false,
+      "properties": {
+        "bytes": {
+          "minimum": 0,
+          "title": "Bytes",
+          "type": "integer"
+        },
+        "decision_group_count": {
+          "exclusiveMinimum": 0,
+          "title": "Decision Group Count",
+          "type": "integer"
+        },
+        "relative_path": {
+          "minLength": 1,
+          "title": "Relative Path",
+          "type": "string"
+        },
+        "row_count": {
+          "exclusiveMinimum": 0,
+          "title": "Row Count",
+          "type": "integer"
+        },
+        "sha256": {
+          "pattern": "^[a-f0-9]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        },
+        "shard_id": {
+          "pattern": "^shard_[0-9]{5}$",
+          "title": "Shard Id",
+          "type": "string"
+        },
+        "split_counts": {
+          "additionalProperties": {
+            "minimum": 0,
+            "type": "integer"
+          },
+          "propertyNames": {
+            "enum": [
+              "train",
+              "validation",
+              "test"
+            ]
+          },
+          "title": "Split Counts",
+          "type": "object"
+        }
+      },
+      "required": [
+        "relative_path",
+        "sha256",
+        "bytes",
+        "shard_id",
+        "row_count",
+        "decision_group_count",
+        "split_counts"
+      ],
+      "title": "DatasetShard",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "behavior_counts": {
+      "additionalProperties": {
+        "minimum": 0,
+        "type": "integer"
+      },
+      "propertyNames": {
+        "$ref": "#/$defs/BehaviorId"
+      },
+      "title": "Behavior Counts",
+      "type": "object"
+    },
+    "completed_at_utc": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Completed At Utc"
+    },
+    "config_hash": {
+      "pattern": "^[a-f0-9]{64}$",
+      "title": "Config Hash",
+      "type": "string"
+    },
+    "dataset_id": {
+      "minLength": 1,
+      "title": "Dataset Id",
+      "type": "string"
+    },
+    "decision_group_count": {
+      "minimum": 0,
+      "title": "Decision Group Count",
+      "type": "integer"
+    },
+    "failure": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Failure"
+    },
+    "feature_version": {
+      "const": "v0.1",
+      "default": "v0.1",
+      "title": "Feature Version",
+      "type": "string"
+    },
+    "generator_version": {
+      "const": "v1",
+      "default": "v1",
+      "title": "Generator Version",
+      "type": "string"
+    },
+    "label_version": {
+      "const": "v0.1",
+      "default": "v0.1",
+      "title": "Label Version",
+      "type": "string"
+    },
+    "m3_catalog_hash": {
+      "pattern": "^[a-f0-9]{64}$",
+      "title": "M3 Catalog Hash",
+      "type": "string"
+    },
+    "max_rows_per_shard": {
+      "exclusiveMinimum": 0,
+      "maximum": 25000,
+      "title": "Max Rows Per Shard",
+      "type": "integer"
+    },
+    "parquet_encoding": {
+      "const": "canonical_training_example_json/v1",
+      "default": "canonical_training_example_json/v1",
+      "title": "Parquet Encoding",
+      "type": "string"
+    },
+    "project_name": {
+      "const": "Small Town World Model（STWM）",
+      "default": "Small Town World Model（STWM）",
+      "title": "Project Name",
+      "type": "string"
+    },
+    "row_count": {
+      "minimum": 0,
+      "title": "Row Count",
+      "type": "integer"
+    },
+    "schema": {
+      "const": "stwm.model.dataset-manifest/v1",
+      "default": "stwm.model.dataset-manifest/v1",
+      "title": "Schema",
+      "type": "string"
+    },
+    "seeds": {
+      "items": {
+        "minimum": 0,
+        "type": "integer"
+      },
+      "minItems": 1,
+      "title": "Seeds",
+      "type": "array"
+    },
+    "shards": {
+      "items": {
+        "$ref": "#/$defs/DatasetShard"
+      },
+      "title": "Shards",
+      "type": "array"
+    },
+    "source_commit": {
+      "pattern": "^[a-f0-9]{40}$",
+      "title": "Source Commit",
+      "type": "string"
+    },
+    "split_counts": {
+      "additionalProperties": {
+        "minimum": 0,
+        "type": "integer"
+      },
+      "propertyNames": {
+        "enum": [
+          "train",
+          "validation",
+          "test"
+        ]
+      },
+      "title": "Split Counts",
+      "type": "object"
+    },
+    "started_at_utc": {
+      "minLength": 1,
+      "title": "Started At Utc",
+      "type": "string"
+    },
+    "status": {
+      "enum": [
+        "IN_PROGRESS",
+        "COMPLETED",
+        "FAILED"
+      ],
+      "title": "Status",
+      "type": "string"
+    },
+    "vocabulary": {
+      "additionalProperties": {
+        "items": {
+          "type": "string"
+        },
+        "type": "array"
+      },
+      "title": "Vocabulary",
+      "type": "object"
+    }
+  },
+  "required": [
+    "dataset_id",
+    "status",
+    "source_commit",
+    "config_hash",
+    "m3_catalog_hash",
+    "seeds",
+    "max_rows_per_shard",
+    "decision_group_count",
+    "row_count",
+    "split_counts",
+    "behavior_counts",
+    "shards",
+    "vocabulary",
+    "started_at_utc"
+  ],
+  "title": "DatasetManifest",
+  "type": "object"
+}

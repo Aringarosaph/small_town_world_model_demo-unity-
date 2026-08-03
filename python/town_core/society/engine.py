@@ -5,7 +5,7 @@ from __future__ import annotations
 from collections.abc import Iterator, Mapping, Sequence
 from dataclasses import dataclass
 from time import perf_counter
-from typing import Any, cast
+from typing import Any, Protocol, cast
 
 from town_core.catalogs import m3_catalog_hash
 from town_core.domain.config_models import BehaviorConfig, CatalogBundle, MoodValues, NeedValues, ScheduleEntry
@@ -60,6 +60,22 @@ class _PreparedDecision:
     decision_id: str
     actor_id: str
     candidates: tuple[ScoredSocietyCandidate, ...]
+    recent_behavior: BehaviorId | None
+
+
+class SocietyDecisionObserver(Protocol):
+    """Optional read-only M4 seam; absence preserves the accepted M3 path."""
+
+    def record_decision(
+        self,
+        *,
+        source_state: WorldState,
+        decision: Mapping[str, object],
+        events: Mapping[str, WorldEvent],
+        knowledge_records: Mapping[str, KnowledgeRecord],
+        conversations: Mapping[str, ConversationRecord],
+        recent_behavior: BehaviorId | None,
+    ) -> None: ...
 
 
 class _EventLedgerIndex(Mapping[str, WorldEvent]):
@@ -199,6 +215,7 @@ class SocietyEngine:
         behavior_allowlist: frozenset[BehaviorId] | None = None,
         runtime_mode: RuntimeMode = RuntimeMode.HEADLESS_FAST,
         movement_timeout_minutes: int = 15,
+        decision_observer: SocietyDecisionObserver | None = None,
     ) -> None:
         if behavior_allowlist is not None and BehaviorId.IDLE not in behavior_allowlist:
             raise ValueError("a scoped society behavior profile must retain idle fallback")
@@ -211,6 +228,7 @@ class SocietyEngine:
         if movement_timeout_minutes <= 0:
             raise ValueError("M3 movement timeout must be positive")
         self.movement_timeout_minutes = movement_timeout_minutes
+        self.decision_observer = decision_observer
         self.templates = BackgroundTemplateProvider(m3_catalogs.background_dialogue)
         self._m3_catalog_hash = m3_catalog_hash(m3_catalogs)
         self._event_config = {item.event_type: item for item in catalog.events.event_types}
@@ -694,6 +712,7 @@ class SocietyEngine:
                     decision_id=f"decision_{context.bump('decision'):08d}",
                     actor_id=agent_id,
                     candidates=tuple(scored_candidates),
+                    recent_behavior=context.recent_behaviors.get(agent_id),
                 )
             )
 
@@ -748,27 +767,35 @@ class SocietyEngine:
         for agent_id in sorted(by_actor):
             prepared_decision = by_actor[agent_id]
             outcome = outcomes[agent_id]
-            context.decisions.append(
-                {
-                    "decision_id": prepared_decision.decision_id,
-                    "source_state_version": source_state.state_version,
-                    "game_minute": context.minute,
-                    "agent_id": agent_id,
-                    "trigger": "DECISION_DUE",
-                    "candidates": [
-                        {
-                            "candidate": item.candidate.model_dump(mode="json", exclude_none=False),
-                            "prediction": item.prediction.model_dump(mode="json", exclude_none=False),
-                            "utility_terms": item.utility_terms,
-                            "total_score": item.total_score,
-                            "tie_break": item.tie_break,
-                        }
-                        for item in prepared_decision.candidates
-                    ],
-                    **outcome,
-                    "outcome_provider": HEURISTIC_PROVIDER_ID,
-                }
-            )
+            decision_record: dict[str, object] = {
+                "decision_id": prepared_decision.decision_id,
+                "source_state_version": source_state.state_version,
+                "game_minute": context.minute,
+                "agent_id": agent_id,
+                "trigger": "DECISION_DUE",
+                "candidates": [
+                    {
+                        "candidate": item.candidate.model_dump(mode="json", exclude_none=False),
+                        "prediction": item.prediction.model_dump(mode="json", exclude_none=False),
+                        "utility_terms": item.utility_terms,
+                        "total_score": item.total_score,
+                        "tie_break": item.tie_break,
+                    }
+                    for item in prepared_decision.candidates
+                ],
+                **outcome,
+                "outcome_provider": HEURISTIC_PROVIDER_ID,
+            }
+            context.decisions.append(decision_record)
+            if self.decision_observer is not None:
+                self.decision_observer.record_decision(
+                    source_state=source_state,
+                    decision=decision_record,
+                    events=events_by_id,
+                    knowledge_records=context.knowledge_records,
+                    conversations=context.conversations,
+                    recent_behavior=prepared_decision.recent_behavior,
+                )
             context.changes.append(f"decision_committed:{prepared_decision.decision_id}:{agent_id}")
 
     def _proposal(

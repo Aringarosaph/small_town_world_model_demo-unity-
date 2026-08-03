@@ -1,0 +1,14 @@
+{
+  "feature_version": "v0.1",
+  "label_version": "v0.1",
+  "project_name": "Small Town World Model（STWM）",
+  "schemas": {
+    "candidate-feature-row": "stwm.model.candidate-feature-row/v1",
+    "dataset-manifest": "stwm.model.dataset-manifest/v1",
+    "evaluation-report": "stwm.model.evaluation-report/v1",
+    "outcome-label": "stwm.model.outcome-label/v1",
+    "outcome-package": "stwm.model.outcome-package/v1",
+    "social-anchor": "stwm.model.social-anchor/v1",
+    "training-example": "stwm.model.training-example/v1"
+  }
+}

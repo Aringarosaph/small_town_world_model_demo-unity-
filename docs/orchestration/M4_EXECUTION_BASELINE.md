@@ -234,9 +234,14 @@ activation, with a possible reset later on 2026-08-04. AITOWN-ORCH reads the
 account rate-limit snapshot only at safe boundaries:
 
 - `usedPercent <= 10`: at least 90% remains; normal implementation may proceed;
-- `usedPercent > 90`: less than 10% remains; only close the current atomic unit;
-- `usedPercent >= 95`: create/update the pause handoff, sync durable artifacts,
+- `usedPercent < 98`: more than about 2% remains; bounded implementation and
+  dataset work may continue, but long training remains separately authorized;
+- `usedPercent >= 98`: create/update the pause handoff, sync durable artifacts,
   commit a coherent source state, and stop new implementation work.
+
+This threshold was explicitly revised by the producer on 2026-08-04 after the
+activation baseline. Safe atomic boundaries and the ban on unapproved manual
+reset credits remain unchanged.
 
 Manual reset credits are never consumed without explicit producer approval.
 

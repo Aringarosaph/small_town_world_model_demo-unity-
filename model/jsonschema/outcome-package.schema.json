@@ -1,0 +1,131 @@
+{
+  "$defs": {
+    "ArtifactDescriptor": {
+      "additionalProperties": false,
+      "properties": {
+        "bytes": {
+          "minimum": 0,
+          "title": "Bytes",
+          "type": "integer"
+        },
+        "relative_path": {
+          "minLength": 1,
+          "title": "Relative Path",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[a-f0-9]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "relative_path",
+        "sha256",
+        "bytes"
+      ],
+      "title": "ArtifactDescriptor",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "architecture": {
+      "additionalProperties": true,
+      "title": "Architecture",
+      "type": "object"
+    },
+    "checkpoint": {
+      "$ref": "#/$defs/ArtifactDescriptor"
+    },
+    "config_hash": {
+      "pattern": "^[a-f0-9]{64}$",
+      "title": "Config Hash",
+      "type": "string"
+    },
+    "dataset_manifest_sha256": {
+      "pattern": "^[a-f0-9]{64}$",
+      "title": "Dataset Manifest Sha256",
+      "type": "string"
+    },
+    "evaluation": {
+      "$ref": "#/$defs/ArtifactDescriptor"
+    },
+    "feature_version": {
+      "const": "v0.1",
+      "default": "v0.1",
+      "title": "Feature Version",
+      "type": "string"
+    },
+    "label_version": {
+      "const": "v0.1",
+      "default": "v0.1",
+      "title": "Label Version",
+      "type": "string"
+    },
+    "model_version": {
+      "minLength": 1,
+      "title": "Model Version",
+      "type": "string"
+    },
+    "normalization": {
+      "additionalProperties": {
+        "type": "number"
+      },
+      "title": "Normalization",
+      "type": "object"
+    },
+    "project_name": {
+      "const": "Small Town World Model（STWM）",
+      "default": "Small Town World Model（STWM）",
+      "title": "Project Name",
+      "type": "string"
+    },
+    "python_version": {
+      "minLength": 1,
+      "title": "Python Version",
+      "type": "string"
+    },
+    "pytorch_version": {
+      "minLength": 1,
+      "title": "Pytorch Version",
+      "type": "string"
+    },
+    "schema": {
+      "const": "stwm.model.outcome-package/v1",
+      "default": "stwm.model.outcome-package/v1",
+      "title": "Schema",
+      "type": "string"
+    },
+    "source_commit": {
+      "pattern": "^[a-f0-9]{40}$",
+      "title": "Source Commit",
+      "type": "string"
+    },
+    "vocabulary": {
+      "additionalProperties": {
+        "items": {
+          "type": "string"
+        },
+        "type": "array"
+      },
+      "title": "Vocabulary",
+      "type": "object"
+    }
+  },
+  "required": [
+    "model_version",
+    "source_commit",
+    "python_version",
+    "pytorch_version",
+    "architecture",
+    "vocabulary",
+    "normalization",
+    "config_hash",
+    "dataset_manifest_sha256",
+    "checkpoint",
+    "evaluation"
+  ],
+  "title": "OutcomePackage",
+  "type": "object"
+}
