@@ -36,7 +36,9 @@ from town_core.modeling.contracts import (
     SocialAnchorApprovalManifest,
     SocialAnchorCoveragePolicy,
     SocialAnchorJudgment,
+    SocialAnchorReviewedBatchSource,
     SocialAnchorTask,
+    SocialAnchorTrainingInputManifest,
     SocialAnchorTypedAssertion,
     TrainingExample,
 )
@@ -350,6 +352,50 @@ def test_anchor_judgment_and_final_approval_keep_provenance_separate() -> None:
     invalid["entries"][0]["decision"] = "REJECTED"
     with pytest.raises(ValidationError, match="frozen 300-entry"):
         SocialAnchorApprovalManifest.model_validate(invalid)
+
+
+def test_training_input_manifest_excludes_holdout_and_covers_seven_batches() -> None:
+    descriptor = ArtifactDescriptor(relative_path="artifact.json", sha256="1" * 64, bytes=1)
+    sources = [
+        SocialAnchorReviewedBatchSource(
+            behavior_id=behavior,
+            batch_manifest=descriptor,
+            draft_approval=descriptor,
+        )
+        for behavior in BEHAVIORS
+    ]
+    manifest = SocialAnchorTrainingInputManifest(
+        source_commit="a" * 40,
+        created_at_utc="2026-08-04T00:00:00Z",
+        source_dataset_manifest_sha256="b" * 64,
+        raw_dataset_manifest=descriptor,
+        coverage_policy=descriptor,
+        tasks=descriptor,
+        final_anchor_approval=descriptor,
+        fit_judgments=descriptor,
+        source_batches=sources,
+        heuristic_passthrough_output_paths=[
+            "need_delta_preview.hunger",
+            "need_delta_preview.energy",
+            "need_delta_preview.hygiene",
+            "need_delta_preview.fun",
+            "need_delta_preview.social",
+            "event_probabilities",
+        ],
+    )
+    assert manifest.included_partitions == ("TRAIN", "VALIDATION")
+    assert manifest.excluded_partition == "ANCHOR_HOLDOUT"
+    assert (manifest.train_count, manifest.validation_count, manifest.excluded_anchor_holdout_count) == (210, 30, 60)
+
+    duplicate_behavior = manifest.model_dump(mode="json", by_alias=True)
+    duplicate_behavior["source_batches"][-1]["behavior_id"] = "greet"
+    with pytest.raises(ValidationError, match="exactly one reviewed batch"):
+        SocialAnchorTrainingInputManifest.model_validate(duplicate_behavior)
+
+    leaked_boundary = manifest.model_dump(mode="json", by_alias=True)
+    leaked_boundary["included_partitions"] = ["TRAIN", "ANCHOR_HOLDOUT"]
+    with pytest.raises(ValidationError):
+        SocialAnchorTrainingInputManifest.model_validate(leaked_boundary)
 
 
 def test_coverage_policy_rejects_threshold_or_quota_drift() -> None:

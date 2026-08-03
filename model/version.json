@@ -14,6 +14,7 @@
     "social-anchor-judgment": "stwm.model.social-anchor-judgment/v1",
     "social-anchor-review-issue": "stwm.model.social-anchor-review-issue/v1",
     "social-anchor-task": "stwm.model.social-anchor-task/v1",
+    "social-anchor-training-input-manifest": "stwm.model.social-anchor-training-input-manifest/v1",
     "training-example": "stwm.model.training-example/v1"
   }
 }

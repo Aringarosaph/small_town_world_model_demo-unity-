@@ -22,6 +22,7 @@ from town_core.modeling.contracts import (
     SocialAnchorJudgment,
     SocialAnchorReviewIssue,
     SocialAnchorTask,
+    SocialAnchorTrainingInputManifest,
     TrainingExample,
 )
 
@@ -35,6 +36,7 @@ SCHEMA_ADAPTERS: Mapping[str, TypeAdapter[Any]] = {
     "social-anchor-judgment": TypeAdapter(SocialAnchorJudgment),
     "social-anchor-review-issue": TypeAdapter(SocialAnchorReviewIssue),
     "social-anchor-task": TypeAdapter(SocialAnchorTask),
+    "social-anchor-training-input-manifest": TypeAdapter(SocialAnchorTrainingInputManifest),
     "dataset-manifest": TypeAdapter(DatasetManifest),
     "outcome-package": TypeAdapter(OutcomePackage),
     "evaluation-report": TypeAdapter(EvaluationReport),
@@ -56,6 +58,7 @@ VERSION_DOCUMENT = {
         "social-anchor-judgment": "stwm.model.social-anchor-judgment/v1",
         "social-anchor-review-issue": "stwm.model.social-anchor-review-issue/v1",
         "social-anchor-task": "stwm.model.social-anchor-task/v1",
+        "social-anchor-training-input-manifest": "stwm.model.social-anchor-training-input-manifest/v1",
         "training-example": "stwm.model.training-example/v1",
     },
 }

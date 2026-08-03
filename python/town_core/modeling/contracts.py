@@ -23,6 +23,7 @@ ANCHOR_JUDGMENT_SCHEMA = "stwm.model.social-anchor-judgment/v1"
 ANCHOR_REVIEW_ISSUE_SCHEMA = "stwm.model.social-anchor-review-issue/v1"
 ANCHOR_APPROVAL_SCHEMA = "stwm.model.social-anchor-approval-manifest/v1"
 ANCHOR_COVERAGE_POLICY_SCHEMA = "stwm.model.social-anchor-coverage-policy/v1"
+ANCHOR_TRAINING_INPUT_SCHEMA = "stwm.model.social-anchor-training-input-manifest/v1"
 DATASET_SCHEMA = "stwm.model.dataset-manifest/v1"
 PACKAGE_SCHEMA = "stwm.model.outcome-package/v1"
 EVALUATION_SCHEMA = "stwm.model.evaluation-report/v1"
@@ -588,6 +589,63 @@ class SocialAnchorApprovalManifest(ContractModel):
             }
             if len(approved) != 300 or actual != expected:
                 raise ValueError("final anchor approval must select the frozen 300-entry partition matrix")
+        return self
+
+
+class SocialAnchorReviewedBatchSource(ContractModel):
+    behavior_id: BehaviorId
+    batch_manifest: ArtifactDescriptor
+    draft_approval: ArtifactDescriptor
+
+    @model_validator(mode="after")
+    def validate_behavior(self) -> SocialAnchorReviewedBatchSource:
+        if self.behavior_id not in REVIEWED_SOCIAL_BEHAVIORS:
+            raise ValueError("anchor training source behavior is outside the reviewed social allowlist")
+        return self
+
+
+class SocialAnchorTrainingInputManifest(ContractModel):
+    schema_id: Literal["stwm.model.social-anchor-training-input-manifest/v1"] = Field(
+        default="stwm.model.social-anchor-training-input-manifest/v1",
+        alias="schema",
+        serialization_alias="schema",
+    )
+    project_name: Literal["Small Town World Model（STWM）"] = "Small Town World Model（STWM）"
+    source_commit: Annotated[str, Field(pattern=COMMIT_PATTERN)]
+    created_at_utc: Annotated[str, Field(min_length=1)]
+    source_dataset_manifest_sha256: Annotated[str, Field(pattern=SHA256_PATTERN)]
+    raw_dataset_manifest: ArtifactDescriptor
+    coverage_policy: ArtifactDescriptor
+    tasks: ArtifactDescriptor
+    final_anchor_approval: ArtifactDescriptor
+    fit_judgments: ArtifactDescriptor
+    source_batches: Annotated[list[SocialAnchorReviewedBatchSource], Field(min_length=7, max_length=7)]
+    train_count: Literal[210] = 210
+    validation_count: Literal[30] = 30
+    excluded_anchor_holdout_count: Literal[60] = 60
+    included_partitions: tuple[Literal["TRAIN"], Literal["VALIDATION"]] = ("TRAIN", "VALIDATION")
+    excluded_partition: Literal["ANCHOR_HOLDOUT"] = "ANCHOR_HOLDOUT"
+    heuristic_passthrough_output_paths: Annotated[list[HeuristicPassthroughOutputPath], Field(min_length=6)]
+    training_eligible: Literal[True] = True
+
+    @model_validator(mode="after")
+    def validate_frozen_training_boundary(self) -> SocialAnchorTrainingInputManifest:
+        behaviors = [item.behavior_id for item in self.source_batches]
+        if len(set(behaviors)) != 7 or set(behaviors) != REVIEWED_SOCIAL_BEHAVIORS:
+            raise ValueError("anchor training input must reference exactly one reviewed batch per behavior")
+        expected_passthrough = {
+            "need_delta_preview.hunger",
+            "need_delta_preview.energy",
+            "need_delta_preview.hygiene",
+            "need_delta_preview.fun",
+            "need_delta_preview.social",
+            "event_probabilities",
+        }
+        if (
+            len(self.heuristic_passthrough_output_paths) != len(expected_passthrough)
+            or set(self.heuristic_passthrough_output_paths) != expected_passthrough
+        ):
+            raise ValueError("anchor training input must preserve every ADR-0012 heuristic passthrough head")
         return self
 
 
