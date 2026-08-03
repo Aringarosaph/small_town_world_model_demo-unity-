@@ -1,4 +1,4 @@
-"""Resumable serial producer for the frozen M4 raw teacher dataset matrix."""
+"""Resumable producer for the frozen M4 raw teacher dataset matrix."""
 
 from __future__ import annotations
 
@@ -8,6 +8,8 @@ import os
 import platform
 from collections import Counter
 from collections.abc import Mapping, Sequence
+from concurrent.futures import ProcessPoolExecutor, as_completed
+from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any, cast
@@ -25,6 +27,19 @@ SEEDS = (12345, 24680, 97531, 314159, 271828)
 DAYS_PER_SEED = 60
 MAXIMUM_ROWS_PER_SEED = 100_000
 ROWS_PER_SHARD = 25_000
+MAX_PARALLEL_SEED_JOBS = len(SEEDS)
+
+
+@dataclass(frozen=True, slots=True)
+class _SeedJobSpec:
+    config_path: Path
+    runs_root: Path
+    dataset_id: str
+    seed: int
+    maximum_rows: int
+    maximum_minutes: int
+    rows_per_shard: int
+    source_commit: str
 
 
 def _utc_now() -> str:
@@ -110,6 +125,67 @@ def _load_or_create_state(root: Path, source_commit: str) -> dict[str, Any]:
     return state
 
 
+def _produce_seed_job(
+    spec: _SeedJobSpec,
+) -> dict[str, object]:
+    """Run one isolated seed and return only validated parent-process metadata."""
+
+    manifest = generate_dataset(
+        config_path=spec.config_path,
+        output_root=spec.runs_root,
+        dataset_id=spec.dataset_id,
+        seed=spec.seed,
+        maximum_rows=spec.maximum_rows,
+        maximum_minutes=spec.maximum_minutes,
+        rows_per_shard=spec.rows_per_shard,
+        source_commit=spec.source_commit,
+    )
+    validation = validate_dataset(spec.runs_root / spec.dataset_id)
+    return {
+        "worker_pid": os.getpid(),
+        "row_count": manifest.row_count,
+        "decision_group_count": manifest.decision_group_count,
+        "manifest_sha256": validation["manifest_sha256"],
+    }
+
+
+def _start_attempt(job: dict[str, Any], *, max_workers: int) -> tuple[dict[str, Any], str]:
+    attempt_number = len(job["attempts"]) + 1
+    dataset_id = f"{job['job_id']}_attempt_{attempt_number:02d}"
+    attempt: dict[str, Any] = {
+        "attempt": attempt_number,
+        "dataset_id": dataset_id,
+        "started_at_utc": _utc_now(),
+        "scheduled_max_workers": max_workers,
+    }
+    job["attempts"].append(attempt)
+    job["status"] = "RUNNING"
+    return attempt, dataset_id
+
+
+def _complete_attempt(
+    *,
+    job: dict[str, Any],
+    attempt: dict[str, Any],
+    dataset_id: str,
+    result: Mapping[str, object],
+) -> None:
+    attempt.update({"status": "COMPLETED", "completed_at_utc": _utc_now(), **result})
+    job["status"] = "COMPLETED"
+    job["dataset_id"] = dataset_id
+
+
+def _fail_attempt(*, job: dict[str, Any], attempt: dict[str, Any], error: Exception) -> None:
+    attempt.update(
+        {
+            "status": "FAILED",
+            "completed_at_utc": _utc_now(),
+            "error": f"{type(error).__name__}: {error}",
+        }
+    )
+    job["status"] = "FAILED"
+
+
 def _aggregate(root: Path, state: Mapping[str, Any]) -> DatasetManifest:
     manifests: list[tuple[str, DatasetManifest]] = []
     for job in state["jobs"]:
@@ -175,7 +251,10 @@ def produce_release_dataset(
     output_root: Path,
     source_commit: str,
     plan_only: bool = False,
+    max_workers: int = 1,
 ) -> dict[str, object]:
+    if not 1 <= max_workers <= MAX_PARALLEL_SEED_JOBS:
+        raise ValueError(f"M4 max_workers must be in 1..{MAX_PARALLEL_SEED_JOBS}")
     root = output_root.resolve()
     repository = REPOSITORY_ROOT.resolve()
     if root == repository or repository in root.parents:
@@ -188,56 +267,84 @@ def produce_release_dataset(
         if plan_only:
             return {"completed": False, "planned_jobs": len(_plan()), "days_per_seed": DAYS_PER_SEED}
         state["status"] = "RUNNING"
+        state["last_requested_max_workers"] = max_workers
         state["updated_at_utc"] = _utc_now()
         _atomic_json(root / "producer-state.json", state)
         runs_root = root / "runs"
         runs_root.mkdir(exist_ok=True)
         jobs = cast(list[dict[str, Any]], state["jobs"])
+        pending_jobs: list[dict[str, Any]] = []
         for job in jobs:
             if job["status"] == "COMPLETED":
                 validate_dataset(runs_root / str(job["dataset_id"]))
                 continue
-            attempt_number = len(job["attempts"]) + 1
-            dataset_id = f"{job['job_id']}_attempt_{attempt_number:02d}"
-            attempt = {"attempt": attempt_number, "dataset_id": dataset_id, "started_at_utc": _utc_now()}
-            job["attempts"].append(attempt)
-            job["status"] = "RUNNING"
+            pending_jobs.append(job)
+
+        scheduled: list[tuple[dict[str, Any], dict[str, Any], str]] = []
+        for job in pending_jobs:
+            attempt, dataset_id = _start_attempt(job, max_workers=max_workers)
+            scheduled.append((job, attempt, dataset_id))
             state["updated_at_utc"] = _utc_now()
             _atomic_json(root / "producer-state.json", state)
+
+        def specification(job: Mapping[str, Any], dataset_id: str) -> _SeedJobSpec:
+            return _SeedJobSpec(
+                config_path=config_path,
+                runs_root=runs_root,
+                dataset_id=dataset_id,
+                seed=int(job["seed"]),
+                maximum_rows=int(job["maximum_rows"]),
+                maximum_minutes=int(job["days"]) * 1440,
+                rows_per_shard=int(job["rows_per_shard"]),
+                source_commit=source_commit,
+            )
+
+        if max_workers == 1:
+            for job, attempt, dataset_id in scheduled:
+                try:
+                    result = _produce_seed_job(specification(job, dataset_id))
+                except Exception as exc:
+                    _fail_attempt(job=job, attempt=attempt, error=exc)
+                    state["status"] = "FAILED"
+                    state["updated_at_utc"] = _utc_now()
+                    _atomic_json(root / "producer-state.json", state)
+                    raise
+                _complete_attempt(job=job, attempt=attempt, dataset_id=dataset_id, result=result)
+                state["updated_at_utc"] = _utc_now()
+                _atomic_json(root / "producer-state.json", state)
+        elif scheduled:
+            first_error: Exception | None = None
             try:
-                manifest = generate_dataset(
-                    config_path=config_path,
-                    output_root=runs_root,
-                    dataset_id=dataset_id,
-                    seed=int(job["seed"]),
-                    maximum_rows=int(job["maximum_rows"]),
-                    maximum_minutes=int(job["days"]) * 1440,
-                    rows_per_shard=int(job["rows_per_shard"]),
-                    source_commit=source_commit,
-                )
-                validation = validate_dataset(runs_root / dataset_id)
+                with ProcessPoolExecutor(max_workers=min(max_workers, len(scheduled))) as executor:
+                    futures = {
+                        executor.submit(_produce_seed_job, specification(job, dataset_id)): (
+                            job,
+                            attempt,
+                            dataset_id,
+                        )
+                        for job, attempt, dataset_id in scheduled
+                    }
+                    for future in as_completed(futures):
+                        job, attempt, dataset_id = futures[future]
+                        try:
+                            result = future.result()
+                        except Exception as exc:  # noqa: BLE001 - persist every worker failure before raising
+                            _fail_attempt(job=job, attempt=attempt, error=exc)
+                            first_error = first_error or exc
+                        else:
+                            _complete_attempt(job=job, attempt=attempt, dataset_id=dataset_id, result=result)
+                        state["updated_at_utc"] = _utc_now()
+                        _atomic_json(root / "producer-state.json", state)
+                if first_error is not None:
+                    raise RuntimeError("one or more parallel M4 seed jobs failed") from first_error
             except Exception as exc:
-                attempt.update(
-                    {"status": "FAILED", "completed_at_utc": _utc_now(), "error": f"{type(exc).__name__}: {exc}"}
-                )
-                job["status"] = "FAILED"
+                for job, attempt, _dataset_id in scheduled:
+                    if attempt.get("status") not in {"COMPLETED", "FAILED"}:
+                        _fail_attempt(job=job, attempt=attempt, error=exc)
                 state["status"] = "FAILED"
                 state["updated_at_utc"] = _utc_now()
                 _atomic_json(root / "producer-state.json", state)
                 raise
-            attempt.update(
-                {
-                    "status": "COMPLETED",
-                    "completed_at_utc": _utc_now(),
-                    "row_count": manifest.row_count,
-                    "decision_group_count": manifest.decision_group_count,
-                    "manifest_sha256": validation["manifest_sha256"],
-                }
-            )
-            job["status"] = "COMPLETED"
-            job["dataset_id"] = dataset_id
-            state["updated_at_utc"] = _utc_now()
-            _atomic_json(root / "producer-state.json", state)
         aggregate = _aggregate(root, state)
         _atomic_json(
             root / "dataset-manifest.json", aggregate.model_dump(mode="json", exclude_none=False, by_alias=True)
@@ -248,6 +355,7 @@ def produce_release_dataset(
             "project_name": PROJECT_NAME,
             "source_commit": source_commit,
             "passed": True,
+            "max_workers": max_workers,
             "matrix": _plan(),
             "validation": validation,
         }
@@ -267,12 +375,14 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument("--output-root", type=Path, required=True)
     parser.add_argument("--source-commit", required=True)
     parser.add_argument("--plan-only", action="store_true")
+    parser.add_argument("--max-workers", type=int, default=1)
     arguments = parser.parse_args(argv)
     result = produce_release_dataset(
         config_path=arguments.config,
         output_root=arguments.output_root,
         source_commit=arguments.source_commit,
         plan_only=arguments.plan_only,
+        max_workers=arguments.max_workers,
     )
     print(json.dumps(result, ensure_ascii=False, sort_keys=True))
     return 0

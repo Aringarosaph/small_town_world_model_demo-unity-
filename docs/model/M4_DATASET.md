@@ -39,14 +39,16 @@ PYTHONPATH=python python -m town_core.modeling.dataset \
 分割按完整 `scenario_group_id` 的稳定 SHA-256 桶执行，不能按行随机切分。一个 decision 的全部候选拥有同一 `decision_group_id`，且不会跨 shard 拆分。
 
 正式原始训练矩阵使用五个冻结 seed 各 60 游戏日、每 seed 最多 100,000
-行、每 shard 最多 25,000 行。`release_dataset` producer 逐 seed 串行执行，
-每个已完成 seed 独立校验和登记；中断恢复时不会重做已完成 seed：
+行、每 shard 最多 25,000 行。`release_dataset` producer 可按 seed 隔离并行，
+只有父进程写入状态和聚合 manifest；每个已完成 seed 独立校验和登记，
+中断恢复时不会重做已完成 seed。AutoDL 16 核基线使用 5 个 worker：
 
 ```bash
 PYTHONPATH=python python -m town_core.modeling.release_dataset \
   --config config/v0 \
   --output-root /root/autodl-tmp/stwm-m4-work/m4_teacher_release_raw_v1 \
-  --source-commit <40位提交号>
+  --source-commit <40位提交号> \
+  --max-workers 5
 ```
 
 ## 当前边界
