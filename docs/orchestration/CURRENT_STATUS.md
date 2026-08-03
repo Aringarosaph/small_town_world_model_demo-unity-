@@ -2,7 +2,7 @@
 
 ## Milestone
 
-`M4 - Distilled social outcome model (active: execution baseline)`
+`M4 - Distilled social outcome model (active: raw teacher data)`
 
 ## State
 
@@ -165,9 +165,11 @@
 - [x] Accept ADR-0012 and freeze `docs/orchestration/M4_EXECUTION_BASELINE.md`.
 - [x] Freeze feature/label/package identities, grouped splits, model/fallback
   authority, metrics, external artifact ownership, and quota-safe pause points.
-- [ ] Implement M4 contracts, postprocessor, provider protocol, recorded and
+- [x] Implement M4 contracts, postprocessor, provider protocol, recorded and
   heuristic providers, schemas, and focused tests.
-- [ ] Implement resumable grouped dataset generation and reviewed anchor flow.
+- [x] Implement deterministic feature extraction, authority-neutral observation,
+  bounded Parquet shards, strict validation, and a resumable raw-data producer.
+- [ ] Complete the five-seed raw dataset matrix and reviewed anchor flow.
 - [ ] Implement/train/evaluate the 1M-3M TorchOutcomeModel.
 - [ ] Integrate provider switching, deterministic neural sampling, fallback,
   CPU inference, neural rollout, QA evidence, and M0-M3 regressions.
@@ -182,13 +184,18 @@
   `main@02b9e53b8ec11b06235be704dec7d5fcd7495945`, clean at entry.
 - Durable M4 root: `/root/autodl-fs/STWM/m4`; generated data/weights remain
   external and hash-addressed.
-- Account quota at activation was read as 90% used / about 10% remaining.
-  Work must close an atomic increment and pause before exhaustion; manual reset
-  credits are not consumed without producer approval.
+- Account quota remains 91% used / about 9% remaining after the data foundation.
+  The producer explicitly moved the stop boundary to about 2% remaining;
+  manual reset credits are not consumed without producer approval.
+- AutoDL smoke dataset `m4_teacher_smoke_seed12345_abb9d92` passed strict
+  validation with 9,996 rows, 1,435 complete decision groups, all 22 behaviors,
+  and a 1.86MB Parquet shard. Its manifest SHA-256 is
+  `5308a7436e172e82924bd11c6bb209a5f892ab3f9872561263dbeb456098a899`.
 
 ## Blockers
 
-No M3 blocker remains. M4 entry infrastructure and policy are ready. The next
-dependency is the M4 internal contracts/provider increment; dataset generation
-and training remain intentionally gated behind it. DeepSeek remains deferred to
-M5, and final art remains outside the functional-greybox acceptance boundary.
+No M3 blocker remains. The contracts/provider/data smoke gate has passed. The
+next dependency is the resumable five-seed raw teacher matrix, followed by
+independently reviewed social anchors. Long training has not started. DeepSeek
+remains deferred to M5, and final art remains outside the functional-greybox
+acceptance boundary.

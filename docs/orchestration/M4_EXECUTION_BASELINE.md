@@ -122,6 +122,19 @@ Data generation uses the accepted M3 seeds:
 - 7-day: `12345`, `24680`, `97531`, `314159`, `271828`;
 - 30-day: `12345`, `24680`, `97531`.
 
+After the 10,000-row smoke measured approximately 1,435 decisions and 9,996
+candidate rows per seven game days, the raw training matrix is frozen as five
+serial 60-day runs using `12345`, `24680`, `97531`, `314159`, and `271828`.
+Each seed is capped at 100,000 rows, so the combined raw dataset remains below
+the one-million-row ceiling while targeting 50,000+ decision groups and
+300,000-500,000 rows. This training-data matrix does not change the release
+rollout gate, which remains five 7-day and three 30-day neural comparisons.
+
+One dataset episode/group spans seven consecutive game days. Its rows and
+augmented descendants stay in one split; stable group hashing assigns 80/10/10
+buckets. This prevents individual days or candidates from leaking across
+splits while providing enough independent groups for all three partitions.
+
 Every due-agent decision records all legal candidates with heuristic
 counterfactual labels. Output is sharded Parquet with atomic manifests and
 checksums. A shard contains at most 25,000 rows so generation can resume without

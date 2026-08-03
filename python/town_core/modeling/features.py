@@ -110,7 +110,8 @@ class CandidateFeatureEncoder:
             for item in attempts
             if isinstance(item, dict) and "candidate_id" in item and "result" in item
         }
-        episode_id = f"m3_seed_{seed}_day_{state.game_minute // 1440:03d}"
+        elapsed_minute = max(0, state.game_minute - self.catalog.world.initial_game_minute)
+        episode_id = f"m3_seed_{seed}_episode_{elapsed_minute // (7 * 1440):03d}"
         scenario_group_id = episode_id
         split = split_for_scenario_group(scenario_group_id)
         result: list[TrainingExample] = []

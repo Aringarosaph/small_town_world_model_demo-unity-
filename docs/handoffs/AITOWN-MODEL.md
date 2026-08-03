@@ -54,6 +54,15 @@ Do not start PyTorch architecture work until its manifest, shard hashes,
 teacher reproduction, grouping, and coverage report pass. Do not change public
 protocol or accepted M3 behavior.
 
+The smoke is now complete at source `abb9d92`: 9,996 rows, 1,435 complete
+decision groups, all 22 behaviors, strict train/validation/test grouping, and
+matching manifest/shard hashes. The durable copy is
+`/root/autodl-fs/STWM/m4/datasets/m4_teacher_smoke_seed12345_abb9d92`.
+
+The next data increment is the resumable raw matrix: all five frozen seeds,
+60 days per seed, 100,000-row cap per seed, 25,000 rows per shard, and complete
+seven-day episode grouping. This does not authorize model training.
+
 ## Pause/resume
 
 At each safe point update the durable
