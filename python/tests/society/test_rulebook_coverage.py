@@ -347,6 +347,97 @@ def test_low_household_food_supply_outranks_individual_discretionary_actions(
     assert scored[0].utility_terms["household_food_supply"] > 0.0
 
 
+def test_hunger_recovery_activates_before_the_eight_hour_business_closure(
+    catalog: CatalogBundle,
+    m3_catalogs: M3Catalogs,
+) -> None:
+    checkpoint = build_initial_society_checkpoint(catalog, m3_catalogs, seed=12345)
+    actor = checkpoint.world.agents["npc_01"]
+    agents = dict(checkpoint.world.agents)
+    agents[actor.agent_id] = actor.model_copy(update={"needs": actor.needs.model_copy(update={"hunger": 0.39})})
+    state = checkpoint.world.model_copy(update={"game_minute": 600, "state_version": 600, "agents": agents})
+    rulebook = SocietyRulebook(catalog)
+    work_session = WorkSessionRecord(
+        session_id="work_session_npc_01_day_0000",
+        agent_id="npc_01",
+        day=0,
+        start_game_minute=360,
+        end_game_minute=840,
+        grace_minutes=15,
+        effective_work_minutes=240,
+    )
+    candidate_number = 0
+
+    def next_id() -> str:
+        nonlocal candidate_number
+        candidate_number += 1
+        return f"candidate_{candidate_number:08d}"
+
+    candidates = rulebook.enumerate_candidates(
+        state,
+        actor.agent_id,
+        work_session=work_session,
+        conversations={},
+        event_importance={},
+        reserved_money=0,
+        reserved_food=0,
+        next_candidate_id=next_id,
+        behavior_allowlist=frozenset({BehaviorId.IDLE, BehaviorId.EAT_AT_CAFE, BehaviorId.SLEEP}),
+    )
+    predictions = {
+        item.candidate.candidate_id: rulebook.predict(
+            state,
+            item,
+            prediction_id=f"prediction_{index:08d}",
+        )
+        for index, item in enumerate(candidates, start=1)
+    }
+    scored = rulebook.score_candidates(
+        state,
+        candidates,
+        predictions,
+        work_session=work_session,
+        recent_behavior=None,
+        event_importance={},
+    )
+
+    assert scored[0].candidate.candidate.behavior_id is BehaviorId.EAT_AT_CAFE
+    assert scored[0].utility_terms["need_crisis_recovery"] > 0.0
+
+
+def test_low_social_need_bounds_sleep_before_zero(
+    catalog: CatalogBundle,
+    m3_catalogs: M3Catalogs,
+) -> None:
+    checkpoint = build_initial_society_checkpoint(catalog, m3_catalogs, seed=12345)
+    actor = checkpoint.world.agents["npc_01"]
+    agents = dict(checkpoint.world.agents)
+    agents[actor.agent_id] = actor.model_copy(update={"needs": actor.needs.model_copy(update={"social": 0.29})})
+    state = checkpoint.world.model_copy(update={"game_minute": 600, "state_version": 600, "agents": agents})
+    rulebook = SocietyRulebook(catalog)
+    candidate_number = 0
+
+    def next_id() -> str:
+        nonlocal candidate_number
+        candidate_number += 1
+        return f"candidate_{candidate_number:08d}"
+
+    candidates = rulebook.enumerate_candidates(
+        state,
+        actor.agent_id,
+        work_session=None,
+        conversations={},
+        event_importance={},
+        reserved_money=0,
+        reserved_food=0,
+        next_candidate_id=next_id,
+        behavior_allowlist=frozenset({BehaviorId.IDLE, BehaviorId.SLEEP}),
+    )
+
+    sleep = next(item for item in candidates if item.candidate.behavior_id is BehaviorId.SLEEP)
+    assert sleep.candidate.estimated_duration_minutes <= 120
+
+
 def test_zero_need_recovery_blocks_work_and_bounds_discretionary_duration(
     catalog: CatalogBundle,
     m3_catalogs: M3Catalogs,
@@ -387,7 +478,13 @@ def test_zero_need_recovery_blocks_work_and_bounds_discretionary_duration(
         reserved_food=0,
         next_candidate_id=next_id,
         behavior_allowlist=frozenset(
-            {BehaviorId.IDLE, BehaviorId.WORK_SHIFT, BehaviorId.EAT_AT_CAFE, BehaviorId.WATCH_TV}
+            {
+                BehaviorId.IDLE,
+                BehaviorId.WORK_SHIFT,
+                BehaviorId.EAT_AT_CAFE,
+                BehaviorId.WATCH_TV,
+                BehaviorId.SLEEP,
+            }
         ),
     )
     predictions = {
@@ -410,5 +507,11 @@ def test_zero_need_recovery_blocks_work_and_bounds_discretionary_duration(
     assert scored[0].candidate.candidate.behavior_id is BehaviorId.EAT_AT_CAFE
     work = next(item for item in scored if item.candidate.candidate.behavior_id is BehaviorId.WORK_SHIFT)
     assert work.utility_terms["critical_need_block"] == -200.0
+    watch_score = next(item for item in scored if item.candidate.candidate.behavior_id is BehaviorId.WATCH_TV)
+    sleep_score = next(item for item in scored if item.candidate.candidate.behavior_id is BehaviorId.SLEEP)
+    assert watch_score.utility_terms["critical_need_block"] == -200.0
+    assert sleep_score.utility_terms["critical_need_block"] == -200.0
     watch = next(item for item in candidates if item.candidate.behavior_id is BehaviorId.WATCH_TV)
     assert watch.candidate.estimated_duration_minutes == 30
+    sleep = next(item for item in candidates if item.candidate.behavior_id is BehaviorId.SLEEP)
+    assert sleep.candidate.estimated_duration_minutes == 30

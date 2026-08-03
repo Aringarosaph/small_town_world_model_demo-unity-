@@ -45,7 +45,12 @@ _NEED_CRISIS_RECOVERY_PRIORITY = {
     NeedName.HYGIENE: 2.0,
     NeedName.FUN: 1.0,
 }
-_NEED_LIVENESS_FLOOR = {NeedName.SOCIAL: 0.30}
+_NEED_LIVENESS_FLOOR = {
+    # 0.40 hunger provides more than the frozen eight-hour cafe closure at
+    # catalog decay -0.045/hour, including one bounded decision/action margin.
+    NeedName.HUNGER: 0.40,
+    NeedName.SOCIAL: 0.30,
+}
 
 _CONFRONT_TRIGGER_EVENTS = frozenset(
     {
@@ -99,7 +104,6 @@ class SocietyRulebook:
             )
             for location_type in LocationType
         }
-        self.events_by_id: dict[str, object] = {}
         self._behavior_order = {
             behavior.behavior_id: index for index, behavior in enumerate(catalog.behaviors.behaviors)
         }
@@ -486,7 +490,12 @@ class SocietyRulebook:
                 current <= recovery_threshold
                 and delta > 0.0
                 and available_at_arrival
-                and (not work_due or candidate.behavior_id is BehaviorId.TAKE_BREAK or current <= 0.0)
+                and (
+                    not work_due
+                    or candidate.behavior_id is BehaviorId.TAKE_BREAK
+                    or current <= 0.0
+                    or (axis is NeedName.HUNGER and current <= _NEED_LIVENESS_FLOOR[NeedName.HUNGER])
+                )
             ):
                 severity = (recovery_threshold - current) / max(recovery_threshold, 1e-9)
                 need_crisis_recovery += (
@@ -505,9 +514,18 @@ class SocietyRulebook:
             and available_at_arrival
         ):
             conflict_response = CONFLICT_RESPONSE_BONUS + event_importance.get(item.selected_context_event_id, 0.0)
+        zero_needs = [axis for axis in NeedName if float(getattr(actor.needs, axis.value)) <= 0.0]
         critical_need_block = 0.0
-        if candidate.behavior_id is BehaviorId.WORK_SHIFT:
-            critical_need_block = -100.0 * sum(float(getattr(actor.needs, axis.value)) <= 0.0 for axis in NeedName)
+        blocks_for_work = candidate.behavior_id is BehaviorId.WORK_SHIFT and bool(zero_needs)
+        blocks_for_hunger = NeedName.HUNGER in zero_needs and candidate.behavior_id is not BehaviorId.IDLE
+        if blocks_for_work or blocks_for_hunger:
+            directly_recovers = float(prediction.need_delta_preview.hunger) > 0.0
+            enables_hunger_recovery = (
+                candidate.behavior_id is BehaviorId.BUY_GROCERIES
+                and household.food_units <= self.catalog.economy.food_low_threshold
+            )
+            if blocks_for_work or not directly_recovers and not enables_hunger_recovery:
+                critical_need_block = -100.0 * len(zero_needs)
         tie = (
             stable_unit(
                 "stwm-m3",
@@ -582,10 +600,20 @@ class SocietyRulebook:
         duration = minimum + int(unit * ((maximum - minimum) + 1))
         if behavior.behavior_id is BehaviorId.SLEEP and any(
             axis is not NeedName.ENERGY
-            and float(getattr(agent.needs, axis.value)) <= self.catalog.utility.need_crisis_thresholds[axis]
+            and float(getattr(agent.needs, axis.value))
+            <= max(
+                float(self.catalog.utility.need_crisis_thresholds[axis]),
+                _NEED_LIVENESS_FLOOR.get(axis, 0.0),
+            )
             for axis in NeedName
         ):
+            # A randomized full sleep can outlast the remaining liveness
+            # budget of a low non-energy need. Re-evaluate within two hours so
+            # an available catalog-backed recovery candidate gets another
+            # deterministic resolver attempt before that need reaches zero.
             duration = min(duration, 120)
+            if any(axis is not NeedName.ENERGY and float(getattr(agent.needs, axis.value)) <= 0.0 for axis in NeedName):
+                duration = minimum
         if behavior.behavior_id is BehaviorId.WATCH_TV and agent.needs.social <= 0.0:
             # Choose the shortest catalog-legal local recovery episode once
             # social reaches zero. Travel plus a randomized long TV session

@@ -4,17 +4,20 @@ import json
 import os
 import platform
 import signal
+import tracemalloc
 from pathlib import Path
 
 import pytest
 from town_core.domain.config_models import CatalogBundle
+from town_core.domain.enums import EventType, EventWitnessScope
 from town_core.domain.m3_catalog_models import M3Catalogs
+from town_core.domain.state_models import WorldEvent
 from town_core.society.checkpoint import (
     checkpoint_hash,
     write_checkpoint,
     write_checkpoint_isolated,
 )
-from town_core.society.engine import SocietyEngine
+from town_core.society.engine import SocietyEngine, _EventImportanceIndex, _EventLedgerIndex
 from town_core.society.initialization import build_initial_society_checkpoint
 from town_core.society.run import (
     DARWIN_CURRENT_RSS_METHOD,
@@ -86,6 +89,46 @@ def test_current_rss_sample_is_truthful_and_bounded_by_peak() -> None:
     assert sample["game_day"] == 2
     assert sample["game_minute"] == 2880
     assert 0 < sample["current_rss_bytes"] <= sample["peak_rss_bytes"]
+
+
+def test_event_ledger_views_have_bounded_current_rss_growth() -> None:
+    events = [
+        WorldEvent(
+            event_id=f"event_{index:08d}",
+            event_type=EventType.NEED_CRISIS,
+            game_minute=index,
+            location_id="home_a",
+            actor_ids=["npc_01"],
+            affected_agent_ids=["npc_01"],
+            witness_agent_ids=[],
+            source_action_id=None,
+            importance=0.5,
+            witness_scope=EventWitnessScope.PARTICIPANTS_ONLY,
+            payload={"need": "hunger"},
+        )
+        for index in range(1, 10_001)
+    ]
+    committed = events[:-1]
+    staged = events[-1:]
+    warm_events = _EventLedgerIndex(committed, staged)
+    warm_importance = _EventImportanceIndex(warm_events)
+    assert warm_events["event_00010000"] is events[-1]
+    assert warm_importance["event_00010000"] == 0.5
+
+    tracemalloc.start()
+    tracemalloc.reset_peak()
+    before_rss = _current_rss_bytes()
+    for _ in range(1_000):
+        event_view = _EventLedgerIndex(committed, staged)
+        importance_view = _EventImportanceIndex(event_view)
+        assert event_view["event_00000001"] is events[0]
+        assert importance_view["event_00010000"] == 0.5
+    traced_current, traced_peak = tracemalloc.get_traced_memory()
+    after_rss = _current_rss_bytes()
+    tracemalloc.stop()
+
+    assert traced_peak - traced_current < 256_000
+    assert after_rss - before_rss <= 1_048_576
 
 
 def test_external_checkpoint_export_remains_detached(

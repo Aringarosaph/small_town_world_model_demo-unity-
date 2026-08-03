@@ -543,6 +543,96 @@ M3 `0.3.0` repository baseline; SIM did not rewrite them. Both real loopback
 WebSocket tests passed when allowed to bind ephemeral `127.0.0.1` ports. Ruff
 format/check and strict Mypy over 93 source files passed.
 
+### M3 bounded event lookup and final liveness follow-up
+
+The next common-RC seed-`12345` 30-day run completed authority correctly but
+reported current-RSS growth of `1,056,511.031813 B/day`, only `7,935` bytes per
+day above the frozen 1 MiB/day threshold. Its final ledger contained 3,121
+events. Every decision batch allocated both a complete event-ID dictionary and
+a complete importance dictionary from `[*committed_events, *staged_events]`;
+11,229 batches therefore rebuilt two growing temporary tables. The persisted
+`completed_break_action_ids` collection contained only 71 stable action IDs and
+was bounded to one completion per materialized work session, so it was not the
+retained-growth source.
+
+The engine now supplies two immutable `Mapping` views. Stable `event_NNNNNNNN`
+IDs resolve directly to the corresponding committed or same-tick staged list
+cursor, and importance is projected through that same view. No event list,
+event dictionary, or importance dictionary is copied per decision. Candidate
+enumeration, known-event permissions, confrontation qualification, ordering,
+and missing-ID behavior are unchanged. A 10,000-event regression repeatedly
+constructs and reads both views 1,000 times and requires less than 256 KB of
+traced transient allocation and no more than 1 MiB of truthful current-RSS
+growth.
+
+Before the liveness amendments below, fresh one-day, seven-day, and 30-day
+seed-`12345` runs reproduced the pre-change final state, checkpoint, ledger,
+transaction-chain, authority hashes, record counts, behavior/event counts, and
+economy exactly. The authority-neutral 30-day run completed in `504.037447s`
+with peak RSS `84,066,304` bytes and current-RSS slope
+`791,881.183537 B/day`. This proves that the lookup replacement itself changes
+neither authority nor evidence bytes.
+
+Full producer observation then exposed two residual real liveness intervals,
+not memory regressions:
+
+- `npc_06.social` was zero from minute 34,884 through 35,293. At minute 34,526
+  its social need was already `0.0895`, but the randomized sleep draft still
+  lasted 393 minutes. Sleep is now capped to 120 minutes whenever any
+  non-energy need is below the greater of its catalog crisis threshold and its
+  SIM liveness floor. A need already at zero uses the catalog minimum sleep
+  duration. A production checkpoint continuation reduced this exact interval
+  to 64 minutes and the surrounding all-agent maximum to 239 minutes.
+- `npc_06.hunger` was zero from minute 23,025 through 23,445. Its shift retained
+  priority while hunger crossed the `0.40` eight-hour business-closure safety
+  floor; the cafe then closed until the next morning. A catalog-backed hunger
+  recovery that is open at arrival may now receive the existing crisis term
+  below that floor even while work is due. The central Resolver still rejects
+  closed locations, and interrupted work is finalized by the unchanged
+  completed/missed and exactly-once wage rules. A production checkpoint
+  continuation removed the hunger interval and observed an all-agent maximum
+  of 328 zero-need minutes.
+
+The final fresh seed-`12345`, chunk-`60`, uninterrupted 30-day production run
+completed all 43,200 transactions in `522.494045s`. Peak RSS was `83,148,800`
+bytes, post-warmup current-RSS slope was `789,690.575306 B/day`, tick p99 was
+`18.323375ms`, and decision-batch p95 was `0.732041ms`. Producer observation
+reported actual CREATED actions `take_break=75` and `confront=143`, maximum
+recoverable zero-need time `338` minutes, and zero duplicate semantic events,
+reservation leaks, slot conflicts, permanent-idle agents, work-bound
+violations, unrecovered households, untyped events, or relationship-boundary
+violations. The final hashes are:
+
+- state: `a3f427533c1aa7205d8f0dd0d5f699cbd93911880fa0ff998f02c4f7fd282c84`;
+- checkpoint: `a74f1fca0566e34bf0817755fd544b2d05fea0dac739e34b19713df262f890fa`;
+- ledger: `e1c1c49961b0f4a15c6026210cc79490f5266fd7b01bae7d51f3d5b0b6b39c4d`;
+- transaction chain: `1c9f08588fa166b2e3763eb79ee38acc6608501d14062179ea006fe85a099dc7`;
+- ordered authority log: `caaa7416f556de612957db04489aa4728db7f3f03d7cd1b5e877c4737742cfd1`.
+
+Production replay applied all 43,200 transactions, matched the final state,
+checkpoint, ledger, and authority hashes, checked all 121 persisted checkpoints
+with zero mismatch, preserved the source run, and passed invariants. The
+external run and replay are under
+`/tmp/stwm-m3-event-index-verified-seed12345-30d-20260803` and
+`/tmp/stwm-m3-event-index-verified-seed12345-30d-replay-20260803`; neither is a
+repository artifact. Compact root-cause evidence for the superseded 409- and
+420-minute runs remains in `/tmp/stwm-m3-social-zero-409-diagnostic.json` and
+`/tmp/stwm-m3-hunger-zero-420-diagnostic.json` after their multi-gigabyte run
+directories were removed.
+
+The focused society gate now passes `258` tests. The repository regression
+passes `413` sandbox-compatible tests with the same two QA-owned M2 nodes
+deselected; the two real loopback WebSocket tests pass separately when allowed
+to bind ephemeral `127.0.0.1` ports. Ruff format/check passes over 149 files and
+strict Mypy passes over 93 source files.
+
+The bounded lookup is authority-neutral, but the two liveness heuristic changes
+intentionally produce a new authority trajectory. ORCH must therefore run a
+fresh complete serial five-by-seven-day plus three-by-30-day release matrix and
+canonical repeat/chunk jobs after integration; no prior SIM bundle may be
+reused or relabeled. No QA, config, protocol, domain, or Unity-owned path was
+changed.
+
 ## Current responsibility
 
 AITOWN-SIM owns the Python authority and local runtime-adapter side of the M2

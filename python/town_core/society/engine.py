@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from collections.abc import Mapping, Sequence
+from collections.abc import Iterator, Mapping, Sequence
 from dataclasses import dataclass
 from time import perf_counter
 from typing import Any, cast
@@ -60,6 +60,60 @@ class _PreparedDecision:
     decision_id: str
     actor_id: str
     candidates: tuple[ScoredSocietyCandidate, ...]
+
+
+class _EventLedgerIndex(Mapping[str, WorldEvent]):
+    """Zero-copy indexed view over committed and same-tick staged events."""
+
+    __slots__ = ("_committed", "_staged")
+
+    def __init__(self, committed: Sequence[WorldEvent], staged: Sequence[WorldEvent]) -> None:
+        self._committed = committed
+        self._staged = staged
+
+    def __getitem__(self, event_id: str) -> WorldEvent:
+        if not event_id.startswith("event_"):
+            raise KeyError(event_id)
+        try:
+            index = int(event_id.removeprefix("event_")) - 1
+        except ValueError as exc:
+            raise KeyError(event_id) from exc
+        if index < 0:
+            raise KeyError(event_id)
+        event = (
+            self._committed[index]
+            if index < len(self._committed)
+            else self._staged[index - len(self._committed)]
+            if index < len(self)
+            else None
+        )
+        if event is None or event.event_id != event_id:
+            raise KeyError(event_id)
+        return event
+
+    def __iter__(self) -> Iterator[str]:
+        return (event.event_id for events in (self._committed, self._staged) for event in events)
+
+    def __len__(self) -> int:
+        return len(self._committed) + len(self._staged)
+
+
+class _EventImportanceIndex(Mapping[str, float]):
+    """Importance projection sharing the same zero-copy event lookup."""
+
+    __slots__ = ("_events",)
+
+    def __init__(self, events: Mapping[str, WorldEvent]) -> None:
+        self._events = events
+
+    def __getitem__(self, event_id: str) -> float:
+        return float(self._events[event_id].importance)
+
+    def __iter__(self) -> Iterator[str]:
+        return iter(self._events)
+
+    def __len__(self) -> int:
+        return len(self._events)
 
 
 class _TickContext:
@@ -591,10 +645,8 @@ class SocietyEngine:
 
     def _decide_due_agents(self, context: _TickContext) -> None:
         source_state = context.provisional_world(state_version=context.source.world.state_version)
-        event_importance = {
-            event.event_id: float(event.importance) for event in [*context.events, *context.staged_events]
-        }
-        events_by_id = {event.event_id: event for event in [*context.events, *context.staged_events]}
+        events_by_id = _EventLedgerIndex(context.events, context.staged_events)
+        event_importance = _EventImportanceIndex(events_by_id)
         prepared: list[_PreparedDecision] = []
         for agent_id in sorted(source_state.agents):
             agent = source_state.agents[agent_id]
