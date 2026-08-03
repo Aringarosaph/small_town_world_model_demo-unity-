@@ -347,6 +347,22 @@
       "title": "Family Id",
       "type": "string"
     },
+    "heuristic_passthrough_output_paths": {
+      "items": {
+        "enum": [
+          "need_delta_preview.hunger",
+          "need_delta_preview.energy",
+          "need_delta_preview.hygiene",
+          "need_delta_preview.fun",
+          "need_delta_preview.social",
+          "event_probabilities"
+        ],
+        "type": "string"
+      },
+      "minItems": 1,
+      "title": "Heuristic Passthrough Output Paths",
+      "type": "array"
+    },
     "judgment_id": {
       "pattern": "^anchor_judgment_[a-f0-9]{24}$",
       "title": "Judgment Id",
@@ -392,6 +408,25 @@
       },
       "minItems": 1,
       "title": "Rationale Tags",
+      "type": "array"
+    },
+    "reviewed_output_paths": {
+      "items": {
+        "enum": [
+          "acceptance_probability",
+          "actor_mood_delta.valence",
+          "actor_mood_delta.stress",
+          "target_mood_delta.valence",
+          "target_mood_delta.stress",
+          "relationship_delta_target_to_actor.familiarity",
+          "relationship_delta_target_to_actor.affinity",
+          "relationship_delta_target_to_actor.trust",
+          "relationship_delta_target_to_actor.tension"
+        ],
+        "type": "string"
+      },
+      "minItems": 1,
+      "title": "Reviewed Output Paths",
       "type": "array"
     },
     "revision_of_judgment_sha256": {
@@ -445,6 +480,8 @@
     "producer_id",
     "produced_at_utc",
     "proposed_prediction",
+    "reviewed_output_paths",
+    "heuristic_passthrough_output_paths",
     "rationale_tags",
     "typed_assertions"
   ],

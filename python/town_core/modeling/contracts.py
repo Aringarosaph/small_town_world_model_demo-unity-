@@ -34,6 +34,25 @@ COMMIT_PATTERN = r"^[a-f0-9]{40}$"
 DatasetSplit = Literal["train", "validation", "test"]
 AnchorPartition = Literal["TRAIN", "VALIDATION", "ANCHOR_HOLDOUT"]
 AnchorReviewDecision = Literal["APPROVED", "REJECTED", "DISPUTED"]
+ReviewedAnchorOutputPath = Literal[
+    "acceptance_probability",
+    "actor_mood_delta.valence",
+    "actor_mood_delta.stress",
+    "target_mood_delta.valence",
+    "target_mood_delta.stress",
+    "relationship_delta_target_to_actor.familiarity",
+    "relationship_delta_target_to_actor.affinity",
+    "relationship_delta_target_to_actor.trust",
+    "relationship_delta_target_to_actor.tension",
+]
+HeuristicPassthroughOutputPath = Literal[
+    "need_delta_preview.hunger",
+    "need_delta_preview.energy",
+    "need_delta_preview.hygiene",
+    "need_delta_preview.fun",
+    "need_delta_preview.social",
+    "event_probabilities",
+]
 
 REVIEWED_SOCIAL_BEHAVIORS = frozenset(
     {
@@ -351,6 +370,8 @@ class SocialAnchorJudgment(ContractModel):
     provider_id: Literal["stwm.codex.anchor-producer/v1"] = "stwm.codex.anchor-producer/v1"
     revision_of_judgment_sha256: Annotated[str | None, Field(pattern=SHA256_PATTERN)] = None
     proposed_prediction: OutcomePrediction
+    reviewed_output_paths: Annotated[list[ReviewedAnchorOutputPath], Field(min_length=1)]
+    heuristic_passthrough_output_paths: Annotated[list[HeuristicPassthroughOutputPath], Field(min_length=1)]
     rationale_tags: Annotated[list[str], Field(min_length=1)]
     typed_assertions: Annotated[list[SocialAnchorTypedAssertion], Field(min_length=1)]
 
@@ -362,6 +383,10 @@ class SocialAnchorJudgment(ContractModel):
             raise ValueError("anchor judgment candidate and proposed prediction must match")
         if self.batch_id != f"social_{self.behavior_id.value}_v1":
             raise ValueError("anchor judgment batch ID must be behavior-local")
+        if len(self.reviewed_output_paths) != len(set(self.reviewed_output_paths)):
+            raise ValueError("anchor reviewed output paths must be unique")
+        if len(self.heuristic_passthrough_output_paths) != len(set(self.heuristic_passthrough_output_paths)):
+            raise ValueError("anchor heuristic passthrough paths must be unique")
         if len(self.rationale_tags) != len(set(self.rationale_tags)):
             raise ValueError("anchor judgment rationale tags must be unique")
         return self

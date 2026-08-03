@@ -9,19 +9,21 @@ import math
 from collections import Counter
 from collections.abc import Mapping, Sequence
 from pathlib import Path
-from typing import Annotated, Any, Literal
+from typing import Annotated, Any, Literal, cast
 
 from pydantic import Field, model_validator
 
 from town_core.catalogs import load_catalog
 from town_core.domain.base import ContractModel
-from town_core.domain.config_models import UnitValue
+from town_core.domain.config_models import BehaviorConfig, UnitValue
 from town_core.domain.decision_models import OutcomePrediction
-from town_core.domain.enums import BehaviorId, EventType, RelationshipDirection
+from town_core.domain.enums import BehaviorId, EventType, MoodAxis, NeedName, RelationshipAxis, RelationshipDirection
 from town_core.domain.state_models import MoodDelta, NeedDelta, RelationshipDelta
 from town_core.modeling.anchors import REPOSITORY_ROOT, _canonical
 from town_core.modeling.contracts import (
     SHA256_PATTERN,
+    HeuristicPassthroughOutputPath,
+    ReviewedAnchorOutputPath,
     SocialAnchorJudgment,
     SocialAnchorTask,
     SocialAnchorTypedAssertion,
@@ -46,6 +48,29 @@ def _ensure_external(path: Path) -> None:
     resolved = path.resolve()
     if resolved == repository or repository in resolved.parents:
         raise ValueError("M4 anchor producer artifacts must remain outside the repository")
+
+
+def anchor_output_provenance_paths(
+    behavior: BehaviorConfig,
+) -> tuple[list[ReviewedAnchorOutputPath], list[HeuristicPassthroughOutputPath]]:
+    reviewed: list[ReviewedAnchorOutputPath] = []
+    if behavior.soft_effect_mask.acceptance:
+        reviewed.append("acceptance_probability")
+    for mood_axis in MoodAxis:
+        if mood_axis in behavior.output_bounds.actor_mood_deltas:
+            reviewed.append(cast(ReviewedAnchorOutputPath, f"actor_mood_delta.{mood_axis.value}"))
+        if mood_axis in behavior.output_bounds.target_mood_deltas:
+            reviewed.append(cast(ReviewedAnchorOutputPath, f"target_mood_delta.{mood_axis.value}"))
+    for relationship_axis in RelationshipAxis:
+        if relationship_axis in behavior.output_bounds.relationship_target_to_actor:
+            reviewed.append(
+                cast(ReviewedAnchorOutputPath, f"relationship_delta_target_to_actor.{relationship_axis.value}")
+            )
+    passthrough = [
+        *(cast(HeuristicPassthroughOutputPath, f"need_delta_preview.{axis.value}") for axis in NeedName),
+        "event_probabilities",
+    ]
+    return reviewed, passthrough
 
 
 class ProducerAssertionResponse(ContractModel):
@@ -192,6 +217,8 @@ def assemble_producer_judgments(
 
     catalog = load_catalog(config_path)
     postprocessor = CatalogOutcomePostprocessor(catalog)
+    behavior = next(item for item in catalog.behaviors.behaviors if item.behavior_id is behavior_id)
+    reviewed_output_paths, heuristic_passthrough_output_paths = anchor_output_provenance_paths(behavior)
     judgments: list[SocialAnchorJudgment] = []
     changed_count = 0
     for task in tasks:
@@ -217,6 +244,11 @@ def assemble_producer_judgments(
         baseline_normalized, baseline_violations = postprocessor.process(task.feature, baseline)
         if baseline_violations:
             raise RuntimeError(f"heuristic baseline is not contract-safe: {task.task_id} {baseline_violations}")
+        if (
+            normalized.need_delta_preview != baseline_normalized.need_delta_preview
+            or normalized.event_probabilities != baseline_normalized.event_probabilities
+        ):
+            raise ValueError(f"producer changed an ADR-0012 heuristic passthrough head: {task.task_id}")
         if normalized != baseline_normalized:
             changed_count += 1
         assertions = _typed_assertions(response, task_sha256=task_sha256)
@@ -224,6 +256,8 @@ def assemble_producer_judgments(
             "task_sha256": task_sha256,
             "producer_id": producer_id,
             "proposed_prediction": normalized.model_dump(mode="json"),
+            "reviewed_output_paths": reviewed_output_paths,
+            "heuristic_passthrough_output_paths": heuristic_passthrough_output_paths,
             "rationale_tags": response.rationale_tags,
             "typed_assertions": [item.model_dump(mode="json") for item in assertions],
         }
@@ -242,6 +276,8 @@ def assemble_producer_judgments(
                 producer_id=producer_id,
                 produced_at_utc=produced_at_utc,
                 proposed_prediction=normalized,
+                reviewed_output_paths=reviewed_output_paths,
+                heuristic_passthrough_output_paths=heuristic_passthrough_output_paths,
                 rationale_tags=response.rationale_tags,
                 typed_assertions=assertions,
             )

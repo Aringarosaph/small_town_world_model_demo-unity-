@@ -53,6 +53,15 @@ task/draft hash, a proposed `OutcomePrediction`, rationale tags, and typed
 assertions. It uses provider identity `stwm.codex.anchor-producer/v1`; it never
 reuses or rewrites `OutcomeLabel.teacher_provider_id`.
 
+A judgment explicitly separates `reviewed_output_paths` from
+`heuristic_passthrough_output_paths`. The reviewed set is limited to the
+catalog-enabled acceptance, actor/target mood, and Target-to-Actor relationship
+heads that M4 may consume after postprocessing. All need-delta axes and the
+whole event-probability map remain immutable heuristic passthrough under
+ADR-0012; a producer response that changes one is rejected. Known auxiliary
+teacher limitations remain review evidence but do not masquerade as
+Codex-reviewed targets.
+
 A reviewer writes only issue records and an approval manifest. Producer task
 and judgment artifacts remain immutable. A revision creates a new judgment and
 hash; it does not overwrite the previous artifact.
@@ -141,10 +150,10 @@ legal observed event-context candidates is not forced to synthesize them.
 
 Approval does not mutate the raw Parquet dataset. The frozen training-input
 manifest joins approved task features with proposed judgments by task/row hash.
-Reviewed TRAIN/VALIDATION judgments override the corresponding soft target for
-their named suite without duplicating a raw row. ANCHOR_HOLDOUT rows remain
-evaluation-only. Auxiliary raw teacher ranking labels retain heuristic
-provenance and are never relabeled as Codex judgment.
+Reviewed TRAIN/VALIDATION judgments override only their declared reviewed paths
+for the named suite without duplicating a raw row. ANCHOR_HOLDOUT rows remain
+evaluation-only. Need/event passthrough heads and auxiliary raw teacher ranking
+labels retain heuristic provenance and are never relabeled as Codex judgment.
 
 ## Consequences
 

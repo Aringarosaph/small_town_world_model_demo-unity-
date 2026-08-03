@@ -126,3 +126,26 @@ named bounded soft targets; ANCHOR_HOLDOUT remains evaluation-only.
 - Next: produce seven immutable Codex judgment batches, independently review
   their hashes/issues, and assemble the exact final approval matrix. Do not
   expose holdout judgments to training or start long training beforehand.
+
+## M4 anchor-judgment provenance refinement
+
+The first `greet` pilot correctly exposed an auxiliary-teacher limitation:
+catalog event probabilities do not encode whether a conversation or first
+greeting already exists. The pilot draft is therefore superseded and is not a
+training input. This finding does not expand the learned authority boundary or
+relax an approval gate.
+
+Each new `SocialAnchorJudgment` now records two disjoint provenance sets. Codex
+review covers only catalog-enabled acceptance, actor/target mood, and
+Target-to-Actor relationship paths that M4 may consume. All five need-delta
+paths and `event_probabilities` remain byte-equivalent heuristic passthrough
+heads under ADR-0012. Both the producer and independent-review assemblers reject
+path drift or any attempted passthrough value change. Reviewer issue artifacts
+may continue to record auxiliary event limitations without attributing those
+fields to Codex judgment.
+
+`anchor_review.py` assembles immutable producer judgments;
+`anchor_approval.py` independently verifies hashes, catalog masks/bounds,
+declared path provenance, and reviewer findings into a DRAFT approval manifest.
+A new `greet` artifact and a fresh independent review are required before the
+pilot can be accepted.

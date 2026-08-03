@@ -12,7 +12,8 @@ from town_core.domain.config_models import MoodValues, NeedValues, PersonalityVa
 from town_core.domain.decision_models import HardCostPreview, OutcomePrediction
 from town_core.domain.enums import BehaviorId, LocationType, RelationshipDirection, RelationshipRole
 from town_core.domain.state_models import MoodDelta, NeedDelta, RelationshipDelta
-from town_core.modeling.anchor_review import assemble_producer_judgments
+from town_core.modeling.anchor_approval import assemble_review_batch
+from town_core.modeling.anchor_review import anchor_output_provenance_paths, assemble_producer_judgments
 from town_core.modeling.anchors import (
     REPOSITORY_ROOT,
     AnchorSourceCandidate,
@@ -35,6 +36,7 @@ from town_core.modeling.contracts import (
     SocialAnchorApprovalManifest,
     SocialAnchorCoveragePolicy,
     SocialAnchorJudgment,
+    SocialAnchorTask,
     SocialAnchorTypedAssertion,
     TrainingExample,
 )
@@ -280,6 +282,9 @@ def test_anchor_judgment_and_final_approval_keep_provenance_separate() -> None:
         policy=policy,
     )
     first = tasks[0]
+    catalog = load_catalog(REPOSITORY_ROOT / "config" / "v0")
+    behavior = next(item for item in catalog.behaviors.behaviors if item.behavior_id is first.behavior_id)
+    reviewed_output_paths, heuristic_passthrough_output_paths = anchor_output_provenance_paths(behavior)
     judgment = SocialAnchorJudgment(
         judgment_id=f"anchor_judgment_{'d' * 24}",
         task_id=first.task_id,
@@ -293,6 +298,8 @@ def test_anchor_judgment_and_final_approval_keep_provenance_separate() -> None:
         producer_id="AITOWN-ANCHOR-PRODUCER",
         produced_at_utc="2026-08-04T00:00:00Z",
         proposed_prediction=first.heuristic_baseline.prediction,
+        reviewed_output_paths=reviewed_output_paths,
+        heuristic_passthrough_output_paths=heuristic_passthrough_output_paths,
         rationale_tags=["direction_checked"],
         typed_assertions=[
             SocialAnchorTypedAssertion(
@@ -446,6 +453,82 @@ def test_producer_assembler_requires_exact_hashes_masks_and_bounds(tmp_path: Pat
         SocialAnchorJudgment.model_validate_json(line).provider_id == "stwm.codex.anchor-producer/v1"
         for line in judgments
     )
+    parsed_judgment = SocialAnchorJudgment.model_validate_json(judgments[0])
+    assert parsed_judgment.reviewed_output_paths == [
+        "acceptance_probability",
+        "actor_mood_delta.valence",
+        "target_mood_delta.valence",
+        "relationship_delta_target_to_actor.familiarity",
+        "relationship_delta_target_to_actor.affinity",
+    ]
+    assert parsed_judgment.heuristic_passthrough_output_paths == [
+        "need_delta_preview.hunger",
+        "need_delta_preview.energy",
+        "need_delta_preview.hygiene",
+        "need_delta_preview.fun",
+        "need_delta_preview.social",
+        "event_probabilities",
+    ]
+
+    policy_path = tmp_path / "coverage-policy.json"
+    policy_path.write_text(
+        json.dumps(
+            default_coverage_policy().model_dump(mode="json", by_alias=True),
+            ensure_ascii=False,
+            indent=2,
+            sort_keys=True,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    task_hashes = {
+        SocialAnchorTask.model_validate_json(line).task_id: hashlib.sha256(line.encode()).hexdigest()
+        for line in tasks_path.read_text(encoding="utf-8").splitlines()
+    }
+    review_responses = []
+    for line in judgments:
+        judgment = SocialAnchorJudgment.model_validate_json(line)
+        review_responses.append(
+            {
+                "task_id": judgment.task_id,
+                "task_sha256": task_hashes[judgment.task_id],
+                "judgment_id": judgment.judgment_id,
+                "judgment_sha256": hashlib.sha256(line.encode()).hexdigest(),
+                "decision": "APPROVED",
+                "issues": [],
+                "acknowledged_advisory_issue_codes": [],
+            }
+        )
+    reviewer_path = tmp_path / "greet-reviewer-responses.jsonl"
+    reviewer_path.write_text(
+        "".join(
+            json.dumps(item, ensure_ascii=False, separators=(",", ":"), sort_keys=True) + "\n"
+            for item in review_responses
+        ),
+        encoding="utf-8",
+    )
+    review_report = assemble_review_batch(
+        config_path=REPOSITORY_ROOT / "config" / "v0",
+        coverage_policy_path=policy_path,
+        tasks_path=tasks_path,
+        judgments_path=tmp_path / "valid-output" / "greet-judgments.jsonl",
+        responses_path=reviewer_path,
+        output_root=tmp_path / "review-output",
+        behavior_id=BehaviorId.GREET,
+        reviewer_id="AITOWN-ANCHOR-REVIEWER",
+        reviewed_at_utc="2026-08-04T00:01:00Z",
+    )
+    assert review_report["decision_counts"] == {"APPROVED": 40, "REJECTED": 0, "DISPUTED": 0}
+    draft = SocialAnchorApprovalManifest.model_validate_json(
+        (tmp_path / "review-output" / "greet-draft-approval.json").read_text(encoding="utf-8")
+    )
+    assert draft.status == "DRAFT"
+    assert len(draft.entries) == 40
+    for descriptor in (draft.coverage_policy, draft.tasks, draft.judgments, draft.issues):
+        artifact = (tmp_path / "review-output" / descriptor.relative_path).resolve()
+        assert artifact.is_file()
+        assert artifact.stat().st_size == descriptor.bytes
+        assert hashlib.sha256(artifact.read_bytes()).hexdigest() == descriptor.sha256
 
     response_rows = [json.loads(line) for line in responses_path.read_text(encoding="utf-8").splitlines()]
     response_rows[0]["actor_mood_delta"]["valence"] = 0.9
@@ -462,6 +545,28 @@ def test_producer_assembler_requires_exact_hashes_masks_and_bounds(tmp_path: Pat
             tasks_path=tasks_path,
             responses_path=invalid_path,
             output_root=tmp_path / "invalid-output",
+            behavior_id=BehaviorId.GREET,
+            producer_id="AITOWN-ANCHOR-PRODUCER",
+            produced_at_utc="2026-08-04T00:00:00Z",
+        )
+
+    passthrough_rows = [json.loads(line) for line in responses_path.read_text(encoding="utf-8").splitlines()]
+    original_social_delta = passthrough_rows[0]["need_delta_preview"]["social"]
+    passthrough_rows[0]["need_delta_preview"]["social"] = 0.06 if original_social_delta != 0.06 else 0.05
+    passthrough_path = tmp_path / "invalid-passthrough-responses.jsonl"
+    passthrough_path.write_text(
+        "".join(
+            json.dumps(item, ensure_ascii=False, separators=(",", ":"), sort_keys=True) + "\n"
+            for item in passthrough_rows
+        ),
+        encoding="utf-8",
+    )
+    with pytest.raises(ValueError, match="heuristic passthrough head"):
+        assemble_producer_judgments(
+            config_path=REPOSITORY_ROOT / "config" / "v0",
+            tasks_path=tasks_path,
+            responses_path=passthrough_path,
+            output_root=tmp_path / "invalid-passthrough-output",
             behavior_id=BehaviorId.GREET,
             producer_id="AITOWN-ANCHOR-PRODUCER",
             produced_at_utc="2026-08-04T00:00:00Z",
