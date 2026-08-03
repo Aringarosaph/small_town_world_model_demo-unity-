@@ -86,6 +86,16 @@ PYTHONPATH=python python -m town_core.modeling.anchors \
 校准或超参数选择。选择器不会生成 Codex judgment，也不会把任务冒充为已批准锚点；
 生产者判断、独立 reviewer issue 和最终 approval manifest 是后续分离的哈希链工序。
 
+正式任务包必须再做一次从原始 Parquet 独立重选，逐行比较 canonical task 与覆盖
+报告，并写出仓库外验证报告：
+
+```bash
+PYTHONPATH=python python -m town_core.modeling.validate_anchors \
+  --dataset /root/autodl-fs/STWM/m4/datasets/m4_teacher_release_raw_v1_73ca45f \
+  --tasks-root /root/autodl-fs/STWM/m4/anchors/m4_social_anchor_tasks_v1_75ba030 \
+  --output /root/autodl-fs/STWM/m4/reports/m4_social_anchor_tasks_v1_75ba030-validation.json
+```
+
 ## 当前边界
 
 规则教师 rows 已生成并完成质量复验；当前增量只冻结并选择社会锚点任务。
