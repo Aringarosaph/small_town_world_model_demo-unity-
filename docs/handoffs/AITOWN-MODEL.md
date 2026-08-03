@@ -103,3 +103,26 @@ and judgment artifacts stay immutable; reviewer issues and approvals reference
 their canonical SHA-256 values. Revisions create new judgment artifacts rather
 than overwriting drafts. Only approved TRAIN/VALIDATION judgments may overlay
 named bounded soft targets; ANCHOR_HOLDOUT remains evaluation-only.
+
+## M4 anchor-task integration result
+
+- Selector source: `75ba0306c8a419fe1043a50edc5d582bb9f799a6`;
+  validator source: `31211a7e4fbdf3b09606519b65300d4d2644dd78`.
+- Durable packet:
+  `/root/autodl-fs/STWM/m4/anchors/m4_social_anchor_tasks_v1_75ba030`.
+- Exact matrix: 300 tasks = 210 TRAIN + 30 VALIDATION + 60 ANCHOR_HOLDOUT;
+  seven behavior-local batches meet the ADR-0013 quotas.
+- `anchor-tasks.jsonl` SHA-256:
+  `d463506978f2b4671bfdabad07e70756d948ff672167059760e0b4120c10dc54`;
+  coverage policy SHA-256:
+  `f185fd73a121d3c22037a3c7c96dab3e5087af67cc5a22b292c4477610345429`.
+- Independent regeneration report:
+  `/root/autodl-fs/STWM/m4/reports/m4_social_anchor_tasks_v1_75ba030-validation.json`,
+  SHA-256
+  `8c4dc2fbc060020076a360249ff9fa0d8d970d0cecdfb1b04c33f14ce3b6428f`.
+- Every task and coverage row regenerated identically from the accepted raw
+  dataset. Actor-target maximum repeat is 3; exact signature maximum repeat is
+  2. The packet is explicitly `TASKS_ONLY_VALIDATED_NOT_JUDGED`.
+- Next: produce seven immutable Codex judgment batches, independently review
+  their hashes/issues, and assemble the exact final approval matrix. Do not
+  expose holdout judgments to training or start long training beforehand.

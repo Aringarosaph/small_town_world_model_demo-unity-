@@ -195,3 +195,16 @@ with an M0 artifact are frozen inputs to that work.
 - The approved overlay may replace only bounded soft targets for its named
   suite. Raw Parquet rows, heuristic ranking labels, public authority, M3, and
   protocol `0.3.0` remain unchanged.
+
+## M4 anchor-task integration record
+
+- Selector/validator sources: `75ba030` / `31211a7`.
+- The external task packet contains exactly 300 canonical tasks with the frozen
+  210/30/60 partition and independently regenerates from dataset manifest
+  `e256ecf426d4d0b2ab4bfb63060873e88233c1aaeb14498cc536ef7f3161eccb`.
+- Task JSONL SHA-256 is
+  `d463506978f2b4671bfdabad07e70756d948ff672167059760e0b4120c10dc54`;
+  validation report SHA-256 is
+  `8c4dc2fbc060020076a360249ff9fa0d8d970d0cecdfb1b04c33f14ce3b6428f`.
+- This record accepts task selection only. Judgment, review, approval, training
+  overlay, and all neural gates remain pending.

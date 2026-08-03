@@ -4,11 +4,12 @@
 
 - The M4 feature/label/package contracts and provider injection are frozen by
   baseline but not yet implemented.
-- The cloud base image intentionally lacks the project data/training packages;
-  an isolated lock-derived environment will be created after the contracts
-  increment rather than mutating the base image ad hoc.
-- Reviewed social anchors, generated Parquet data, trained weights, calibration,
-  CPU inference, and neural rollout evidence are pending M4 increments.
+- The isolated cloud data environment now contains locked `pyarrow==19.0.1`.
+  Training-specific packages remain intentionally pending until the model
+  architecture and training command are frozen; the base image is not mutated.
+- Raw Parquet data and the exact 300-task social-anchor selection are validated.
+  Codex judgments, independent anchor approval, trained weights, calibration,
+  CPU inference, and neural rollout evidence remain pending M4 increments.
 - The implementation specification contains both prefixed and unprefixed
   behavior-ID examples. M0 freezes the broadly used unprefixed form such as
   `sleep`, `work_shift`, and `apologize`; changing it requires migration review.

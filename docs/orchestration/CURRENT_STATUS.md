@@ -174,6 +174,8 @@
   teacher selection, label axes, and split leakage.
 - [x] Accept ADR-0013 and freeze the hash-chained 300-anchor task, judgment,
   independent review, approval, coverage, and holdout boundary.
+- [x] Select and independently regenerate the exact 300 immutable anchor tasks
+  from the validated raw Parquet matrix.
 - [ ] Complete the independently reviewed social-anchor flow.
 - [ ] Implement/train/evaluate the 1M-3M TorchOutcomeModel.
 - [ ] Integrate provider switching, deterministic neural sampling, fallback,
@@ -222,11 +224,30 @@
   use per-head/per-behavior metrics, weighting or balanced sampling, and the
   independent social-anchor suites instead of aggregate accuracy alone.
 
+## M4 social-anchor task result
+
+- ADR-0013 task selector source: `75ba0306c8a419fe1043a50edc5d582bb9f799a6`;
+  independent validator source: `31211a7e4fbdf3b09606519b65300d4d2644dd78`.
+- The validated packet contains exactly 300 canonical immutable tasks: 210
+  TRAIN, 30 VALIDATION, and 60 ANCHOR_HOLDOUT in the frozen seven-behavior
+  matrix. It is 1.7MB and remains outside Git.
+- Task JSONL SHA-256:
+  `d463506978f2b4671bfdabad07e70756d948ff672167059760e0b4120c10dc54`;
+  coverage policy SHA-256:
+  `f185fd73a121d3c22037a3c7c96dab3e5087af67cc5a22b292c4477610345429`.
+- Full-dataset regeneration matched every task and coverage row. Maximum
+  directed actor-target repetition is 3; maximum exact coverage-signature
+  repetition is 2, within the frozen cap of 3.
+- These are task inputs only. No Codex judgment, reviewer approval, training
+  overlay, model checkpoint, or long training has been produced.
+
 ## Blockers
 
 No M3 blocker remains. The contracts, provider, raw-data, persistence, and
 quality gates have passed. ADR-0013 freezes the next dependency as exactly 300
 independently reviewed social anchors: 210 TRAIN, 30 VALIDATION, and 60
-ANCHOR_HOLDOUT across seven social behaviors. Long training has not started.
-DeepSeek remains deferred to M5, and final art remains outside the
-functional-greybox acceptance boundary.
+ANCHOR_HOLDOUT across seven social behaviors. Their immutable task packet now
+passes deterministic regeneration; separate Codex judgments and independent
+review/approval remain. Long training has not started. DeepSeek remains
+deferred to M5, and final art remains outside the functional-greybox acceptance
+boundary.
