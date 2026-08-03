@@ -90,8 +90,8 @@ At each safe point update the durable
 Generated data/model artifacts are external and referenced by relative path,
 SHA-256, byte size, schema, source commit, and parent artifact hashes.
 
-Current source stage: `M4_RAW_DATA_VALIDATED`; next stage:
-`M4_REVIEWED_SOCIAL_ANCHORS`.
+Current source stage: `M4_GREET_ANCHOR_PILOT_REVIEWED`; next stage:
+`M4_REMAINING_CODEX_SOCIAL_ANCHOR_JUDGMENTS`.
 
 ADR-0013 is the anchor-stage authority. Implement its additive Python-private
 schemas and deterministic task selector before any producer judgment batch.
@@ -147,5 +147,23 @@ fields to Codex judgment.
 `anchor_review.py` assembles immutable producer judgments;
 `anchor_approval.py` independently verifies hashes, catalog masks/bounds,
 declared path provenance, and reviewer findings into a DRAFT approval manifest.
-A new `greet` artifact and a fresh independent review are required before the
-pilot can be accepted.
+
+The superseding `greet` batch at source
+`ae05aedc8dd08858f8d800553c910930bf177956` passed independent production and
+review reassembly. All 40 judgments are approved: 28 TRAIN, 4 VALIDATION, and 8
+ANCHOR_HOLDOUT; there are no rejected or disputed entries. Thirty acknowledged
+advisories document the auxiliary heuristic event-context limitation. AITOWN-ORCH
+audited four entries, including the largest reviewed-head deviation and one
+holdout, with no direction or semantic disagreement.
+
+Durable batch:
+`/root/autodl-fs/STWM/m4/anchors/greet-reviewed-batch-ae05aed`.
+Its manifest SHA-256 is
+`de33b1c2cc5900444ccaa934f923056a35d35639292b0ed020b90b31de06a128`;
+judgment SHA-256 is
+`71dc227664505e9bf3d6d6e2855bcceb5605029bdcad2546dbd8e93cd81eebd2`;
+independent review response SHA-256 is
+`dadad81f30de73fb3a1195f7e9be72ac4eaa294793d5282a0095093ac736a651`.
+The behavior-local approval remains DRAFT and `training_eligible=false` until
+all seven batches form the exact final 300-entry approval manifest. Six behavior
+batches remain; long training remains blocked.
